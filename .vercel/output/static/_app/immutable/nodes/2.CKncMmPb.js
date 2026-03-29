@@ -1,1 +1,0 @@
-import"../chunks/DsnmJJEf.js";import{o as r}from"../chunks/CzugHRlo.js";import{p as t,a as p}from"../chunks/CYqqBsR2.js";import{g as a}from"../chunks/CK-vGiQf.js";function c(e,o){t(o,!0),r(()=>{a("/discover",{replaceState:!0})}),p()}export{c as component};
