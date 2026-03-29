@@ -3,6 +3,7 @@
 	import '@fontsource-variable/inter';
 	import '@fontsource-variable/jetbrains-mono';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import ConnectWalletModal from '$lib/components/ConnectWalletModal.svelte';
 	import { hydrateBackend } from '$lib/stores/backend';
 	import { hydrateWallet } from '$lib/stores/wallet';
 	import { onMount } from 'svelte';
@@ -24,17 +25,14 @@
 	/>
 </svelte:head>
 
-<html lang="en" class="dark">
-	<body
-		class="font-sans antialiased bg-[var(--surface-0)] text-[var(--text-primary)]"
-	>
-		<div class="hidden md:block">
-			<Sidebar />
-		</div>
-		<div class="md:ml-[220px]">
-			<main class="min-h-screen">
-				{@render children()}
-			</main>
-		</div>
-	</body>
-</html>
+<div class="dark font-sans antialiased bg-[var(--surface-0)] text-[var(--text-primary)]">
+	<div class="hidden md:block">
+		<Sidebar />
+	</div>
+	<div class="md:ml-[220px]">
+		<main class="min-h-screen">
+			{@render children()}
+		</main>
+	</div>
+	<ConnectWalletModal />
+</div>

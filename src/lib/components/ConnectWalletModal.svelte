@@ -44,7 +44,7 @@
 	<div
 		class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center"
 		onkeydown={(e) => e.key === 'Escape' && handleClose()}
-		onclick|self={handleClose}
+		onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
 	>
 		<!-- Modal -->
 		<div
