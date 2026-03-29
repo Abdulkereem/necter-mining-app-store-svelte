@@ -3,6 +3,7 @@
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
   import { appIconDataUri } from '$lib/app-icon';
+  import DevSetupModal from '$lib/components/DevSetupModal.svelte';
   import {
     Plus, Send, Cpu, Server, Database, Wifi, Globe, Shield,
   } from 'lucide-svelte';
@@ -262,3 +263,5 @@
     </div>
   </div>
 {/if}
+
+<DevSetupModal bind:open={setupModalOpen} />

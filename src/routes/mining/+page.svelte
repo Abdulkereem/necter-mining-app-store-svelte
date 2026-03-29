@@ -373,12 +373,16 @@
 								30-day earnings
 							</span>
 						</div>
-						<!-- Chart placeholder - will add charting library later -->
-						<div
-							style="height: 256px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 12px; padding: 8px 4px 0;"
-						>
-							<span style="opacity: 0.5;">Chart placeholder — charting library TBD</span>
-						</div>
+						{#if typeof window !== 'undefined'}
+							{#await import('$lib/components/AreaChart.svelte') then { default: AreaChart }}
+								<svelte:component this={AreaChart}
+									data={earningsSeries.map((d) => d.value)}
+									labels={earningsSeries.map((d) => { const dt = new Date(d.date); return `${dt.getMonth()+1}/${dt.getDate()}`; })}
+									color="var(--accent-base)"
+									height={256}
+								/>
+							{/await}
+						{/if}
 					</div>
 
 					<!-- Side panels -->
