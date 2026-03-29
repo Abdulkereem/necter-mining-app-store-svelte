@@ -1,4 +1,5 @@
 <script>
+	import { showToast } from '$lib/stores/toast';
   import { goto } from '$app/navigation';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
@@ -31,7 +32,7 @@
     try {
       fn();
     } catch (e) {
-      alert(e?.message ?? 'Please try again.');
+      showToast(e?.message ?? 'Please try again.');
     }
   }
 
@@ -205,7 +206,7 @@
                     class="btn-subscribe"
                     onclick={() => {
                       if (!$actor) { $showConnectModal = true; return; }
-                      if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); alert('Governance enabled'); }
+                      if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); showToast('Governance enabled'); }
                       safe(() => backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'yes' }));
                     }}
                     disabled={!canVote || isExecuting || !$actor}
@@ -218,7 +219,7 @@
                     class="btn-secondary"
                     onclick={() => {
                       if (!$actor) { $showConnectModal = true; return; }
-                      if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); alert('Governance enabled'); }
+                      if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); showToast('Governance enabled'); }
                       safe(() => backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'no' }));
                     }}
                     disabled={!canVote || isExecuting || !$actor}

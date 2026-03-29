@@ -1,4 +1,5 @@
 <script>
+	import { showToast } from '$lib/stores/toast';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { backendState, backend } from '$lib/stores/backend';
@@ -70,7 +71,7 @@
       comments,
       conditions: recommendation === 'conditional' ? conditions : '',
     });
-    alert(status === 'submitted' ? 'Review submitted' : 'Draft saved');
+    showToast(status === 'submitted' ? 'Review submitted' : 'Draft saved');
     if (status === 'submitted') goto('/governance');
   }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { showToast } from '$lib/stores/toast';
 	import { page } from '$app/stores';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
@@ -187,7 +188,7 @@
 		try {
 			fn();
 		} catch (e: any) {
-			alert(e?.message ?? 'Action failed');
+			showToast(e?.message ?? 'Action failed');
 		}
 	}
 
@@ -1205,7 +1206,7 @@
 								<button
 									type="button"
 									class="btn-subscribe mt-4"
-									onclick={() => alert('Allocation updated. Resource partition applied.')}
+									onclick={() => showToast('Allocation updated. Resource partition applied.')}
 								>
 									Apply allocation
 								</button>

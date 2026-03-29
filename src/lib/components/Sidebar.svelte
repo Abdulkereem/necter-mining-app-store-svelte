@@ -6,8 +6,10 @@
 	import { backendState, backend } from '$lib/stores/backend';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 	import { appIconDataUri } from '$lib/app-icon';
+	import SettingsModal from './SettingsModal.svelte';
 
 	let catOpen = $state(false);
+	let settingsOpen = $state(false);
 	let searchQuery = $state('');
 	let searchOpen = $state(false);
 	let searchInputRef = $state<HTMLInputElement | null>(null);
@@ -208,6 +210,7 @@
 		{#if $wallet}
 			<button
 				type="button"
+				onclick={() => settingsOpen = true}
 				class="w-full flex items-center gap-2.5 px-2 py-2 rounded-[5px] hover:bg-[var(--surface-1)] transition-colors duration-100 text-left bg-transparent border-none cursor-pointer"
 			>
 				<img
@@ -235,3 +238,5 @@
 		{/if}
 	</div>
 </aside>
+
+<SettingsModal bind:open={settingsOpen} />

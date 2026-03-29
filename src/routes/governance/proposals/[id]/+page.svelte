@@ -1,4 +1,5 @@
 <script>
+	import { showToast } from '$lib/stores/toast';
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
@@ -46,7 +47,7 @@
       backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true });
     }
     backend.castGovernanceProposalVote({ proposalId: proposal.id, voterId: $actor.walletAddress, direction, vp: 12_450 });
-    alert(direction === 'for' ? 'Voted for' : 'Voted against');
+    showToast(direction === 'for' ? 'Voted for' : 'Voted against');
   }
 </script>
 

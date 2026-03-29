@@ -4,6 +4,7 @@
 	import '@fontsource-variable/jetbrains-mono';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import ConnectWalletModal from '$lib/components/ConnectWalletModal.svelte';
+	import { Toaster } from 'svelte-french-toast';
 	import { hydrateBackend } from '$lib/stores/backend';
 	import { hydrateWallet } from '$lib/stores/wallet';
 	import { onMount } from 'svelte';
@@ -35,4 +36,5 @@
 		</main>
 	</div>
 	<ConnectWalletModal />
+	<Toaster />
 </div>

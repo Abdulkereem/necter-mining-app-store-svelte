@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { showToast } from '$lib/stores/toast';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { ArrowLeft, Save } from 'lucide-svelte';
@@ -47,7 +48,7 @@
 			rewardSplitDeveloper: feeDev,
 			rewardSplitTreasury: feeTreasury,
 		});
-		alert('Settings saved');
+		showToast('Settings saved');
 	}
 
 	const inputClass = 'w-full h-9 px-3 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] outline-none';

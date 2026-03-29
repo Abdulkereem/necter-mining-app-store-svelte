@@ -1,4 +1,5 @@
 <script>
+	import { showToast } from '$lib/stores/toast';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { backendState, backend } from '$lib/stores/backend';
@@ -172,7 +173,7 @@
       return;
     }
     if (missingAttestations.length > 0) {
-      alert(`Cannot subscribe: This network requires attestations you don't have yet: ${missingAttestations.join(', ')}.`);
+      showToast(`Cannot subscribe: This network requires attestations you don't have yet: ${missingAttestations.join(', ')}.`);
       return;
     }
     if (existingSubscription) {
@@ -192,7 +193,7 @@
         : 'This subscription could not be created.');
       return;
     }
-    alert('Subscribed! This network is now in My Mining.');
+    showToast('Subscribed! This network is now in My Mining.');
     goto(`/mining/${encodeURIComponent(sub.id)}`);
   }
 
@@ -228,9 +229,9 @@
   async function handleShare() {
     try {
       const res = await shareOrCopy({ title: `${app.name} • Necter`, text: `Check out ${app.name} on Necter`, url: shareUrl });
-      if (res.method === 'copy') alert('Link copied!');
+      if (res.method === 'copy') showToast('Link copied!');
     } catch {
-      alert("Couldn't share link. Try copying the URL from the address bar.");
+      showToast("Couldn't share link. Try copying the URL from the address bar.");
     }
   }
 
@@ -238,10 +239,10 @@
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl);
-        alert('Link copied!');
+        showToast('Link copied!');
       }
     } catch {
-      alert('Copy failed');
+      showToast('Copy failed');
     }
   }
 
@@ -253,11 +254,11 @@
         severity: reportSeverity,
         reason: reportReason,
       });
-      alert('Report submitted. Governance can now vote to keep or delist.');
+      showToast('Report submitted. Governance can now vote to keep or delist.');
       reportOpen = false;
       reportReason = '';
     } catch (e) {
-      alert(e?.message ?? 'Please try again.');
+      showToast(e?.message ?? 'Please try again.');
     }
   }
 
