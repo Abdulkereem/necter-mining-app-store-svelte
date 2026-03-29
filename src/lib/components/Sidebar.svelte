@@ -71,9 +71,10 @@
 >
 	<!-- Brand mark -->
 	<div class="px-3 pt-5 pb-2">
-		<a
-			href="/discover"
-			class="flex items-center gap-2.5 px-2 py-1.5 rounded-[5px] hover:bg-[var(--surface-1)] transition-colors duration-100 no-underline w-full text-left"
+		<button
+			type="button"
+			onclick={() => window.dispatchEvent(new CustomEvent('necter:open-onboarding'))}
+			class="flex items-center gap-2.5 px-2 py-1.5 rounded-[5px] hover:bg-[var(--surface-1)] transition-colors duration-100 no-underline w-full bg-transparent border-none cursor-pointer text-left"
 		>
 			<img src="/brand/logo.svg" alt="Necter" class="h-7 w-7 flex-shrink-0" />
 			<div class="flex flex-col" style="padding-top: 2px;">
@@ -83,7 +84,7 @@
 					>Mining App Store</span
 				>
 			</div>
-		</a>
+		</button>
 	</div>
 
 	<!-- Search -->
