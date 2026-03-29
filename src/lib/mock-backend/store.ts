@@ -596,7 +596,7 @@ function bootstrapState(): MockBackendState {
   }
 }
 
-class MockBackendStore {
+export class MockBackendStore {
   private state: MockBackendState
   private listeners = new Set<Listener>()
   private hydratedFromStorage = false
