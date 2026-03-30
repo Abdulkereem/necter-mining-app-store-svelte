@@ -93,7 +93,7 @@ const realScreenshots: Record<string, string[]> = {
   "Polygon": ["/screenshots/polygon-1.webp"],
   "Flux Network": ["/screenshots/flux-1.webp", "/screenshots/flux-2.webp"],
   "Fetch.ai": ["/screenshots/fetchai-1.png", "/screenshots/fetchai-2.png"],
-  "DockHive": ["/screenshots/dockhive-1.jpg", "/screenshots/dockhive-2.png"],
+  "DockHive": ["/screenshots/dockhive-1.png", "/screenshots/dockhive-2.png", "/screenshots/dockhive-3.png"],
 }
 
 export function getAppScreenshots(app: { id: string; name: string; category: string; avgEarningsPerDay: number; totalMiners: number; reputationScore: number }): string[] {
