@@ -28,7 +28,7 @@ export const learnArticles: LearnArticle[] = [
         heading: "Your first steps",
         body: [
           "1) Connect a wallet (needed for miner-specific data).",
-          "2) Pick a network (app) in Discover and subscribe.",
+          "2) Pick a project (app) in Discover and subscribe.",
           "3) Go to My Mining to see activity, earnings, and proofs.",
         ],
       },
@@ -99,7 +99,7 @@ export const learnArticles: LearnArticle[] = [
         heading: "1. Install the miner (real)",
         body: [
           "In production you install the Necter Miner CLI on your machine (Linux/macOS/Windows). It is a real binary that talks to the Necter JobManager and runs workloads.",
-          "After you subscribe to a network in the app, you run the real commands on your machine. Example (replace app slug with the network’s slug):",
+          "After you subscribe to a project in the app, you run the real commands on your machine. Example (replace app slug with the project’s slug):",
           "  necter miner install --app <app-slug>   # installs the miner runtime (Docker/VM/NDSR image) for that network",
           "  necter miner run --app <app-slug> --mode daemon   # starts the miner; it registers with the JobManager and stays running",
           "  necter miner status --app <app-slug>   # shows status, current job, uptime",
@@ -187,7 +187,7 @@ export const learnArticles: LearnArticle[] = [
       {
         heading: "What is NDSR?",
         body: [
-          "NDSR (Necter Distributed State Runtime) is the execution layer that runs inside every miner node. When you subscribe to a network and start mining, your node downloads an NDSR container specific to that network.",
+          "NDSR (Necter Distributed State Runtime) is the execution layer that runs inside every miner node. When you subscribe to a project and start mining, your node downloads an NDSR container specific to that network.",
           "The container handles everything: receiving job payloads from the JobManager, executing the workload (AI inference, data storage, bandwidth relay, sensor processing), generating cryptographic proofs, and submitting results for verification.",
         ],
       },
@@ -198,7 +198,7 @@ export const learnArticles: LearnArticle[] = [
           "2. Your NDSR container receives the task payload (input data, parameters, timeout).",
           "3. The runtime executes the workload locally using your GPU, CPU, storage, or bandwidth.",
           "4. On completion, NDSR generates a proof: a cryptographic attestation that the work was done correctly.",
-          "5. The proof is submitted to the network's verifier (on-chain or off-chain depending on the network's consensus mechanism).",
+          "5. The proof is submitted to the project's verifier (on-chain or off-chain depending on the project's consensus mechanism).",
           "6. If verified, the JobEscrow releases your reward automatically.",
         ],
       },
@@ -223,21 +223,21 @@ export const learnArticles: LearnArticle[] = [
     tab: "guides",
     path: "guides/hivekit",
     title: "HiveKit: Developer SDK",
-    description: "The SDK that network developers use to build, deploy, and manage mining networks on Necter.",
+    description: "The SDK that network developers use to build, deploy, and manage mining projects on Necter.",
     readingMinutes: 7,
     sections: [
       {
         heading: "What is HiveKit?",
         body: [
-          "HiveKit is the developer toolkit for building mining networks on Necter. It provides SDKs, CLI tools, and runtime libraries that handle the complexity of distributed task orchestration, proof verification, and reward distribution.",
+          "HiveKit is the developer toolkit for building mining projects on Necter. It provides SDKs, CLI tools, and runtime libraries that handle the complexity of distributed task orchestration, proof verification, and reward distribution.",
           "Instead of building mining infrastructure from scratch, developers define their network's logic (what tasks look like, how proofs are verified, how rewards are calculated) and HiveKit handles the rest.",
         ],
       },
       {
-        heading: "Building a network with HiveKit",
+        heading: "Building a project with HiveKit",
         body: [
           "1. Define your task schema: what input data miners receive, what output they produce, and how long tasks should take.",
-          "2. Implement your verification logic: how the network checks that a miner's proof is valid.",
+          "2. Implement your verification logic: how the project checks that a miner's proof is valid.",
           "3. Configure reward economics: per-task pricing, miner/developer/treasury splits, staking requirements, and SLA penalties.",
           "4. Package your mining runtime as an NDSR container: the actual code that miners will run.",
           "5. Deploy via the Developer Portal or HiveKit CLI. Your network goes through governance review before listing.",

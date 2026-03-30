@@ -348,7 +348,7 @@ export const developerRegistry: Record<string, DeveloperProfile> = {
   "0xWYND...i5j6": {
     address: "0xWYND...i5j6",
     name: "Wynd Labs",
-    bio: "Creators of Grass — the network that lets users sell their unused internet bandwidth. Wynd Labs is building infrastructure to power the next generation of AI data pipelines.",
+    bio: "Creators of Grass — the project that lets users sell their unused internet bandwidth. Wynd Labs is building infrastructure to power the next generation of AI data pipelines.",
     website: "https://getgrass.io",
     logo: "/logos/grass.jpg",
     founded: "2022",
