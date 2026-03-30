@@ -150,7 +150,7 @@ export const mockApps: App[] = [
   {
     id: "3",
     name: "Filecoin Storage",
-    description: "Decentralized storage network. Earn FIL by providing storage capacity to the network.",
+    description: "Decentralized storage project. Earn FIL by providing storage capacity to the network.",
     category: "Storage",
     developer: "Protocol Labs",
     developerAddress: "0xFILE...e5f6",
@@ -339,7 +339,7 @@ export const mockApps: App[] = [
   {
     id: "6",
     name: "Livepeer Network",
-    description: "Decentralized video transcoding network. Earn LPT by processing video streams.",
+    description: "Decentralized video transcoding project. Earn LPT by processing video streams.",
     category: "Compute",
     developer: "Livepeer Inc",
     developerAddress: "0xLIVE...k1l2",
@@ -835,7 +835,7 @@ export const mockApps: App[] = [
   {
     id: "12",
     name: "Chainlink",
-    description: "Decentralized oracle network. Run a node and earn LINK.",
+    description: "Decentralized oracle project. Run a node and earn LINK.",
     category: "Blockchain",
     developer: "Chainlink Labs",
     developerAddress: "0xLINK...w3x4",
@@ -1100,7 +1100,7 @@ export const mockApps: App[] = [
   {
     id: "15",
     name: "Hivemapper",
-    description: "Decentralized mapping network. Earn HONEY by contributing dashcam footage to build real-time maps.",
+    description: "Decentralized mapping project. Earn HONEY by contributing dashcam footage to build real-time maps.",
     category: "DePIN",
     developer: "Hivemapper Inc",
     developerAddress: "0xHIVE...c9d0",
@@ -1193,7 +1193,7 @@ export const mockApps: App[] = [
   {
     id: "16",
     name: "Bittensor",
-    description: "Decentralized AI network. Contribute compute power for machine learning and earn TAO.",
+    description: "Decentralized AI project. Contribute compute power for machine learning and earn TAO.",
     category: "AI/ML",
     developer: "Opentensor Foundation",
     developerAddress: "0xBTSR...e1f2",
@@ -1288,7 +1288,7 @@ export const mockApps: App[] = [
   {
     id: "17",
     name: "DIMO",
-    description: "Decentralized IoT network for vehicles. Share car data and earn DIMO tokens.",
+    description: "Decentralized IoT project for vehicles. Share car data and earn DIMO tokens.",
     category: "IoT",
     developer: "Digital Infrastructure Inc",
     developerAddress: "0xDIMO...g3h4",
@@ -1472,7 +1472,7 @@ export const mockApps: App[] = [
   {
     id: "19",
     name: "Worldcoin",
-    description: "Global identity and financial network. Operate Orb nodes and earn WLD tokens for proof-of-personhood verification.",
+    description: "Global identity and financial project. Operate Orb nodes and earn WLD tokens for proof-of-personhood verification.",
     category: "DePIN",
     developer: "Tools for Humanity",
     developerAddress: "0xWRLD...k7l8",
@@ -1732,7 +1732,7 @@ export const mockApps: App[] = [
   {
     id: "22",
     name: "Polkadot",
-    description: "Multi-chain validation network. Validate and earn DOT.",
+    description: "Multi-chain validation project. Validate and earn DOT.",
     category: "Blockchain",
     developer: "Web3 Foundation",
     developerAddress: "0xDOTS...q3r4",
@@ -2233,7 +2233,7 @@ export const mockApps: App[] = [
   {
     id: "28",
     name: "DockHive",
-    description: "Decentralized cloud hosting protocol for Web3 and Web2 applications. Deploy, scale, and own your infrastructure. Miners provide compute, storage, and GPU resources to power app hosting, managed databases, virtual machines, and object storage across a global network with no single point of failure.",
+    description: "Decentralized cloud hosting protocol for Web3 and Web2 applications. Deploy, scale, and own your infrastructure. Miners provide compute, storage, and GPU resources to power app hosting, managed databases, virtual machines, and object storage across a global infrastructure with no single point of failure.",
     category: "Compute",
     developer: "Hive Innovation Lab",
     developerAddress: "0xDOCK...h1v3",
@@ -2301,7 +2301,7 @@ export const mockApps: App[] = [
   {
     id: "29",
     name: "TIWA",
-    description: "Decentralized AI-powered knowledge network. Miners contribute compute resources to power AskTiwa, an intelligent assistant that processes natural language queries across decentralized infrastructure. The network distributes AI inference workloads across participating nodes, ensuring fast response times and data privacy.",
+    description: "Decentralized AI-powered knowledge project. Miners contribute compute resources to power AskTiwa, an intelligent assistant that processes natural language queries across decentralized infrastructure. The project distributes AI inference workloads across participating nodes, ensuring fast response times and data privacy.",
     category: "AI/ML",
     developer: "TIWA Labs",
     developerAddress: "0xTIWA...g3o2",
@@ -2359,7 +2359,7 @@ export const mockApps: App[] = [
   {
     id: "30",
     name: "Atum",
-    description: "Your gateway to a secure, decentralized, and sustainable future. Atum is building a privacy-first ecosystem where data is a user's asset, not a commodity. Miners power Atum's decentralized search engine, node infrastructure, and upcoming decentralized OS through distributed compute and storage. The network emphasizes green energy and carbon-neutral operations.",
+    description: "Your gateway to a secure, decentralized, and sustainable future. Atum is building a privacy-first ecosystem where data is a user's asset, not a commodity. Miners power Atum's decentralized search engine, node infrastructure, and upcoming decentralized OS through distributed compute and storage. The project emphasizes green energy and carbon-neutral operations.",
     category: "Compute",
     developer: "Atum Software",
     developerAddress: "0xATUM...r5s4",

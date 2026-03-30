@@ -236,7 +236,7 @@ function bootstrapCuratedCollections(now = nowIso()): CuratedCollection[] {
       id: "col_editors_picks",
       kind: "editors_picks",
       title: "Editor’s Picks",
-      description: "Hand-picked networks by the Necter team.",
+      description: "Hand-picked projects by the Necter team.",
       appIds: editors.length > 0 ? editors : fallback,
       createdAt: now, updatedAt: now,
     },
@@ -244,14 +244,14 @@ function bootstrapCuratedCollections(now = nowIso()): CuratedCollection[] {
       id: "col_gpu_compute",
       kind: "dao_curated",
       title: "GPU Compute & AI",
-      description: "Networks that need GPU power. AI inference, rendering, training.",
+      description: "Projects that need GPU power. AI inference, rendering, training.",
       appIds: byCategory("AI/ML"),
       createdAt: now, updatedAt: now,
     },
     {
       id: "col_storage",
       kind: "dao_curated",
-      title: "Storage Networks",
+      title: "Storage Projects",
       description: "Earn by providing disk space and bandwidth for decentralized storage.",
       appIds: byCategory("Storage"),
       createdAt: now, updatedAt: now,
@@ -260,15 +260,15 @@ function bootstrapCuratedCollections(now = nowIso()): CuratedCollection[] {
       id: "col_depin_iot",
       kind: "dao_curated",
       title: "DePIN & IoT",
-      description: "Physical infrastructure networks. Wireless coverage, sensors, mapping.",
+      description: "Physical infrastructure projects. Wireless coverage, sensors, mapping.",
       appIds: [...byCategory("DePIN"), ...byCategory("IoT")].slice(0, 6),
       createdAt: now, updatedAt: now,
     },
     {
       id: "col_high_earning",
       kind: "editors_picks",
-      title: "Highest Earning Networks",
-      description: "Networks with the best daily earnings potential for miners.",
+      title: "Highest Earning Projects",
+      description: "Projects with the best daily earnings potential for miners.",
       appIds: highEarning,
       createdAt: now, updatedAt: now,
     },
@@ -596,7 +596,7 @@ function bootstrapState(): MockBackendState {
   }
 }
 
-export class MockBackendStore {
+class MockBackendStore {
   private state: MockBackendState
   private listeners = new Set<Listener>()
   private hydratedFromStorage = false
@@ -3179,7 +3179,7 @@ export class MockBackendStore {
             id: randId("badge"),
             kind: "milestone",
             name: "First Proof Verified",
-            description: "Submit and verify your very first proof on the Necter network",
+            description: "Submit and verify your very first proof on Necter",
             mintedAt: nowIso(),
             appId: job.appId,
           })
@@ -3189,7 +3189,7 @@ export class MockBackendStore {
             id: randId("badge"),
             kind: "milestone",
             name: "10 Proofs Verified",
-            description: "Verify 10 proofs across any combination of networks",
+            description: "Verify 10 proofs across any combination of projects",
             mintedAt: nowIso(),
           })
         }
@@ -3208,7 +3208,7 @@ export class MockBackendStore {
             id: randId("badge"),
             kind: "milestone",
             name: "First Payout",
-            description: "Receive your first NECTA reward payout from a mining network",
+            description: "Receive your first NECTA reward payout from a mining project",
             mintedAt: nowIso(),
             appId: job.appId,
           })
@@ -3220,7 +3220,7 @@ export class MockBackendStore {
             id: randId("badge"),
             kind: "community",
             name: "Network Hopper",
-            description: "Mine on 3 or more different networks simultaneously",
+            description: "Mine on 3 or more different projects simultaneously",
             mintedAt: nowIso(),
           })
         }
@@ -3236,7 +3236,7 @@ export class MockBackendStore {
             id: randId("badge"),
             kind: "community",
             name: "Category Explorer",
-            description: "Mine at least one network from 4 different categories",
+            description: "Mine at least one project from 4 different categories",
             mintedAt: nowIso(),
           })
         }
