@@ -293,9 +293,9 @@
 						<img
 							src={appIcon(app)}
 							alt={app.name}
-							width="56"
-							height="56"
-							class="rounded-[12px] block md:w-[64px] md:h-[64px]"
+							width="48"
+							height="48"
+							class="rounded-[10px] block w-12 h-12 md:w-16 md:h-16 md:rounded-[12px]"
 						/>
 					</div>
 
@@ -591,12 +591,12 @@
 			     TABS -- horizontally scrollable on mobile
 			════════════════════════════════════════════════════════ -->
 			<div
-				class="flex gap-0 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-[3px] mb-6 w-fit max-w-full overflow-x-auto"
+				class="flex gap-0 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-[3px] mb-6 w-full md:w-fit max-w-full overflow-x-auto"
 				style="-webkit-overflow-scrolling: touch;"
 			>
 				{#each tabLabels as tab}
 					<button
-						class="h-7 px-3 rounded-[5px] text-[12px] font-medium cursor-pointer border-0 transition-colors duration-100 whitespace-nowrap shrink-0
+						class="h-7 px-3 rounded-[5px] text-[12px] font-medium cursor-pointer border-0 transition-colors duration-100 whitespace-nowrap flex-1 md:flex-none
               {activeTab === tab
 							? 'bg-[var(--surface-3)] text-[var(--text-primary)]'
 							: 'bg-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}"

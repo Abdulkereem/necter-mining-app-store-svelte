@@ -408,11 +408,14 @@
 
 		<!-- ── Earnings tab ── -->
 		{#if tab === 'earnings'}
-			<EarningsPanel />
+			<div class="px-4 md:px-0">
+				<EarningsPanel />
+			</div>
 		{/if}
 
 		<!-- ── Proofs tab ── -->
 		{#if tab === 'proofs'}
+			<div class="px-4 md:px-0">
 			{#if !minerId}
 				<div class="py-8 text-center">
 					<p class="text-[13px]" style="color: var(--text-tertiary);">Connect a wallet to view proofs.</p>
@@ -589,6 +592,7 @@
 					</div>
 				</div>
 			{/if}
+			</div>
 		{/if}
 
 		<!-- ── Dashboard tab ── -->
@@ -597,7 +601,7 @@
 			<!-- ════════════════════════════════════
 			     MOBILE: Clean focused layout
 			     ════════════════════════════════════ -->
-			<div class="md:hidden flex flex-col gap-3">
+			<div class="md:hidden flex flex-col gap-3 px-4">
 				<!-- 3 key stats -->
 				<div class="grid grid-cols-3 gap-2">
 					{#each [
