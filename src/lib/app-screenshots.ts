@@ -10,6 +10,7 @@ const categoryColors: Record<string, { bg: string; accent: string }> = {
   "Bandwidth": { bg: "#1e0d0d", accent: "#FF8664" },
   "Hardware Staking": { bg: "#0d0d1e", accent: "#6E9FFF" },
   "Data Sovereignty": { bg: "#0d1e1a", accent: "#4CB782" },
+  "Blockchain": { bg: "#1a1520", accent: "#F7931A" },
 }
 
 function generateScreenshotSVG(
@@ -94,6 +95,10 @@ const realScreenshots: Record<string, string[]> = {
   "Flux Network": ["/screenshots/flux-1.webp", "/screenshots/flux-2.webp"],
   "Fetch.ai": ["/screenshots/fetchai-1.png", "/screenshots/fetchai-2.png"],
   "DockHive": ["/screenshots/dockhive-1.png", "/screenshots/dockhive-2.png", "/screenshots/dockhive-3.png"],
+  "TIWA": ["/screenshots/tiwa-1.png", "/screenshots/tiwa-2.png"],
+  "Bitcoin": ["/screenshots/bitcoin-1.jpg", "/screenshots/bitcoin-2.jpg", "/screenshots/bitcoin-3.jpg"],
+  "Ethereum": ["/screenshots/ethereum-1.jpg", "/screenshots/ethereum-2.jpg", "/screenshots/ethereum-3.jpg"],
+  "Monero": ["/screenshots/monero-1.jpg", "/screenshots/monero-2.jpg", "/screenshots/monero-3.jpg"],
 }
 
 export function getAppScreenshots(app: { id: string; name: string; category: string; avgEarningsPerDay: number; totalMiners: number; reputationScore: number }): string[] {

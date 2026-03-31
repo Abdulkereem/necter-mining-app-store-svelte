@@ -301,6 +301,29 @@ export interface AttestationVote {
   timestamp: string
 }
 
+export interface MinerDevice {
+  id: string
+  minerId: string
+  name: string
+  type: "desktop" | "server" | "laptop" | "custom"
+  status: "online" | "offline" | "idle"
+  lastSeenAt: string
+  createdAt: string
+  hardware: {
+    gpu?: string
+    gpuVram?: number
+    cpu?: string
+    cpuCores?: number
+    ram?: string
+    storage?: string
+    bandwidth?: string
+  }
+  subscribedAppIds: string[]
+  totalEarned: number
+  uptime: number
+  location?: string
+}
+
 // New interfaces added for updates
 export interface HardwareProfile {
   id: string

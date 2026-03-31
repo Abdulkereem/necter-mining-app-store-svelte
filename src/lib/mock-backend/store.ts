@@ -1,4 +1,4 @@
-"use client"
+
 
 import { mockApps, mockSubscriptions } from "$lib/mock-data"
 import type {
@@ -30,8 +30,18 @@ import type {
   Payout,
   SlashingEvent,
   MinerBadge,
+  GovernanceStakeEvent,
+  GovernanceDelegation,
+  ProposalComment,
+  TreasuryTransaction,
+  WebhookLogEntry,
+  DeploymentLog,
+  DeploymentStep,
+  Announcement,
+  SupportTicket,
+  TestnetSession,
 } from "$lib/mock-backend/types"
-import type { App, HardwareProfile, MiningProfile, ProofDetail, ProofSubmission, Subscription, Withdrawal } from "$lib/types"
+import type { App, HardwareProfile, MinerDevice, MiningProfile, ProofDetail, ProofSubmission, Subscription, Withdrawal } from "$lib/types"
 
 const STORAGE_KEY = "necter_mock_backend_v1"
 
@@ -542,6 +552,74 @@ function bootstrapState(): MockBackendState {
         gpuVram: 10,
       },
     },
+    devicesByMinerId: {
+      [demoMiner.id]: [
+        {
+          id: "device-1",
+          minerId: demoMiner.id,
+          name: "Home Desktop",
+          type: "desktop",
+          status: "online",
+          lastSeenAt: createdAt,
+          createdAt,
+          hardware: {
+            gpu: "NVIDIA RTX 4090",
+            gpuVram: 24,
+            cpu: "AMD Ryzen 9 7950X",
+            cpuCores: 16,
+            ram: "64GB DDR5",
+            storage: "2TB NVMe",
+            bandwidth: "500 Mbps",
+          },
+          subscribedAppIds: ["1", "2", "3"],
+          totalEarned: 1240.50,
+          uptime: 99.2,
+          location: "Home Office",
+        },
+        {
+          id: "device-2",
+          minerId: demoMiner.id,
+          name: "Cloud Server",
+          type: "server",
+          status: "online",
+          lastSeenAt: createdAt,
+          createdAt,
+          hardware: {
+            cpu: "Intel Xeon E-2388G",
+            cpuCores: 8,
+            ram: "128GB ECC",
+            storage: "4TB SSD",
+            bandwidth: "1000 Mbps",
+          },
+          subscribedAppIds: ["1", "2", "3", "4", "5"],
+          totalEarned: 2890.75,
+          uptime: 99.8,
+          location: "US-East Datacenter",
+        },
+        {
+          id: "device-3",
+          minerId: demoMiner.id,
+          name: "MacBook Pro",
+          type: "laptop" as const,
+          status: "idle" as const,
+          lastSeenAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+          createdAt,
+          hardware: {
+            gpu: "Apple M3 Max",
+            gpuVram: 36,
+            cpu: "Apple M3 Max",
+            cpuCores: 14,
+            ram: "36GB Unified",
+            storage: "1TB SSD",
+            bandwidth: "200 Mbps",
+          },
+          subscribedAppIds: ["1"],
+          totalEarned: 320.15,
+          uptime: 78.4,
+          location: "Mobile",
+        },
+      ],
+    },
     attestationCapabilitiesByMinerId: {
       [demoMiner.id]: { tpm: true, tee: true, sgx: false },
     },
@@ -555,6 +633,9 @@ function bootstrapState(): MockBackendState {
         requestedAt: createdAt,
         reviewedAt: createdAt,
       } satisfies DeveloperVerificationRecord,
+      "0xBTC...core": { walletAddress: "0xBTC...core", status: "verified", requestedAt: "2009-01-03", reviewedAt: "2009-01-03" } satisfies DeveloperVerificationRecord,
+      "0xETH...found": { walletAddress: "0xETH...found", status: "verified", requestedAt: "2015-07-30", reviewedAt: "2015-07-30" } satisfies DeveloperVerificationRecord,
+      "0xXMR...proj": { walletAddress: "0xXMR...proj", status: "verified", requestedAt: "2014-04-18", reviewedAt: "2014-04-18" } satisfies DeveloperVerificationRecord,
     },
     developerEnrollmentByAddress: {
       [demoMiner.walletAddress]: {
@@ -564,7 +645,47 @@ function bootstrapState(): MockBackendState {
         reviewedAt: createdAt,
         displayName: "Demo Developer",
       } satisfies DeveloperEnrollmentRecord,
+      "0xBTC...core": {
+        walletAddress: "0xBTC...core", status: "active", submittedAt: "2009-01-03", reviewedAt: "2009-01-03",
+        displayName: "Bitcoin Core", logo: "/logos/bitcoin.svg",
+        bio: "Open-source software that serves as a Bitcoin node and provides a Bitcoin wallet. Maintained by hundreds of contributors worldwide since 2009.",
+        website: "https://bitcoin.org", location: "Decentralized", founded: "2009", category: "Blockchain",
+        tags: ["Bitcoin", "PoW", "SHA-256", "Layer 1"],
+        socialLinks: { twitter: "bitcoin", github: "bitcoin", discord: "", telegram: "" },
+      } satisfies DeveloperEnrollmentRecord,
+      "0xETH...found": {
+        walletAddress: "0xETH...found", status: "active", submittedAt: "2015-07-30", reviewedAt: "2015-07-30",
+        displayName: "Ethereum Foundation", logo: "/logos/ethereum.svg",
+        bio: "A non-profit organization dedicated to supporting Ethereum and related technologies. Funds research, development, and education for the Ethereum ecosystem.",
+        website: "https://ethereum.org", location: "Zug, Switzerland", founded: "2014", category: "Blockchain",
+        tags: ["Ethereum", "PoS", "Smart Contracts", "EVM"],
+        socialLinks: { twitter: "ethereum", github: "ethereum", discord: "", telegram: "" },
+      } satisfies DeveloperEnrollmentRecord,
+      "0xXMR...proj": {
+        walletAddress: "0xXMR...proj", status: "active", submittedAt: "2014-04-18", reviewedAt: "2014-04-18",
+        displayName: "Monero Project", logo: "/logos/monero.svg",
+        bio: "A community-driven open-source project building private, censorship-resistant digital cash. Monero is maintained by a decentralized team of researchers and developers.",
+        website: "https://getmonero.org", location: "Decentralized", founded: "2014", category: "Blockchain",
+        tags: ["Monero", "Privacy", "RandomX", "CPU Mining"],
+        socialLinks: { twitter: "monero", github: "monero-project", discord: "", telegram: "" },
+      } satisfies DeveloperEnrollmentRecord,
     },
+    governanceStakesByAddress: {
+      [demoMiner.walletAddress]: { total: 25_000, locked: 0, available: 25_000 },
+    },
+    governanceVoteStakes: {},
+    governanceReviewerStakes: {},
+    governanceRewards: {},
+    governanceStakeHistory: [] as GovernanceStakeEvent[],
+    governanceDelegations: [] as GovernanceDelegation[],
+    proposalComments: [] as ProposalComment[],
+    treasuryTransactions: [] as TreasuryTransaction[],
+    webhookLogsByAppId: {} as Record<string, WebhookLogEntry[]>,
+    deploymentLogsByAppId: {} as Record<string, DeploymentLog[]>,
+    announcementsByAppId: {} as Record<string, Announcement[]>,
+    minerTiersByAppId: {} as Record<string, any>,
+    supportTicketsByAppId: {} as Record<string, SupportTicket[]>,
+    testnetSessionsByAppId: {} as Record<string, TestnetSession[]>,
     treasuryBalance: 0,
     slashingEvents: [] as SlashingEvent[],
     badgesByMinerId: {
@@ -596,7 +717,7 @@ function bootstrapState(): MockBackendState {
   }
 }
 
-class MockBackendStore {
+export class MockBackendStore {
   private state: MockBackendState
   private listeners = new Set<Listener>()
   private hydratedFromStorage = false
@@ -757,6 +878,22 @@ class MockBackendStore {
       miningPackageReleasesByAppId,
       activeMiningPackageReleaseIdByAppId,
       hardwareProfileByMinerId: (input as any).hardwareProfileByMinerId ?? {},
+      devicesByMinerId: (() => {
+        const saved = (input as any).devicesByMinerId ?? {}
+        const bootstrap = bootstrapState().devicesByMinerId ?? {}
+        const merged = { ...saved }
+        // Copy bootstrap devices to every known miner that has no devices
+        const bootstrapDevices = Object.values(bootstrap).flat() as any[]
+        if (bootstrapDevices.length > 0) {
+          // Find the current miner from the session or miners list
+          const currentMinerId = (input as any).session?.minerId ?? miners[0]?.id ?? demoMiner.id
+          if (!merged[currentMinerId] || (merged[currentMinerId] as any[]).length === 0) {
+            // Give current miner the bootstrap devices (with updated minerId)
+            merged[currentMinerId] = bootstrapDevices.map((d: any) => ({ ...d, minerId: currentMinerId }))
+          }
+        }
+        return merged
+      })(),
       attestationCapabilitiesByMinerId: (input as any).attestationCapabilitiesByMinerId ?? {},
       minerReputationByMinerId: (input as any).minerReputationByMinerId ?? {},
       developerVerificationByAddress: (input as any).developerVerificationByAddress ?? {},
@@ -765,6 +902,20 @@ class MockBackendStore {
       treasuryBalance: (input as any).treasuryBalance ?? 0,
       slashingEvents: (input as any).slashingEvents ?? [],
       badgesByMinerId: (input as any).badgesByMinerId ?? {},
+      governanceStakesByAddress: (input as any).governanceStakesByAddress ?? {},
+      governanceVoteStakes: (input as any).governanceVoteStakes ?? {},
+      governanceReviewerStakes: (input as any).governanceReviewerStakes ?? {},
+      governanceRewards: (input as any).governanceRewards ?? {},
+      governanceStakeHistory: (input as any).governanceStakeHistory ?? [],
+      governanceDelegations: (input as any).governanceDelegations ?? [],
+      proposalComments: (input as any).proposalComments ?? [],
+      treasuryTransactions: (input as any).treasuryTransactions ?? [],
+      webhookLogsByAppId: (input as any).webhookLogsByAppId ?? {},
+      deploymentLogsByAppId: (input as any).deploymentLogsByAppId ?? {},
+      announcementsByAppId: (input as any).announcementsByAppId ?? {},
+      minerTiersByAppId: (input as any).minerTiersByAppId ?? {},
+      supportTicketsByAppId: (input as any).supportTicketsByAppId ?? {},
+      testnetSessionsByAppId: (input as any).testnetSessionsByAppId ?? {},
       operatorMiners: (input as any).operatorMiners ?? [],
       operatorGroups: (input as any).operatorGroups ?? [],
       operatorDeployments: (input as any).operatorDeployments ?? [],
@@ -1397,6 +1548,41 @@ class MockBackendStore {
     return this.state.badgesByMinerId?.[minerId] ?? []
   }
 
+  submitReview(input: { appId: string; rating: number; comment: string }) {
+    const { minerId } = this.requireAuth()
+    const app = this.state.apps.find((a) => a.id === input.appId)
+    if (!app) throw new Error("App not found.")
+    if (input.rating < 1 || input.rating > 5) throw new Error("Rating must be 1-5.")
+    if (!input.comment.trim()) throw new Error("Comment is required.")
+
+    const existing = (app.reviews ?? []).find((r) => r.minerId === minerId)
+    if (existing) throw new Error("You have already reviewed this project.")
+
+    const review = {
+      id: `review_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      minerId,
+      minerUsername: minerId.replace("miner_", "Miner "),
+      appId: input.appId,
+      rating: input.rating,
+      comment: input.comment.trim(),
+      timestamp: nowIso(),
+      helpful: 0,
+    }
+
+    this.setState((prev) => ({
+      ...prev,
+      apps: prev.apps.map((a) => {
+        if (a.id !== input.appId) return a
+        const reviews = [...(a.reviews ?? []), review]
+        const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+        return { ...a, reviews, averageRating: avg, reviewCount: reviews.length }
+      }),
+      updatedAt: nowIso(),
+    }))
+
+    return review
+  }
+
   getDeveloperVerification(walletAddress: string) {
     return this.state.developerVerificationByAddress?.[walletAddress] ?? null
   }
@@ -1879,9 +2065,29 @@ class MockBackendStore {
     return (this.state.governanceProposals ?? []).find((p) => p.id === id) ?? null
   }
 
-  createGovernanceProposal(input: { title: string; description: string; type: GovernanceProposal["type"]; createdBy: string; durationDays?: number }) {
+  createGovernanceProposal(input: { title: string; description: string; type: GovernanceProposal["type"]; createdBy: string; durationDays?: number; stakeAmount?: number }) {
     const { walletAddress } = this.requireRole("governance")
     if (input.createdBy !== walletAddress) throw new Error("Forbidden (createdBy mismatch).")
+
+    // Determine required stake by proposal type
+    const defaultStakes: Record<string, number> = {
+      "parameter-update": 10,
+      "reward-change": 25,
+      treasury: 50,
+    }
+    const requiredStake = input.stakeAmount ?? defaultStakes[input.type] ?? 10
+    const currentStake = this.state.governanceStakesByAddress[walletAddress] ?? { total: 0, locked: 0, available: 0 }
+    // Auto-deposit from wallet if governance stake is insufficient
+    if (currentStake.available < requiredStake) {
+      const walletBal = this.state.walletBalancesByAddress[walletAddress] ?? 0
+      const needed = requiredStake - currentStake.available
+      if (walletBal >= needed) {
+        this.depositGovernanceStake(walletAddress, needed)
+      } else {
+        throw new Error(`Insufficient balance. Need ${requiredStake} NECTA to stake. You have ${currentStake.available} staked + ${walletBal.toFixed(0)} in wallet.`)
+      }
+    }
+
     const now = nowIso()
     const durationDays = Math.max(1, Math.min(30, input.durationDays ?? 7))
     const endsAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
@@ -1912,21 +2118,51 @@ class MockBackendStore {
       createdBy: input.createdBy,
     }
 
-    this.setState((prev) => ({
-      ...prev,
-      governanceProposals: [proposal, ...(prev.governanceProposals ?? [])],
-      updatedAt: nowIso(),
-    }))
+    this.setState((prev) => {
+      const stake = prev.governanceStakesByAddress[walletAddress] ?? { total: 0, locked: 0, available: 0 }
+      return {
+        ...prev,
+        governanceProposals: [proposal, ...(prev.governanceProposals ?? [])],
+        governanceStakesByAddress: {
+          ...prev.governanceStakesByAddress,
+          [walletAddress]: {
+            total: stake.total,
+            locked: stake.locked + requiredStake,
+            available: stake.available - requiredStake,
+          },
+        },
+        updatedAt: nowIso(),
+      }
+    })
 
     return proposal
   }
 
-  castGovernanceProposalVote(input: { proposalId: string; voterId: string; direction: "for" | "against"; vp?: number }) {
+  castGovernanceProposalVote(input: { proposalId: string; voterId: string; direction: "for" | "against"; vp?: number; stakeAmount?: number }) {
     const { walletAddress } = this.requireRole("governance")
     const voterId = input.voterId.trim()
     if (!voterId) return
     if (voterId !== walletAddress) throw new Error("Forbidden (voter mismatch).")
-    const vp = Math.max(1, Math.min(1_000_000_000, input.vp ?? 1))
+
+    // Vote power = stake amount (minimum 100 NECTA)
+    const stakeAmount = Math.max(5, input.stakeAmount ?? input.vp ?? 5)
+    const currentStake = this.state.governanceStakesByAddress[walletAddress] ?? { total: 0, locked: 0, available: 0 }
+
+    // Check if this is a new vote (not toggling off an existing one)
+    const proposal = (this.state.governanceProposals ?? []).find((x) => x.id === input.proposalId)
+    const isAlreadyVoted = proposal?.votersFor.includes(voterId) || proposal?.votersAgainst.includes(voterId)
+    if (!isAlreadyVoted && currentStake.available < stakeAmount) {
+      // Auto-deposit from wallet
+      const walletBal = this.state.walletBalancesByAddress[walletAddress] ?? 0
+      const needed = stakeAmount - currentStake.available
+      if (walletBal >= needed) {
+        this.depositGovernanceStake(walletAddress, needed)
+      } else {
+        throw new Error(`Insufficient balance. Need ${stakeAmount} NECTA. You have ${currentStake.available} staked + ${walletBal.toFixed(0)} in wallet.`)
+      }
+    }
+
+    const vp = stakeAmount
 
     this.setState((prev) => {
       const p = (prev.governanceProposals ?? []).find((x) => x.id === input.proposalId) ?? null
@@ -1940,32 +2176,53 @@ class MockBackendStore {
       let votersFor = p.votersFor
       let votersAgainst = p.votersAgainst
 
+      // Track stake changes for this vote
+      const prevVoteStakes = prev.governanceVoteStakes[input.proposalId] ?? {}
+      const prevVoterStake = prevVoteStakes[voterId] ?? 0
+      let nextVoteStakes = { ...prevVoteStakes }
+      let stakeDelta = 0 // positive = lock more, negative = unlock
+
       // Toggle behavior:
-      // - vote same direction again -> remove vote
-      // - vote opposite direction -> switch sides
+      // - vote same direction again -> remove vote (unlock stake)
+      // - vote opposite direction -> switch sides (keep stake locked)
       if (input.direction === "for") {
         if (inFor) {
-          nextVotesFor = Math.max(0, nextVotesFor - vp)
+          // Removing vote — use the previously recorded vp for this voter
+          nextVotesFor = Math.max(0, nextVotesFor - prevVoterStake)
           votersFor = votersFor.filter((x) => x !== voterId)
+          stakeDelta = -prevVoterStake
+          delete nextVoteStakes[voterId]
         } else {
           if (inAgainst) {
-            nextVotesAgainst = Math.max(0, nextVotesAgainst - vp)
+            nextVotesAgainst = Math.max(0, nextVotesAgainst - prevVoterStake)
             votersAgainst = votersAgainst.filter((x) => x !== voterId)
+            // Switching sides: no net stake change, just update the amount
+            stakeDelta = vp - prevVoterStake
+          } else {
+            // New vote
+            stakeDelta = vp
           }
           nextVotesFor = nextVotesFor + vp
           votersFor = [...votersFor, voterId]
+          nextVoteStakes[voterId] = vp
         }
       } else {
         if (inAgainst) {
-          nextVotesAgainst = Math.max(0, nextVotesAgainst - vp)
+          nextVotesAgainst = Math.max(0, nextVotesAgainst - prevVoterStake)
           votersAgainst = votersAgainst.filter((x) => x !== voterId)
+          stakeDelta = -prevVoterStake
+          delete nextVoteStakes[voterId]
         } else {
           if (inFor) {
-            nextVotesFor = Math.max(0, nextVotesFor - vp)
+            nextVotesFor = Math.max(0, nextVotesFor - prevVoterStake)
             votersFor = votersFor.filter((x) => x !== voterId)
+            stakeDelta = vp - prevVoterStake
+          } else {
+            stakeDelta = vp
           }
           nextVotesAgainst = nextVotesAgainst + vp
           votersAgainst = [...votersAgainst, voterId]
+          nextVoteStakes[voterId] = vp
         }
       }
 
@@ -1985,9 +2242,39 @@ class MockBackendStore {
         status,
       }
 
+      // Update governance stake balance
+      const stake = prev.governanceStakesByAddress[walletAddress] ?? { total: 0, locked: 0, available: 0 }
+      const updatedStake = stakeDelta !== 0
+        ? {
+            total: stake.total,
+            locked: Math.max(0, stake.locked + stakeDelta),
+            available: Math.max(0, stake.available - stakeDelta),
+          }
+        : stake
+
+      // Record stake history event
+      const stakeHistoryEvent: GovernanceStakeEvent | null = stakeDelta !== 0 ? {
+        id: `gse_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        address: walletAddress,
+        type: stakeDelta > 0 ? "lock" : "unlock",
+        amount: Math.abs(stakeDelta),
+        reason: `${stakeDelta > 0 ? "Voted" : "Removed vote"} on proposal "${p.title}"`,
+        proposalId: input.proposalId,
+        createdAt: nowIso(),
+        unlocksAt: p.endsAt,
+      } : null
+
       return {
         ...prev,
         governanceProposals: (prev.governanceProposals ?? []).map((x) => (x.id === p.id ? updated : x)),
+        governanceVoteStakes: { ...prev.governanceVoteStakes, [input.proposalId]: nextVoteStakes },
+        governanceStakesByAddress: {
+          ...prev.governanceStakesByAddress,
+          [walletAddress]: updatedStake,
+        },
+        governanceStakeHistory: stakeHistoryEvent
+          ? [...(prev.governanceStakeHistory ?? []), stakeHistoryEvent]
+          : (prev.governanceStakeHistory ?? []),
         updatedAt: nowIso(),
       }
     })
@@ -2016,9 +2303,139 @@ class MockBackendStore {
     })
   }
 
+  // ---------- Device management ----------
+  listDevices(minerId: string): MinerDevice[] {
+    const saved = this.state.devicesByMinerId?.[minerId]
+    if (saved && saved.length > 0) return saved
+    // Fallback: return demo devices for any miner that has none
+    return [
+      {
+        id: "device-1",
+        minerId,
+        name: "Home Desktop",
+        type: "desktop" as const,
+        status: "online" as const,
+        lastSeenAt: new Date().toISOString(),
+        createdAt: "2025-11-15T00:00:00Z",
+        hardware: { gpu: "NVIDIA RTX 4090", gpuVram: 24, cpu: "AMD Ryzen 9 7950X", cpuCores: 16, ram: "64GB DDR5", storage: "2TB NVMe", bandwidth: "500 Mbps" },
+        subscribedAppIds: ["1", "2", "3"],
+        totalEarned: 1240.50,
+        uptime: 99.2,
+        location: "Home Office",
+      },
+      {
+        id: "device-2",
+        minerId,
+        name: "MacBook Pro",
+        type: "laptop" as const,
+        status: "idle" as const,
+        lastSeenAt: new Date(Date.now() - 7200000).toISOString(),
+        createdAt: "2026-01-08T00:00:00Z",
+        hardware: { gpu: "Apple M3 Max", gpuVram: 36, cpu: "Apple M3 Max", cpuCores: 14, ram: "36GB Unified", storage: "1TB SSD", bandwidth: "200 Mbps" },
+        subscribedAppIds: ["1"],
+        totalEarned: 320.15,
+        uptime: 78.4,
+        location: "Mobile",
+      },
+    ]
+  }
+
+  getDevice(deviceId: string): MinerDevice | null {
+    for (const devices of Object.values(this.state.devicesByMinerId ?? {})) {
+      const found = devices.find((d) => d.id === deviceId)
+      if (found) return found
+    }
+    return null
+  }
+
+  addDevice(input: {
+    minerId: string
+    name: string
+    type: MinerDevice["type"]
+    hardware: MinerDevice["hardware"]
+    location?: string
+  }): MinerDevice {
+    const session = this.requireSession()
+    if (input.minerId !== session.minerId) throw new Error("Forbidden (not your miner).")
+    const now = nowIso()
+    const device: MinerDevice = {
+      id: randId("device"),
+      minerId: input.minerId,
+      name: input.name,
+      type: input.type,
+      status: "online",
+      lastSeenAt: now,
+      createdAt: now,
+      hardware: input.hardware,
+      subscribedAppIds: [],
+      totalEarned: 0,
+      uptime: 100,
+      location: input.location,
+    }
+    this.setState((prev) => {
+      const existing = prev.devicesByMinerId?.[input.minerId] ?? []
+      return {
+        ...prev,
+        devicesByMinerId: { ...prev.devicesByMinerId, [input.minerId]: [...existing, device] },
+        updatedAt: nowIso(),
+      }
+    })
+    return device
+  }
+
+  updateDevice(
+    deviceId: string,
+    updates: Partial<Pick<MinerDevice, "name" | "type" | "hardware" | "status" | "location">>,
+  ): void {
+    const session = this.requireSession()
+    this.setState((prev) => {
+      const nextMap = { ...prev.devicesByMinerId }
+      for (const [minerId, devices] of Object.entries(nextMap)) {
+        const idx = devices.findIndex((d) => d.id === deviceId)
+        if (idx !== -1) {
+          if (minerId !== session.minerId) throw new Error("Forbidden (not your device).")
+          const updated = { ...devices[idx], ...updates, lastSeenAt: nowIso() }
+          const nextDevices = [...devices]
+          nextDevices[idx] = updated
+          nextMap[minerId] = nextDevices
+          break
+        }
+      }
+      return { ...prev, devicesByMinerId: nextMap, updatedAt: nowIso() }
+    })
+  }
+
+  removeDevice(deviceId: string): void {
+    const session = this.requireSession()
+    this.setState((prev) => {
+      const nextMap = { ...prev.devicesByMinerId }
+      for (const [minerId, devices] of Object.entries(nextMap)) {
+        const idx = devices.findIndex((d) => d.id === deviceId)
+        if (idx !== -1) {
+          if (minerId !== session.minerId) throw new Error("Forbidden (not your device).")
+          nextMap[minerId] = devices.filter((d) => d.id !== deviceId)
+          break
+        }
+      }
+      return { ...prev, devicesByMinerId: nextMap, updatedAt: nowIso() }
+    })
+  }
+
   upsertGovernanceReview(input: Omit<GovernanceReview, "id" | "createdAt" | "updatedAt"> & { id?: string }) {
     const { walletAddress } = this.requireRole("governance")
     if (input.reviewerId !== walletAddress) throw new Error("Forbidden (reviewer mismatch).")
+
+    // Require 200 NECTA stake when submitting a review (not when saving drafts)
+    const REVIEW_STAKE = 200
+    if (input.status === "submitted") {
+      const existingReview = this.state.governanceReviews.find((r) => r.appId === input.appId && r.reviewerId === input.reviewerId)
+      const alreadyStaked = (this.state.governanceReviewerStakes[input.appId] ?? {})[input.reviewerId]
+      if (!alreadyStaked && (!existingReview || existingReview.status !== "submitted")) {
+        const currentStake = this.state.governanceStakesByAddress[walletAddress] ?? { total: 0, locked: 0, available: 0 }
+        if (currentStake.available < REVIEW_STAKE) throw new Error(`Insufficient governance stake. Need ${REVIEW_STAKE} NECTA to submit a review, have ${currentStake.available} available.`)
+      }
+    }
+
     const now = nowIso()
     this.setState((prev) => {
       const existing = prev.governanceReviews.find((r) => r.appId === input.appId && r.reviewerId === input.reviewerId) ?? null
@@ -2040,7 +2457,37 @@ class MockBackendStore {
         conditions: input.conditions,
       }
       const without = prev.governanceReviews.filter((r) => !(r.appId === input.appId && r.reviewerId === input.reviewerId))
-      return { ...prev, governanceReviews: [next, ...without], updatedAt: now }
+
+      // Lock stake on submission (only if not already staked for this review)
+      let governanceStakesByAddress = prev.governanceStakesByAddress
+      let governanceReviewerStakes = prev.governanceReviewerStakes
+      const alreadyStaked = (prev.governanceReviewerStakes[input.appId] ?? {})[input.reviewerId]
+      if (input.status === "submitted" && !alreadyStaked && (!existing || existing.status !== "submitted")) {
+        const stake = prev.governanceStakesByAddress[walletAddress] ?? { total: 0, locked: 0, available: 0 }
+        governanceStakesByAddress = {
+          ...prev.governanceStakesByAddress,
+          [walletAddress]: {
+            total: stake.total,
+            locked: stake.locked + REVIEW_STAKE,
+            available: stake.available - REVIEW_STAKE,
+          },
+        }
+        governanceReviewerStakes = {
+          ...prev.governanceReviewerStakes,
+          [input.appId]: {
+            ...(prev.governanceReviewerStakes[input.appId] ?? {}),
+            [input.reviewerId]: REVIEW_STAKE,
+          },
+        }
+      }
+
+      return {
+        ...prev,
+        governanceReviews: [next, ...without],
+        governanceStakesByAddress,
+        governanceReviewerStakes,
+        updatedAt: now,
+      }
     })
     if (input.status === "submitted") this.openVoteIfReady(input.appId)
   }
@@ -2586,7 +3033,7 @@ class MockBackendStore {
     if (input.attestor !== walletAddress) throw new Error("Forbidden (attestor mismatch).")
     this.setState((prev) => {
       const existing = prev.governance.find((g) => g.appId === input.appId)
-      if (!existing || existing.status !== "voting") return prev
+      if (!existing || (existing.status !== "voting" && existing.status !== "review")) return prev
 
       // prevent double-voting
       if (existing.yesAttestors.includes(input.attestor) || existing.noAttestors.includes(input.attestor)) return prev
@@ -2644,6 +3091,1026 @@ class MockBackendStore {
       appId: input.appId,
       message: `Governance attestation: ${input.direction.toUpperCase()} by ${input.attestor}`,
       metadata: { attestor: input.attestor, direction: input.direction },
+    })
+  }
+
+  // ---------- Governance staking ----------
+
+  getGovernanceStake(address: string): { total: number; locked: number; available: number } {
+    return this.state.governanceStakesByAddress[address] ?? { total: 0, locked: 0, available: 0 }
+  }
+
+  returnProposalStake(proposalId: string) {
+    const proposal = (this.state.governanceProposals ?? []).find((p) => p.id === proposalId)
+    if (!proposal || (proposal.status !== "passed" && proposal.status !== "rejected")) return
+
+    const defaultStakes: Record<string, number> = {
+      "parameter-update": 500,
+      "reward-change": 1000,
+      treasury: 2000,
+    }
+    const proposalStake = defaultStakes[proposal.type] ?? 500
+
+    this.setState((prev) => {
+      const creatorAddr = proposal.createdBy
+      const stake = prev.governanceStakesByAddress[creatorAddr] ?? { total: 0, locked: 0, available: 0 }
+
+      // Creator gets 2x back if proposal passed, 1x (original) back if rejected
+      const isPassed = proposal.status === "passed"
+      const creatorReturn = isPassed ? proposalStake * 2 : proposalStake
+      const updatedCreatorStake = {
+        total: isPassed ? stake.total + proposalStake : stake.total, // 2x means they gain 1x net
+        locked: Math.max(0, stake.locked - proposalStake),
+        available: stake.available + creatorReturn,
+      }
+
+      // Return vote stakes + voter rewards (0.5% of their stake)
+      const voteStakes = prev.governanceVoteStakes[proposalId] ?? {}
+      let nextStakesByAddress = { ...prev.governanceStakesByAddress, [creatorAddr]: updatedCreatorStake }
+      let nextRewards = { ...prev.governanceRewards }
+
+      for (const [voterId, voterStakeRaw] of Object.entries(voteStakes)) {
+        const voterStake = Number(voterStakeRaw)
+        const voterBalance = nextStakesByAddress[voterId] ?? { total: 0, locked: 0, available: 0 }
+        const reward = Math.round(voterStake * 0.005 * 100) / 100 // 0.5% reward
+        nextStakesByAddress = {
+          ...nextStakesByAddress,
+          [voterId]: {
+            total: voterBalance.total + reward,
+            locked: Math.max(0, voterBalance.locked - voterStake),
+            available: voterBalance.available + voterStake + reward,
+          },
+        }
+        nextRewards = { ...nextRewards, [voterId]: (nextRewards[voterId] ?? 0) + reward }
+      }
+
+      // Clear vote stakes for this proposal
+      const nextVoteStakes = { ...prev.governanceVoteStakes }
+      delete nextVoteStakes[proposalId]
+
+      return {
+        ...prev,
+        governanceStakesByAddress: nextStakesByAddress,
+        governanceVoteStakes: nextVoteStakes,
+        governanceRewards: nextRewards,
+        updatedAt: nowIso(),
+      }
+    })
+  }
+
+  /** Settle reviewer stakes: unlock stakes and grant 50 NECTA reward per submitted review for a given app. */
+  settleReviewerStakes(appId: string) {
+    const REVIEWER_REWARD = 50
+
+    this.setState((prev) => {
+      const reviewerStakes = prev.governanceReviewerStakes[appId] ?? {}
+      if (Object.keys(reviewerStakes).length === 0) return prev
+
+      let nextStakesByAddress = { ...prev.governanceStakesByAddress }
+      let nextRewards = { ...prev.governanceRewards }
+
+      for (const [reviewerId, stakedAmountRaw] of Object.entries(reviewerStakes)) {
+        const stakedAmount = Number(stakedAmountRaw)
+        const balance = nextStakesByAddress[reviewerId] ?? { total: 0, locked: 0, available: 0 }
+        nextStakesByAddress = {
+          ...nextStakesByAddress,
+          [reviewerId]: {
+            total: balance.total + REVIEWER_REWARD,
+            locked: Math.max(0, balance.locked - stakedAmount),
+            available: balance.available + stakedAmount + REVIEWER_REWARD,
+          },
+        }
+        nextRewards = { ...nextRewards, [reviewerId]: (nextRewards[reviewerId] ?? 0) + REVIEWER_REWARD }
+      }
+
+      // Clear reviewer stakes for this app
+      const nextReviewerStakes = { ...prev.governanceReviewerStakes }
+      delete nextReviewerStakes[appId]
+
+      return {
+        ...prev,
+        governanceStakesByAddress: nextStakesByAddress,
+        governanceReviewerStakes: nextReviewerStakes,
+        governanceRewards: nextRewards,
+        updatedAt: nowIso(),
+      }
+    })
+  }
+
+  /** Get accumulated governance participation rewards for an address. */
+  getGovernanceRewards(address: string): number {
+    return this.state.governanceRewards[address] ?? 0
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  GOVERNANCE: Stake Management
+  // ═══════════════════════════════════════════════════
+
+  depositGovernanceStake(address: string, amount: number) {
+    this.requireAuth()
+    if (amount <= 0) throw new Error("Amount must be positive.")
+    const balance = this.state.walletBalancesByAddress[address] ?? 0
+    if (balance < amount) throw new Error(`Insufficient wallet balance. Have ${balance.toFixed(2)}, need ${amount}.`)
+
+    const evt: GovernanceStakeEvent = {
+      id: `gse_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      address, type: "deposit", amount, reason: "Deposited NECTA into governance stake",
+      createdAt: nowIso(),
+    }
+
+    this.setState((prev) => {
+      const stake = prev.governanceStakesByAddress[address] ?? { total: 0, locked: 0, available: 0 }
+      return {
+        ...prev,
+        walletBalancesByAddress: { ...prev.walletBalancesByAddress, [address]: (prev.walletBalancesByAddress[address] ?? 0) - amount },
+        governanceStakesByAddress: { ...prev.governanceStakesByAddress, [address]: { total: stake.total + amount, locked: stake.locked, available: stake.available + amount } },
+        governanceStakeHistory: [...(prev.governanceStakeHistory ?? []), evt],
+        updatedAt: nowIso(),
+      }
+    })
+  }
+
+  withdrawGovernanceStake(address: string, amount: number) {
+    this.requireAuth()
+    if (amount <= 0) throw new Error("Amount must be positive.")
+    const stake = this.state.governanceStakesByAddress[address] ?? { total: 0, locked: 0, available: 0 }
+    if (stake.available < amount) throw new Error(`Insufficient available stake. Have ${stake.available.toFixed(2)} available, ${stake.locked.toFixed(2)} locked.`)
+
+    const evt: GovernanceStakeEvent = {
+      id: `gse_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      address, type: "withdraw", amount, reason: "Withdrew NECTA from governance stake",
+      createdAt: nowIso(),
+    }
+
+    this.setState((prev) => {
+      const s = prev.governanceStakesByAddress[address] ?? { total: 0, locked: 0, available: 0 }
+      return {
+        ...prev,
+        walletBalancesByAddress: { ...prev.walletBalancesByAddress, [address]: (prev.walletBalancesByAddress[address] ?? 0) + amount },
+        governanceStakesByAddress: { ...prev.governanceStakesByAddress, [address]: { total: s.total - amount, locked: s.locked, available: s.available - amount } },
+        governanceStakeHistory: [...(prev.governanceStakeHistory ?? []), evt],
+        updatedAt: nowIso(),
+      }
+    })
+  }
+
+  claimGovernanceRewards(address: string) {
+    this.requireAuth()
+    const rewards = this.state.governanceRewards[address] ?? 0
+    if (rewards <= 0) throw new Error("No rewards to claim.")
+
+    const evt: GovernanceStakeEvent = {
+      id: `gse_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      address, type: "reward", amount: rewards, reason: `Claimed ${rewards.toFixed(2)} NECTA governance rewards`,
+      createdAt: nowIso(),
+    }
+
+    this.setState((prev) => ({
+      ...prev,
+      walletBalancesByAddress: { ...prev.walletBalancesByAddress, [address]: (prev.walletBalancesByAddress[address] ?? 0) + rewards },
+      governanceRewards: { ...prev.governanceRewards, [address]: 0 },
+      governanceStakeHistory: [...(prev.governanceStakeHistory ?? []), evt],
+      updatedAt: nowIso(),
+    }))
+    return rewards
+  }
+
+  getStakeHistory(address: string): GovernanceStakeEvent[] {
+    return (this.state.governanceStakeHistory ?? []).filter((e) => e.address === address).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }
+
+  getLockedStakeDetails(address: string): Array<{ proposalId: string; title: string; amount: number; unlocksAt?: string }> {
+    const result: Array<{ proposalId: string; title: string; amount: number; unlocksAt?: string }> = []
+    const voteStakes = this.state.governanceVoteStakes ?? {}
+    for (const [proposalId, voters] of Object.entries(voteStakes)) {
+      const amount = voters[address]
+      if (!amount) continue
+      const proposal = (this.state.governanceProposals ?? []).find((p) => p.id === proposalId)
+      if (!proposal || proposal.status !== "active") continue
+      result.push({ proposalId, title: proposal.title, amount, unlocksAt: proposal.endsAt })
+    }
+    return result
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  GOVERNANCE: Delegation
+  // ═══════════════════════════════════════════════════
+
+  delegateVotingPower(input: { from: string; to: string; amount: number }) {
+    this.requireAuth()
+    if (input.from === input.to) throw new Error("Cannot delegate to yourself.")
+    if (input.amount <= 0) throw new Error("Amount must be positive.")
+    const stake = this.state.governanceStakesByAddress[input.from] ?? { total: 0, locked: 0, available: 0 }
+    if (stake.available < input.amount) throw new Error(`Insufficient available stake. Have ${stake.available.toFixed(2)}.`)
+
+    const delegation: GovernanceDelegation = {
+      id: `del_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      fromAddress: input.from, toAddress: input.to, amount: input.amount,
+      createdAt: nowIso(),
+    }
+
+    this.setState((prev) => {
+      const fromStake = prev.governanceStakesByAddress[input.from] ?? { total: 0, locked: 0, available: 0 }
+      return {
+        ...prev,
+        governanceDelegations: [...(prev.governanceDelegations ?? []), delegation],
+        governanceStakesByAddress: {
+          ...prev.governanceStakesByAddress,
+          [input.from]: { ...fromStake, locked: fromStake.locked + input.amount, available: fromStake.available - input.amount },
+        },
+        updatedAt: nowIso(),
+      }
+    })
+    return delegation
+  }
+
+  revokeDelegation(delegationId: string) {
+    this.requireAuth()
+    const del = (this.state.governanceDelegations ?? []).find((d) => d.id === delegationId && !d.revokedAt)
+    if (!del) throw new Error("Delegation not found or already revoked.")
+
+    this.setState((prev) => {
+      const fromStake = prev.governanceStakesByAddress[del.fromAddress] ?? { total: 0, locked: 0, available: 0 }
+      return {
+        ...prev,
+        governanceDelegations: (prev.governanceDelegations ?? []).map((d) =>
+          d.id === delegationId ? { ...d, revokedAt: nowIso() } : d
+        ),
+        governanceStakesByAddress: {
+          ...prev.governanceStakesByAddress,
+          [del.fromAddress]: { ...fromStake, locked: Math.max(0, fromStake.locked - del.amount), available: fromStake.available + del.amount },
+        },
+        updatedAt: nowIso(),
+      }
+    })
+  }
+
+  getDelegationsFrom(address: string): GovernanceDelegation[] {
+    return (this.state.governanceDelegations ?? []).filter((d) => d.fromAddress === address && !d.revokedAt)
+  }
+
+  getDelegationsTo(address: string): GovernanceDelegation[] {
+    return (this.state.governanceDelegations ?? []).filter((d) => d.toAddress === address && !d.revokedAt)
+  }
+
+  getEffectiveVotingPower(address: string): number {
+    const stake = this.state.governanceStakesByAddress[address] ?? { total: 0, locked: 0, available: 0 }
+    const delegatedToMe = this.getDelegationsTo(address).reduce((s, d) => s + d.amount, 0)
+    const delegatedAway = this.getDelegationsFrom(address).reduce((s, d) => s + d.amount, 0)
+    return stake.available + delegatedToMe
+  }
+
+  getVotingPowerBreakdown(address: string) {
+    const stake = this.state.governanceStakesByAddress[address] ?? { total: 0, locked: 0, available: 0 }
+    const delegatedToYou = this.getDelegationsTo(address).reduce((s, d) => s + d.amount, 0)
+    const delegatedAway = this.getDelegationsFrom(address).reduce((s, d) => s + d.amount, 0)
+    const effectiveVP = stake.available + delegatedToYou
+    const totalNetworkVP = Object.values(this.state.governanceStakesByAddress).reduce((s, v) => s + v.total, 0) || 1
+    return {
+      ownStake: stake.total,
+      locked: stake.locked,
+      available: stake.available,
+      delegatedToYou,
+      delegatedAway,
+      effectiveVP,
+      totalNetworkVP,
+      percentOfTotal: (effectiveVP / totalNetworkVP) * 100,
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  GOVERNANCE: Proposal Discussion / Comments
+  // ═══════════════════════════════════════════════════
+
+  listProposalComments(proposalId: string): ProposalComment[] {
+    return (this.state.proposalComments ?? [])
+      .filter((c) => c.proposalId === proposalId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  }
+
+  addProposalComment(input: { proposalId: string; authorAddress: string; content: string; parentCommentId?: string }): ProposalComment {
+    this.requireAuth()
+    if (!input.content.trim()) throw new Error("Comment cannot be empty.")
+    const comment: ProposalComment = {
+      id: `pc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      proposalId: input.proposalId,
+      authorAddress: input.authorAddress,
+      content: input.content.trim(),
+      createdAt: nowIso(),
+      parentCommentId: input.parentCommentId,
+      upvotes: 0,
+      upvoters: [],
+    }
+    this.setState((prev) => ({
+      ...prev,
+      proposalComments: [...(prev.proposalComments ?? []), comment],
+      updatedAt: nowIso(),
+    }))
+    return comment
+  }
+
+  upvoteProposalComment(commentId: string, voterAddress: string) {
+    this.requireAuth()
+    this.setState((prev) => ({
+      ...prev,
+      proposalComments: (prev.proposalComments ?? []).map((c) => {
+        if (c.id !== commentId) return c
+        if (c.upvoters.includes(voterAddress)) {
+          return { ...c, upvotes: Math.max(0, c.upvotes - 1), upvoters: c.upvoters.filter((v) => v !== voterAddress) }
+        }
+        return { ...c, upvotes: c.upvotes + 1, upvoters: [...c.upvoters, voterAddress] }
+      }),
+      updatedAt: nowIso(),
+    }))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  GOVERNANCE: Treasury
+  // ═══════════════════════════════════════════════════
+
+  listTreasuryTransactions(opts?: { type?: "inflow" | "outflow"; limit?: number }): TreasuryTransaction[] {
+    let txns = [...(this.state.treasuryTransactions ?? [])]
+    if (opts?.type) txns = txns.filter((t) => t.type === opts.type)
+    txns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    if (opts?.limit) txns = txns.slice(0, opts.limit)
+    return txns
+  }
+
+  getTreasurySummary() {
+    const now = Date.now()
+    const thirtyDaysAgo = now - 30 * 86400000
+    const txns = this.state.treasuryTransactions ?? []
+    const recent = txns.filter((t) => new Date(t.createdAt).getTime() >= thirtyDaysAgo)
+    const inflows30d = recent.filter((t) => t.type === "inflow").reduce((s, t) => s + t.amount, 0)
+    const outflows30d = recent.filter((t) => t.type === "outflow").reduce((s, t) => s + t.amount, 0)
+
+    const balance = this.state.treasuryBalance ?? 0
+    const allocations = [
+      { label: "Development Fund", percent: 40, amount: balance * 0.4 },
+      { label: "Miner Rewards Pool", percent: 25, amount: balance * 0.25 },
+      { label: "Security & Audits", percent: 15, amount: balance * 0.15 },
+      { label: "Community Grants", percent: 10, amount: balance * 0.1 },
+      { label: "Operations", percent: 10, amount: balance * 0.1 },
+    ]
+
+    return { balance, inflows30d, outflows30d, allocations, totalTransactions: txns.length }
+  }
+
+  recordTreasuryInflow(amount: number, source: string) {
+    if (amount <= 0) return
+    const txn: TreasuryTransaction = {
+      id: `ttx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      type: "inflow", amount, source, createdAt: nowIso(), status: "completed",
+    }
+    this.setState((prev) => ({
+      ...prev,
+      treasuryTransactions: [...(prev.treasuryTransactions ?? []), txn],
+      treasuryBalance: (prev.treasuryBalance ?? 0) + amount,
+      updatedAt: nowIso(),
+    }))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  GOVERNANCE: Activity Feed (derived, no new state)
+  // ═══════════════════════════════════════════════════
+
+  getMyGovernanceActivity(address: string): Array<{
+    id: string; type: string; title: string; description: string;
+    timestamp: string; direction?: string; stakeAmount?: number;
+    proposalId?: string; appId?: string; status?: string;
+  }> {
+    const items: Array<{
+      id: string; type: string; title: string; description: string;
+      timestamp: string; direction?: string; stakeAmount?: number;
+      proposalId?: string; appId?: string; status?: string;
+    }> = []
+
+    // Proposals I created
+    for (const p of (this.state.governanceProposals ?? [])) {
+      if (p.createdBy === address) {
+        items.push({
+          id: `act_prop_${p.id}`, type: "proposal_created", title: "Created proposal",
+          description: p.title, timestamp: p.createdAt, proposalId: p.id, status: p.status,
+        })
+      }
+    }
+
+    // Proposals I voted on
+    for (const p of (this.state.governanceProposals ?? [])) {
+      const inFor = p.votersFor.includes(address)
+      const inAgainst = p.votersAgainst.includes(address)
+      if (!inFor && !inAgainst) continue
+      const voteStakes = this.state.governanceVoteStakes?.[p.id] ?? {}
+      items.push({
+        id: `act_vote_${p.id}`, type: "vote_cast", title: "Voted on proposal",
+        description: p.title, timestamp: p.createdAt, proposalId: p.id,
+        direction: inFor ? "for" : "against", stakeAmount: voteStakes[address] ?? 0,
+        status: p.status,
+      })
+    }
+
+    // Governance reviews I submitted
+    for (const r of (this.state.governanceReviews ?? [])) {
+      if (r.reviewerId === address) {
+        const app = this.state.apps.find((a) => a.id === r.appId)
+        items.push({
+          id: `act_rev_${r.id}`, type: "review_submitted", title: "Reviewed listing",
+          description: app?.name ?? r.appId, timestamp: r.createdAt, appId: r.appId,
+          status: r.status,
+        })
+      }
+    }
+
+    // Moderation votes
+    for (const c of (this.state.moderationCases ?? [])) {
+      const voted = c.keepVoters?.includes(address) || c.delistVoters?.includes(address)
+      if (!voted) continue
+      const app = this.state.apps.find((a) => a.id === c.appId)
+      const dir = c.keepVoters?.includes(address) ? "keep" : "delist"
+      items.push({
+        id: `act_mod_${c.id}`, type: "moderation_vote", title: "Moderation vote",
+        description: app?.name ?? c.appId, timestamp: c.createdAt, appId: c.appId,
+        direction: dir, status: c.status,
+      })
+    }
+
+    // Stake history events (deposits, withdrawals, rewards)
+    for (const e of (this.state.governanceStakeHistory ?? [])) {
+      if (e.address !== address) continue
+      if (e.type === "deposit" || e.type === "withdraw" || e.type === "reward") {
+        items.push({
+          id: e.id, type: `stake_${e.type}`, title: e.type === "deposit" ? "Staked NECTA" : e.type === "withdraw" ? "Withdrew stake" : "Claimed rewards",
+          description: e.reason, timestamp: e.createdAt, stakeAmount: e.amount,
+          proposalId: e.proposalId, appId: e.appId,
+        })
+      }
+    }
+
+    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    return items
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  GOVERNANCE: Total Network VP
+  // ═══════════════════════════════════════════════════
+
+  getTotalVotingPower(): number {
+    return Object.values(this.state.governanceStakesByAddress).reduce((s, v) => s + v.total, 0) || 25000
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Webhook Logs
+  // ═══════════════════════════════════════════════════
+
+  listWebhookLogs(appId: string): WebhookLogEntry[] {
+    return (this.state.webhookLogsByAppId[appId] ?? []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }
+
+  simulateWebhook(appId: string, event: string) {
+    const app = this.state.apps.find((a) => a.id === appId)
+    if (!app) throw new Error("App not found.")
+    const url = (app as any).webhookUrl || "https://api.example.com/webhooks"
+    const payloads: Record<string, object> = {
+      new_subscription: { event: "new_subscription", minerId: "miner_demo", appId, timestamp: nowIso() },
+      proof_verified: { event: "proof_verified", proofId: `proof_${Date.now()}`, appId, minerId: "miner_demo", status: "verified", timestamp: nowIso() },
+      payout_sent: { event: "payout_sent", appId, amount: 12.5, currency: "NECTA", recipients: 3, timestamp: nowIso() },
+      miner_offline: { event: "miner_offline", minerId: "miner_demo", appId, lastSeen: nowIso(), timestamp: nowIso() },
+    }
+    const payload = payloads[event] || { event, appId, timestamp: nowIso() }
+    const delivered = Math.random() > 0.2
+    const entry: WebhookLogEntry = {
+      id: `wh_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      appId, event, url, payload: JSON.stringify(payload, null, 2),
+      status: delivered ? "delivered" : "failed",
+      statusCode: delivered ? 200 : 500,
+      createdAt: nowIso(), attempts: 1,
+    }
+    this.setState((prev) => ({
+      ...prev,
+      webhookLogsByAppId: { ...prev.webhookLogsByAppId, [appId]: [...(prev.webhookLogsByAppId[appId] ?? []), entry] },
+      updatedAt: nowIso(),
+    }))
+    return entry
+  }
+
+  retryWebhook(appId: string, logId: string) {
+    this.setState((prev) => ({
+      ...prev,
+      webhookLogsByAppId: {
+        ...prev.webhookLogsByAppId,
+        [appId]: (prev.webhookLogsByAppId[appId] ?? []).map((e) =>
+          e.id === logId ? { ...e, status: "delivered" as const, statusCode: 200, retriedAt: nowIso(), attempts: e.attempts + 1 } : e
+        ),
+      },
+      updatedAt: nowIso(),
+    }))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Deployment Pipeline
+  // ═══════════════════════════════════════════════════
+
+  listDeploymentLogs(appId: string): DeploymentLog[] {
+    return (this.state.deploymentLogsByAppId[appId] ?? []).sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+  }
+
+  triggerDeployment(appId: string, version: string) {
+    const { walletAddress } = this.requireAuth()
+    const steps: DeploymentStep[] = [
+      { name: "Pull source", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: ["Cloning repository...", "Checkout complete."] },
+      { name: "Build container", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: ["Building Docker image...", "Layer 1/8: FROM ubuntu:22.04", "Layer 8/8: ENTRYPOINT", "Build complete. Image size: 342MB"] },
+      { name: "Run tests", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: ["Running proof validation tests...", "12/12 tests passed.", "Coverage: 94.2%"] },
+      { name: "Push to registry", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: [`Pushing necter/${appId}:${version}...`, "Push complete. Digest: sha256:a1b2c3d4..."] },
+      { name: "Deploy to network", status: "live", startedAt: nowIso(), completedAt: nowIso(), logs: ["Rolling out to 3 regions...", "us-east-1: healthy", "eu-west-1: healthy", "ap-southeast-1: healthy", "Deployment complete."] },
+    ]
+    const log: DeploymentLog = {
+      id: `deploy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      appId, version, status: "live", startedAt: nowIso(), completedAt: nowIso(),
+      steps, triggeredBy: walletAddress,
+    }
+    this.setState((prev) => ({
+      ...prev,
+      deploymentLogsByAppId: { ...prev.deploymentLogsByAppId, [appId]: [...(prev.deploymentLogsByAppId[appId] ?? []), log] },
+      updatedAt: nowIso(),
+    }))
+    return log
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Announcements
+  // ═══════════════════════════════════════════════════
+
+  listAnnouncements(appId: string): Announcement[] {
+    return (this.state.announcementsByAppId[appId] ?? []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }
+
+  createAnnouncement(input: { appId: string; title: string; content: string; type: Announcement["type"] }): Announcement {
+    const { walletAddress } = this.requireAuth()
+    const ann: Announcement = {
+      id: `ann_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      appId: input.appId, title: input.title, content: input.content, type: input.type,
+      createdAt: nowIso(), authorAddress: walletAddress,
+    }
+    this.setState((prev) => ({
+      ...prev,
+      announcementsByAppId: { ...prev.announcementsByAppId, [input.appId]: [...(prev.announcementsByAppId[input.appId] ?? []), ann] },
+      updatedAt: nowIso(),
+    }))
+    return ann
+  }
+
+  deleteAnnouncement(appId: string, announcementId: string) {
+    this.setState((prev) => ({
+      ...prev,
+      announcementsByAppId: {
+        ...prev.announcementsByAppId,
+        [appId]: (prev.announcementsByAppId[appId] ?? []).filter((a) => a.id !== announcementId),
+      },
+      updatedAt: nowIso(),
+    }))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Miner Tier Management
+  // ═══════════════════════════════════════════════════
+
+  getMinerTierConfig(appId: string): { enabled: boolean; tiers: Array<{ name: string; minUptime: number; minProofRate: number; rewardMultiplier: number; color: string }>; blocklist: string[]; allowlist: string[] } {
+    return this.state.minerTiersByAppId[appId] ?? {
+      enabled: false,
+      tiers: [
+        { name: "Bronze", minUptime: 0, minProofRate: 0, rewardMultiplier: 1, color: "#CD7F32" },
+        { name: "Silver", minUptime: 90, minProofRate: 85, rewardMultiplier: 1.25, color: "#C0C0C0" },
+        { name: "Gold", minUptime: 98, minProofRate: 95, rewardMultiplier: 1.5, color: "#FFD700" },
+      ],
+      blocklist: [],
+      allowlist: [],
+    }
+  }
+
+  updateMinerTierConfig(appId: string, config: any) {
+    this.requireAuth()
+    this.setState((prev) => ({
+      ...prev,
+      minerTiersByAppId: { ...prev.minerTiersByAppId, [appId]: config },
+      updatedAt: nowIso(),
+    }))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Support Tickets
+  // ═══════════════════════════════════════════════════
+
+  listSupportTickets(appId: string): SupportTicket[] {
+    return (this.state.supportTicketsByAppId[appId] ?? []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }
+
+  createSupportTicket(input: { appId: string; minerId: string; subject: string; description: string; priority: SupportTicket["priority"] }): SupportTicket {
+    const ticket: SupportTicket = {
+      id: `ticket_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      appId: input.appId, minerId: input.minerId, subject: input.subject, description: input.description,
+      status: "open", priority: input.priority,
+      createdAt: nowIso(), updatedAt: nowIso(), replies: [],
+    }
+    this.setState((prev) => ({
+      ...prev,
+      supportTicketsByAppId: { ...prev.supportTicketsByAppId, [input.appId]: [...(prev.supportTicketsByAppId[input.appId] ?? []), ticket] },
+      updatedAt: nowIso(),
+    }))
+    return ticket
+  }
+
+  replySupportTicket(appId: string, ticketId: string, reply: { authorId: string; content: string }) {
+    this.requireAuth()
+    this.setState((prev) => ({
+      ...prev,
+      supportTicketsByAppId: {
+        ...prev.supportTicketsByAppId,
+        [appId]: (prev.supportTicketsByAppId[appId] ?? []).map((t) =>
+          t.id === ticketId
+            ? { ...t, replies: [...t.replies, { ...reply, createdAt: nowIso() }], updatedAt: nowIso(), status: "in_progress" as const }
+            : t
+        ),
+      },
+      updatedAt: nowIso(),
+    }))
+  }
+
+  updateTicketStatus(appId: string, ticketId: string, status: SupportTicket["status"]) {
+    this.requireAuth()
+    this.setState((prev) => ({
+      ...prev,
+      supportTicketsByAppId: {
+        ...prev.supportTicketsByAppId,
+        [appId]: (prev.supportTicketsByAppId[appId] ?? []).map((t) =>
+          t.id === ticketId ? { ...t, status, updatedAt: nowIso() } : t
+        ),
+      },
+      updatedAt: nowIso(),
+    }))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Testnet Sessions
+  // ═══════════════════════════════════════════════════
+
+  listTestnetSessions(appId: string): TestnetSession[] {
+    return (this.state.testnetSessionsByAppId[appId] ?? []).sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
+  }
+
+  runTestnetSession(appId: string): TestnetSession {
+    this.requireAuth()
+    const miners = 3 + Math.floor(Math.random() * 8)
+    const total = 20 + Math.floor(Math.random() * 80)
+    const failed = Math.floor(Math.random() * Math.ceil(total * 0.1))
+    const session: TestnetSession = {
+      id: `test_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      appId, status: "completed", startedAt: nowIso(), completedAt: nowIso(),
+      simulatedMiners: miners, proofsGenerated: total, proofsPassed: total - failed, proofsFailed: failed,
+      logs: [
+        `Spawning ${miners} simulated miners...`,
+        "All miners connected to testnet.",
+        `Generating ${total} proof tasks...`,
+        `Proof validation: ${total - failed}/${total} passed (${((total - failed) / total * 100).toFixed(1)}%)`,
+        failed > 0 ? `${failed} proofs failed validation — check proof logic.` : "All proofs passed. Ready for mainnet.",
+        "Testnet session completed.",
+      ],
+    }
+    this.setState((prev) => ({
+      ...prev,
+      testnetSessionsByAppId: { ...prev.testnetSessionsByAppId, [appId]: [...(prev.testnetSessionsByAppId[appId] ?? []), session] },
+      updatedAt: nowIso(),
+    }))
+    return session
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Project Health Score
+  // ═══════════════════════════════════════════════════
+
+  getProjectHealthScore(appId: string): {
+    overall: number; uptime: number; proofRate: number; minerSatisfaction: number;
+    rewardHealth: number; status: "healthy" | "warning" | "critical";
+    issues: string[];
+  } {
+    const subs = this.state.subscriptions.filter((s) => s.appId === appId)
+    const proofs = this.state.proofs.filter((p) => p.appId === appId)
+    const verified = proofs.filter((p) => p.status === "verified").length
+    const total = proofs.length || 1
+
+    const avgUptime = subs.length > 0 ? subs.reduce((s, sub) => s + sub.uptime, 0) / subs.length : 100
+    const proofRate = (verified / total) * 100
+    const app = this.state.apps.find((a) => a.id === appId)
+    const avgRating = app?.averageRating ?? 4.0
+    const minerSatisfaction = (avgRating / 5) * 100
+    const activeSubs = subs.filter((s) => s.status === "active").length
+    const rewardHealth = activeSubs > 0 ? Math.min(100, 60 + activeSubs * 5) : 50
+
+    const overall = Math.round((avgUptime * 0.3 + proofRate * 0.3 + minerSatisfaction * 0.2 + rewardHealth * 0.2))
+    const issues: string[] = []
+    if (avgUptime < 95) issues.push("Average miner uptime below 95%")
+    if (proofRate < 90) issues.push("Proof success rate below 90%")
+    if (avgRating < 3.5) issues.push("Miner satisfaction rating below 3.5/5")
+    if (activeSubs === 0) issues.push("No active miners subscribed")
+
+    return {
+      overall, uptime: Math.round(avgUptime), proofRate: Math.round(proofRate),
+      minerSatisfaction: Math.round(minerSatisfaction), rewardHealth: Math.round(rewardHealth),
+      status: overall >= 80 ? "healthy" : overall >= 60 ? "warning" : "critical",
+      issues,
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Economics Simulator
+  // ═══════════════════════════════════════════════════
+
+  simulateEconomics(input: { dailyEmission: number; rewardPerTask: number; expectedMiners: number; avgTasksPerDay: number; feePercent: number }): {
+    dailyCost: number; monthlyCost: number; revenuePerMiner: number; platformFee: number;
+    burnRate: number; monthsOfRunway: number; breakeven: number;
+  } {
+    const dailyCost = input.rewardPerTask * input.avgTasksPerDay * input.expectedMiners
+    const platformFee = dailyCost * (input.feePercent / 100)
+    const netDailyCost = dailyCost + platformFee
+    const revenuePerMiner = input.avgTasksPerDay * input.rewardPerTask
+    const escrow = 10000 // assume 10K NECTA escrow
+    const monthsOfRunway = netDailyCost > 0 ? escrow / (netDailyCost * 30) : Infinity
+    const breakeven = revenuePerMiner > 0 ? Math.ceil(netDailyCost / revenuePerMiner) : 0
+
+    return {
+      dailyCost: netDailyCost, monthlyCost: netDailyCost * 30,
+      revenuePerMiner, platformFee,
+      burnRate: netDailyCost, monthsOfRunway, breakeven,
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Revenue Analytics
+  // ═══════════════════════════════════════════════════
+
+  getRevenueAnalytics(appId: string): {
+    totalRevenue: number; totalPayouts: number; platformFees: number;
+    payoutsByMiner: Array<{ minerId: string; amount: number; proofs: number }>;
+    recentPayouts: Array<{ id: string; minerId: string; amount: number; date: string }>;
+    dailyRevenue: Array<{ date: string; amount: number }>;
+  } {
+    const subs = this.state.subscriptions.filter((s) => s.appId === appId)
+    const totalFromSubs = subs.reduce((s, sub) => s + (sub.totalEarned ?? 0), 0)
+    const platformFees = totalFromSubs * 0.1
+    const proofs = this.state.proofs.filter((p) => p.appId === appId)
+
+    const minerMap = new Map<string, { amount: number; proofs: number }>()
+    for (const sub of subs) {
+      const existing = minerMap.get(sub.minerId) ?? { amount: 0, proofs: 0 }
+      existing.amount += sub.totalEarned ?? 0
+      minerMap.set(sub.minerId, existing)
+    }
+    for (const p of proofs) {
+      if (p.status === "verified" && p.minerId) {
+        const existing = minerMap.get(p.minerId) ?? { amount: 0, proofs: 0 }
+        existing.proofs += 1
+        minerMap.set(p.minerId, existing)
+      }
+    }
+
+    const payoutsByMiner = [...minerMap.entries()].map(([minerId, data]) => ({ minerId, ...data })).sort((a, b) => b.amount - a.amount)
+
+    // Generate mock daily revenue for last 30 days
+    const dailyRevenue: Array<{ date: string; amount: number }> = []
+    const now = Date.now()
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now - i * 86400000)
+      dailyRevenue.push({
+        date: d.toISOString().slice(0, 10),
+        amount: Math.max(0, (totalFromSubs / 30) * (0.5 + Math.random())),
+      })
+    }
+
+    // Recent payouts from events
+    const recentPayouts = (this.state.payouts ?? [])
+      .filter((p: any) => p.appId === appId)
+      .slice(0, 20)
+      .map((p: any) => ({ id: p.id, minerId: p.minerId ?? "unknown", amount: p.minerAmount ?? p.gross ?? 0, date: p.createdAt }))
+
+    return { totalRevenue: totalFromSubs, totalPayouts: totalFromSubs - platformFees, platformFees, payoutsByMiner, recentPayouts, dailyRevenue }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  DEVELOPER PORTAL: Proof Monitoring
+  // ═══════════════════════════════════════════════════
+
+  getProofMonitoring(appId: string): {
+    total: number; verified: number; failed: number; pending: number; disputed: number;
+    successRate: number; avgVerificationTime: number;
+    recentProofs: Array<{ id: string; minerId: string; status: string; createdAt: string }>;
+    failureReasons: Array<{ reason: string; count: number }>;
+    hourlyRate: Array<{ hour: string; count: number; verified: number }>;
+  } {
+    const proofs = this.state.proofs.filter((p) => p.appId === appId)
+    const verified = proofs.filter((p) => p.status === "verified").length
+    const failed = proofs.filter((p) => p.status === "rejected").length
+    const pending = proofs.filter((p) => p.status === "pending").length
+    const disputed = proofs.filter((p) => p.status === "disputed").length
+    const total = proofs.length || 1
+
+    const recentProofs = proofs.slice(-20).reverse().map((p) => ({
+      id: p.id, minerId: p.minerId, status: p.status, createdAt: p.submittedAt ?? p.createdAt ?? nowIso(),
+    }))
+
+    const failureReasons = [
+      { reason: "Invalid computation hash", count: Math.floor(failed * 0.4) },
+      { reason: "Timeout exceeded", count: Math.floor(failed * 0.25) },
+      { reason: "Resource mismatch", count: Math.floor(failed * 0.2) },
+      { reason: "Duplicate submission", count: Math.ceil(failed * 0.15) },
+    ].filter((r) => r.count > 0)
+
+    // Mock hourly data
+    const hourlyRate: Array<{ hour: string; count: number; verified: number }> = []
+    for (let i = 23; i >= 0; i--) {
+      const h = new Date(Date.now() - i * 3600000)
+      const count = Math.floor(Math.random() * 20) + 2
+      hourlyRate.push({ hour: `${h.getHours().toString().padStart(2, "0")}:00`, count, verified: Math.floor(count * (0.85 + Math.random() * 0.15)) })
+    }
+
+    return {
+      total: proofs.length, verified, failed, pending, disputed,
+      successRate: (verified / total) * 100,
+      avgVerificationTime: 2.3 + Math.random() * 3,
+      recentProofs, failureReasons, hourlyRate,
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  MINING: Earnings Breakdown
+  // ═══════════════════════════════════════════════════
+
+  getEarningsBreakdown(minerId: string): {
+    totalEarned: number; thisWeek: number; lastWeek: number; weeklyChange: number;
+    projected30d: number; byProject: Array<{ appId: string; appName: string; earned: number; proofs: number; uptime: number }>;
+    dailyEarnings: Array<{ date: string; amount: number }>;
+  } {
+    const subs = this.state.subscriptions.filter((s) => s.minerId === minerId)
+    const totalEarned = subs.reduce((s, sub) => s + (sub.totalEarned ?? 0), 0)
+    const now = Date.now()
+    const weekMs = 7 * 86400000
+
+    // Simulate weekly earnings from total
+    const thisWeek = totalEarned * 0.18
+    const lastWeek = totalEarned * 0.15
+    const weeklyChange = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : 0
+    const projected30d = (thisWeek / 7) * 30
+
+    const byProject = subs.map((sub) => {
+      const app = this.state.apps.find((a) => a.id === sub.appId)
+      const proofs = this.state.proofs.filter((p) => p.appId === sub.appId && p.minerId === minerId && p.status === "verified").length
+      return { appId: sub.appId, appName: app?.name ?? sub.appId, earned: sub.totalEarned ?? 0, proofs, uptime: sub.uptime }
+    }).sort((a, b) => b.earned - a.earned)
+
+    const dailyEarnings: Array<{ date: string; amount: number }> = []
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now - i * 86400000)
+      dailyEarnings.push({ date: d.toISOString().slice(0, 10), amount: Math.max(0, (totalEarned / 30) * (0.6 + Math.random() * 0.8)) })
+    }
+
+    return { totalEarned, thisWeek, lastWeek, weeklyChange, projected30d, byProject, dailyEarnings }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  MINING: Proof Stats
+  // ═══════════════════════════════════════════════════
+
+  getProofStats(minerId: string): {
+    total: number; verified: number; failed: number; pending: number; successRate: number;
+    avgVerificationTime: number;
+    byProject: Array<{ appId: string; appName: string; total: number; verified: number; failed: number; rate: number }>;
+    dailyRate: Array<{ date: string; submitted: number; verified: number }>;
+  } {
+    const proofs = this.state.proofs.filter((p) => p.minerId === minerId)
+    const verified = proofs.filter((p) => p.status === "verified").length
+    const failed = proofs.filter((p) => p.status === "rejected").length
+    const pending = proofs.filter((p) => p.status === "pending").length
+    const total = proofs.length || 1
+
+    const appMap = new Map<string, { total: number; verified: number; failed: number }>()
+    for (const p of proofs) {
+      const e = appMap.get(p.appId) ?? { total: 0, verified: 0, failed: 0 }
+      e.total++
+      if (p.status === "verified") e.verified++
+      if (p.status === "rejected") e.failed++
+      appMap.set(p.appId, e)
+    }
+
+    const byProject = [...appMap.entries()].map(([appId, data]) => {
+      const app = this.state.apps.find((a) => a.id === appId)
+      return { appId, appName: app?.name ?? appId, ...data, rate: data.total > 0 ? (data.verified / data.total) * 100 : 0 }
+    }).sort((a, b) => a.rate - b.rate)
+
+    const dailyRate: Array<{ date: string; submitted: number; verified: number }> = []
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000)
+      const sub = Math.floor(Math.random() * 15) + 3
+      dailyRate.push({ date: d.toISOString().slice(0, 10), submitted: sub, verified: Math.floor(sub * (0.8 + Math.random() * 0.2)) })
+    }
+
+    return { total: proofs.length, verified, failed, pending, successRate: (verified / total) * 100, avgVerificationTime: 1.8 + Math.random() * 3, byProject, dailyRate }
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  MINING: Active Jobs Across Projects
+  // ═══════════════════════════════════════════════════
+
+  getActiveJobs(minerId: string): Array<{ id: string; appId: string; appName: string; status: string; type: string; startedAt: string; reward: number }> {
+    const subs = this.state.subscriptions.filter((s) => s.minerId === minerId && s.status === "active")
+    const jobs: Array<{ id: string; appId: string; appName: string; status: string; type: string; startedAt: string; reward: number }> = []
+    for (const sub of subs) {
+      const app = this.state.apps.find((a) => a.id === sub.appId)
+      const appJobs = this.state.jobs.filter((j) => j.appId === sub.appId && j.minerId === minerId && (j.status === "queued" || j.status === "running"))
+      for (const j of appJobs) {
+        jobs.push({ id: j.id, appId: sub.appId, appName: app?.name ?? sub.appId, status: j.status, type: j.type ?? "compute", startedAt: j.startedAt ?? j.createdAt, reward: j.reward ?? 0 })
+      }
+    }
+    // If no real jobs, generate a few mock active ones
+    if (jobs.length === 0 && subs.length > 0) {
+      for (const sub of subs.slice(0, 3)) {
+        const app = this.state.apps.find((a) => a.id === sub.appId)
+        jobs.push({ id: `job_${sub.appId}_live`, appId: sub.appId, appName: app?.name ?? sub.appId, status: "running", type: "proof_generation", startedAt: nowIso(), reward: 0.25 + Math.random() * 0.5 })
+      }
+    }
+    return jobs.sort((a, b) => (a.status === "running" ? 0 : 1) - (b.status === "running" ? 0 : 1))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  MINING: Alerts
+  // ═══════════════════════════════════════════════════
+
+  getMiningAlerts(minerId: string): Array<{ id: string; type: "uptime" | "proof_failure" | "slashing" | "low_collateral"; severity: "warning" | "critical"; message: string; appId?: string; timestamp: string }> {
+    const alerts: Array<{ id: string; type: "uptime" | "proof_failure" | "slashing" | "low_collateral"; severity: "warning" | "critical"; message: string; appId?: string; timestamp: string }> = []
+    const subs = this.state.subscriptions.filter((s) => s.minerId === minerId)
+
+    for (const sub of subs) {
+      const app = this.state.apps.find((a) => a.id === sub.appId)
+      const name = app?.name ?? sub.appId
+      if (sub.uptime < 95) {
+        alerts.push({ id: `alert_uptime_${sub.appId}`, type: "uptime", severity: sub.uptime < 80 ? "critical" : "warning", message: `${name}: uptime dropped to ${sub.uptime.toFixed(1)}%`, appId: sub.appId, timestamp: nowIso() })
+      }
+      const proofs = this.state.proofs.filter((p) => p.appId === sub.appId && p.minerId === minerId)
+      const failed = proofs.filter((p) => p.status === "rejected").length
+      if (failed > 3) {
+        alerts.push({ id: `alert_proof_${sub.appId}`, type: "proof_failure", severity: failed > 10 ? "critical" : "warning", message: `${name}: ${failed} proofs failed verification`, appId: sub.appId, timestamp: nowIso() })
+      }
+    }
+
+    const slashEvents = this.state.slashingEvents.filter((s) => s.minerId === minerId)
+    for (const s of slashEvents.slice(-3)) {
+      alerts.push({ id: `alert_slash_${s.id}`, type: "slashing", severity: "critical", message: `Slashed ${s.amount.toFixed(2)} NECTA: ${s.reason}`, appId: s.appId, timestamp: s.createdAt })
+    }
+
+    return alerts.sort((a, b) => (a.severity === "critical" ? 0 : 1) - (b.severity === "critical" ? 0 : 1))
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  MINING: Earnings Goal
+  // ═══════════════════════════════════════════════════
+
+  getEarningsGoal(minerId: string): { target: number; current: number; period: string } | null {
+    const key = `earningsGoal_${minerId}`
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(key) : null
+      if (!raw) return null
+      return JSON.parse(raw)
+    } catch { return null }
+  }
+
+  setEarningsGoal(minerId: string, target: number) {
+    const subs = this.state.subscriptions.filter((s) => s.minerId === minerId)
+    const totalEarned = subs.reduce((s, sub) => s + (sub.totalEarned ?? 0), 0)
+    const goal = { target, current: totalEarned, period: new Date().toISOString().slice(0, 7) }
+    const key = `earningsGoal_${minerId}`
+    try { if (typeof window !== "undefined") window.localStorage.setItem(key, JSON.stringify(goal)) } catch {}
+    return goal
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  MINING: Collateral Actions
+  // ═══════════════════════════════════════════════════
+
+  topUpCollateral(input: { minerId: string; appId: string; amount: number }) {
+    this.requireAuth()
+    const walletAddress = this.state.session.walletAddress!
+    const balance = this.state.walletBalancesByAddress[walletAddress] ?? 0
+    if (balance < input.amount) throw new Error(`Insufficient balance. Have ${balance.toFixed(2)}, need ${input.amount}.`)
+
+    this.setState((prev) => {
+      const sub = prev.subscriptions.find((s) => s.appId === input.appId && s.minerId === input.minerId)
+      return {
+        ...prev,
+        walletBalancesByAddress: { ...prev.walletBalancesByAddress, [walletAddress]: balance - input.amount },
+        subscriptions: prev.subscriptions.map((s) =>
+          s.appId === input.appId && s.minerId === input.minerId
+            ? { ...s, collateral: (s.collateral ?? 0) + input.amount }
+            : s
+        ),
+        updatedAt: nowIso(),
+      }
     })
   }
 

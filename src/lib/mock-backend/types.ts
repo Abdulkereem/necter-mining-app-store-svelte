@@ -1,4 +1,4 @@
-import type { App, HardwareProfile, MiningProfile, ProofDetail, ProofSubmission, Subscription, Withdrawal } from "$lib/types"
+import type { App, HardwareProfile, MinerDevice, MiningProfile, ProofDetail, ProofSubmission, Subscription, Withdrawal } from "@/lib/types"
 
 // Listing visibility for the miner-facing marketplace.
 // `beta` means approved but still under post-approval conditions (time-boxed).
@@ -184,6 +184,146 @@ export interface GovernanceProposal {
   createdBy: string // voterId (wallet address)
 }
 
+// Governance stake history
+export interface GovernanceStakeEvent {
+  id: string
+  address: string
+  type: "deposit" | "withdraw" | "lock" | "unlock" | "reward"
+  amount: number
+  reason: string
+  proposalId?: string
+  appId?: string
+  createdAt: string
+  unlocksAt?: string
+}
+
+// Delegation
+export interface GovernanceDelegation {
+  id: string
+  fromAddress: string
+  toAddress: string
+  amount: number
+  createdAt: string
+  revokedAt?: string
+}
+
+// Proposal discussion
+export interface ProposalComment {
+  id: string
+  proposalId: string
+  authorAddress: string
+  content: string
+  createdAt: string
+  parentCommentId?: string
+  upvotes: number
+  upvoters: string[]
+}
+
+// Treasury
+export interface TreasuryTransaction {
+  id: string
+  type: "inflow" | "outflow"
+  amount: number
+  source?: string
+  recipient?: string
+  purpose?: string
+  createdAt: string
+  status: "completed" | "pending"
+}
+
+export interface TreasuryAllocation {
+  label: string
+  percent: number
+  amount: number
+}
+
+// Developer Portal: Webhook logs
+export interface WebhookLogEntry {
+  id: string
+  appId: string
+  event: string
+  url: string
+  payload: string
+  status: "delivered" | "failed" | "retrying"
+  statusCode?: number
+  createdAt: string
+  retriedAt?: string
+  attempts: number
+}
+
+// Developer Portal: Deployment logs
+export interface DeploymentLog {
+  id: string
+  appId: string
+  version: string
+  status: "building" | "deploying" | "live" | "failed" | "rolled_back"
+  startedAt: string
+  completedAt?: string
+  steps: DeploymentStep[]
+  triggeredBy: string
+}
+
+export interface DeploymentStep {
+  name: string
+  status: "pending" | "running" | "completed" | "failed"
+  startedAt?: string
+  completedAt?: string
+  logs: string[]
+}
+
+// Developer Portal: Announcements
+export interface Announcement {
+  id: string
+  appId: string
+  title: string
+  content: string
+  type: "update" | "maintenance" | "feature" | "alert"
+  createdAt: string
+  authorAddress: string
+}
+
+// Developer Portal: Miner tiers
+export interface MinerTierConfig {
+  enabled: boolean
+  tiers: Array<{
+    name: string
+    minUptime: number
+    minProofRate: number
+    rewardMultiplier: number
+    color: string
+  }>
+  blocklist: string[]
+  allowlist: string[]
+}
+
+// Developer Portal: Support tickets
+export interface SupportTicket {
+  id: string
+  appId: string
+  minerId: string
+  subject: string
+  description: string
+  status: "open" | "in_progress" | "resolved" | "closed"
+  priority: "low" | "medium" | "high"
+  createdAt: string
+  updatedAt: string
+  replies: Array<{ authorId: string; content: string; createdAt: string }>
+}
+
+// Developer Portal: Testnet sessions
+export interface TestnetSession {
+  id: string
+  appId: string
+  status: "running" | "completed" | "failed"
+  startedAt: string
+  completedAt?: string
+  simulatedMiners: number
+  proofsGenerated: number
+  proofsPassed: number
+  proofsFailed: number
+  logs: string[]
+}
+
 export type AppReportCategory = "scam" | "malware" | "economics" | "impersonation" | "spam" | "other"
 export type AppReportSeverity = "low" | "medium" | "high"
 
@@ -355,6 +495,7 @@ export interface DeveloperEnrollmentRecord {
   founded?: string
   category?: string
   tags?: string[]
+  logo?: string
   socialLinks?: {
     twitter?: string
     discord?: string
@@ -442,6 +583,9 @@ export interface MockBackendState {
   // Miner-owned hardware profile (persisted)
   hardwareProfileByMinerId: Record<string, HardwareProfile>
 
+  // Miner devices (persisted)
+  devicesByMinerId: Record<string, MinerDevice[]>
+
   // Miner attestation capabilities (persisted)
   attestationCapabilitiesByMinerId: Record<
     string,
@@ -464,6 +608,24 @@ export interface MockBackendState {
 
   // Gamification (persisted)
   badgesByMinerId: Record<string, MinerBadge[]>
+
+  // Governance staking (persisted)
+  governanceStakesByAddress: Record<string, { total: number; locked: number; available: number }>
+  governanceVoteStakes: Record<string, Record<string, number>> // proposalId -> voterId -> stakeAmount
+  governanceReviewerStakes: Record<string, Record<string, number>> // appId -> reviewerId -> stakeAmount
+  governanceRewards: Record<string, number> // walletAddress -> accumulated rewards
+  governanceStakeHistory: GovernanceStakeEvent[]
+  governanceDelegations: GovernanceDelegation[]
+  proposalComments: ProposalComment[]
+  treasuryTransactions: TreasuryTransaction[]
+
+  // Developer portal (persisted)
+  webhookLogsByAppId: Record<string, WebhookLogEntry[]>
+  deploymentLogsByAppId: Record<string, DeploymentLog[]>
+  announcementsByAppId: Record<string, Announcement[]>
+  minerTiersByAppId: Record<string, MinerTierConfig>
+  supportTicketsByAppId: Record<string, SupportTicket[]>
+  testnetSessionsByAppId: Record<string, TestnetSession[]>
 
   // Operator portal (persisted)
   operatorMiners: OperatorFleetMiner[]
