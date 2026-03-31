@@ -1,58 +1,218 @@
 <script>
   import { backendState, backend } from '$lib/stores/backend';
   import { wallet, actor, showConnectModal, disconnectWallet } from '$lib/stores/wallet';
-  import { User, Wallet as WalletIcon, Bell, Shield, LogOut, Plus, Trash2, Cpu } from 'lucide-svelte';
+  import { showToast, showError } from '$lib/stores/toast';
+  import { minerAvatarDataUri } from '$lib/miner-avatar';
+  import { badgeIconDataUri } from '$lib/badge-icon';
+  import {
+    User, Wallet as WalletIcon, Bell, Monitor, Award, Save, Upload, Copy,
+    Key, ChevronRight, ChevronDown, Clock, Lock, ExternalLink, Download,
+    AlertTriangle, Plus, Trash2, Cpu, Server, Laptop, HardDrive, Wifi,
+    LogOut
+  } from 'lucide-svelte';
+
+  /* ── Tab config ── */
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'devices', label: 'Devices', icon: Monitor },
+    { id: 'wallet', label: 'Wallet', icon: WalletIcon },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'badges', label: 'Badges', icon: Award },
+  ];
 
   let activeTab = $state('profile');
-  let newWithdrawalAddress = $state('');
 
   const minerId = $derived($actor?.minerId ?? null);
+  const walletAddress = $derived($actor?.walletAddress ?? null);
+
+  /* ── Device helpers ── */
+  const typeIcons = { desktop: Monitor, server: Server, laptop: Laptop, custom: Cpu };
+  const statusConfig = {
+    online: { label: 'Online', color: 'var(--success)', dot: 'rgba(76,183,130,0.3)' },
+    offline: { label: 'Offline', color: 'var(--text-tertiary)', dot: 'transparent' },
+    idle: { label: 'Idle', color: 'var(--warning)', dot: 'rgba(242,153,74,0.3)' },
+  };
+
+  /* ── Badge kind meta ── */
+  const badgeKindMeta = {
+    milestone: { color: 'var(--text-accent)', bg: 'var(--accent-subtle)', label: 'Milestone' },
+    performance: { color: 'var(--success)', bg: 'rgba(76,183,130,0.12)', label: 'Performance' },
+    governance: { color: 'var(--info)', bg: 'rgba(110,159,255,0.12)', label: 'Governance' },
+    community: { color: 'var(--warning)', bg: 'rgba(242,153,74,0.12)', label: 'Community' },
+  };
+
+  /* ── Available badges ── */
+  const availableBadges = [
+    { name: 'First Proof Verified', description: 'Submit and verify your very first proof on the Necter network.', kind: 'milestone' },
+    { name: '10 Proofs Verified', description: 'Verify 10 proofs across any combination of projects.', kind: 'milestone' },
+    { name: 'Centurion', description: '100 verified proofs. Your hardware has proven it can handle real workloads.', kind: 'milestone' },
+    { name: 'Proof Machine', description: '1,000 verified proofs. Consistent value for the projects you serve.', kind: 'milestone' },
+    { name: '10K Club', description: '10,000 lifetime proofs. Your node is a pillar of the ecosystem.', kind: 'milestone' },
+    { name: 'First Payout', description: 'Your first NECTA hits your wallet. Compute to reward, complete.', kind: 'milestone' },
+    { name: 'Diamond Hands', description: '1,000 NECTA earned. You mined through volatility.', kind: 'milestone' },
+    { name: 'Whale Miner', description: '10,000 NECTA lifetime earnings. Top 1% of all miners.', kind: 'milestone' },
+    { name: 'First Withdrawal', description: 'Move NECTA from mining balance to your own wallet.', kind: 'milestone' },
+    { name: 'Hardware Upgraded', description: 'Update your hardware profile after upgrading your rig.', kind: 'milestone' },
+    { name: 'Ironclad', description: '99.9% uptime for 30 straight days.', kind: 'performance' },
+    { name: 'Always On', description: '100% uptime for a full 7 days.', kind: 'performance' },
+    { name: 'Top 10 Earner', description: 'Break into the top 10 earners on any project leaderboard.', kind: 'performance' },
+    { name: 'Efficiency King', description: '99.5%+ proof success rate over 500 submissions.', kind: 'performance' },
+    { name: 'Zero Slashing', description: 'Complete 500+ tasks with zero slashing events.', kind: 'performance' },
+    { name: 'Reputation 90+', description: 'Push your miner reputation score above 90.', kind: 'performance' },
+    { name: 'Early Adopter', description: 'Subscribe to a project within 48 hours of launch.', kind: 'community' },
+    { name: 'Network Hopper', description: 'Mine on 3+ networks at once.', kind: 'community' },
+    { name: 'Category Explorer', description: 'Mine across 4+ categories.', kind: 'community' },
+    { name: 'Pioneer', description: 'Among the first 50 miners on a newly launched project.', kind: 'community' },
+    { name: 'Loyal Miner', description: '90+ consecutive days on one project.', kind: 'community' },
+    { name: 'Fleet Commander', description: 'Operate 5+ mining nodes from a single operator account.', kind: 'community' },
+    { name: 'Reviewer', description: 'Leave 5 honest reviews on projects you mined.', kind: 'community' },
+    { name: 'Node Setup Complete', description: 'Run through the full node setup wizard.', kind: 'community' },
+    { name: 'Network Creator', description: 'Deploy your first mining project on Necter.', kind: 'community' },
+    { name: 'First Miner Attracted', description: 'A real miner subscribes to your project.', kind: 'community' },
+    { name: '10 Miners Onboarded', description: '10 miners actively running proofs on your project.', kind: 'community' },
+    { name: 'Payout Distributed', description: 'Your project distributes its first NECTA rewards.', kind: 'community' },
+    { name: 'Multi-Project Dev', description: 'Deploy and maintain 3+ live projects on Necter.', kind: 'community' },
+    { name: '5-Star Project', description: 'Your project reaches a 4.5+ average rating.', kind: 'community' },
+    { name: 'First Vote', description: 'Cast your first vote on a governance proposal.', kind: 'governance' },
+    { name: 'Active Citizen', description: 'Vote on 10+ proposals.', kind: 'governance' },
+    { name: 'Proposal Author', description: 'Draft a governance proposal that reaches quorum.', kind: 'governance' },
+    { name: 'DAO Reviewer', description: 'Review and vote on 3 project listing applications.', kind: 'governance' },
+    { name: 'Watchdog', description: 'Flag 3 projects for confirmed policy violations.', kind: 'governance' },
+  ];
+
+  /* ═══════════════════════════════════════════════════ */
+  /*  PROFILE TAB STATE                                  */
+  /* ═══════════════════════════════════════════════════ */
+  let displayName = $state('');
+  let email = $state('');
+  let bio = $state('');
+  let website = $state('');
+  let location = $state('');
+  let founded = $state('');
+  let category = $state('');
+  let tagsStr = $state('');
+  let twitter = $state('');
+  let discord = $state('');
+  let github = $state('');
+  let telegram = $state('');
+  let avatarPreview = $state(null);
+  let saving = $state(false);
+
+  const enrollment = $derived(walletAddress ? backend.getDeveloperEnrollment(walletAddress) : null);
+
+  $effect(() => {
+    if (!enrollment) return;
+    displayName = enrollment.displayName ?? '';
+    email = enrollment.email ?? '';
+    bio = enrollment.bio ?? '';
+    website = enrollment.website ?? '';
+    location = enrollment.location ?? '';
+    founded = enrollment.founded ?? '';
+    category = enrollment.category ?? '';
+    tagsStr = (enrollment.tags ?? []).join(', ');
+    twitter = enrollment.socialLinks?.twitter ?? '';
+    discord = enrollment.socialLinks?.discord ?? '';
+    github = enrollment.socialLinks?.github ?? '';
+    telegram = enrollment.socialLinks?.telegram ?? '';
+  });
+
+  function handleAvatarUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { avatarPreview = reader.result; };
+    reader.readAsDataURL(file);
+  }
+
+  function handleSaveProfile() {
+    if (!walletAddress) return;
+    saving = true;
+    try {
+      backend.saveDeveloperProfile({
+        walletAddress,
+        displayName,
+        bio,
+        website,
+        location,
+        founded,
+        category,
+        tags: tagsStr.split(',').map(t => t.trim()).filter(Boolean),
+        socialLinks: { twitter, discord, github, telegram },
+      });
+      showToast('Profile saved', 'Your profile has been updated.');
+    } catch (err) {
+      showError('Error', err?.message ?? 'Failed to save profile.');
+    } finally {
+      saving = false;
+    }
+  }
+
+  const avatarSrc = $derived(avatarPreview || (minerId ? minerAvatarDataUri(minerId) : null));
+  const initials = $derived(displayName ? displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?');
+
+  /* ═══════════════════════════════════════════════════ */
+  /*  DEVICES TAB STATE                                  */
+  /* ═══════════════════════════════════════════════════ */
+  let expandedDevice = $state(null);
+  let editingName = $state(null);
+  let editNameValue = $state('');
+  let showAddDevice = $state(false);
+  let newDeviceName = $state('');
+  let newDeviceType = $state('desktop');
+
+  const devices = $derived.by(() => {
+    // force reactivity on state changes
+    void $backendState.updatedAt;
+    if (!minerId) return [];
+    return backend.listDevices(minerId);
+  });
+
+  const onlineCount = $derived(devices.filter(d => d.status === 'online').length);
+  const totalDeviceEarned = $derived(devices.reduce((sum, d) => sum + d.totalEarned, 0));
+  const avgUptime = $derived(devices.length > 0 ? devices.reduce((sum, d) => sum + d.uptime, 0) / devices.length : 0);
+
+  function addDevice() {
+    if (!minerId || !newDeviceName.trim()) return;
+    backend.addDevice({ minerId, name: newDeviceName.trim(), type: newDeviceType, hardware: {} });
+    newDeviceName = '';
+    showAddDevice = false;
+    showToast('Device added');
+  }
+
+  function lastSeenText(device) {
+    if (device.status === 'online') return 'Now';
+    const sec = Math.floor((Date.now() - new Date(device.lastSeenAt).getTime()) / 1000);
+    if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+    return `${Math.floor(sec / 86400)}d ago`;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /*  WALLET TAB STATE                                   */
+  /* ═══════════════════════════════════════════════════ */
+  let newWithdrawalAddress = $state('');
 
   const savedWithdrawalAddresses = $derived.by(() => {
+    void $backendState.updatedAt;
     if (!minerId) return [];
     try { return backend.listWithdrawalAddresses(minerId); } catch { return []; }
   });
 
-  const hardwareDefaults = { cpuCores: 8, ramGb: 16, storageGb: 256, networkMbps: 50 };
-
-  let hwCpuCores = $state(8);
-  let hwCpuThreads = $state(0);
-  let hwRamGb = $state(16);
-  let hwGpuModel = $state('');
-  let hwGpuVram = $state(0);
-  let hwStorageGb = $state(256);
-  let hwNetworkMbps = $state(50);
-
-  $effect(() => {
-    if (!minerId) return;
-    const existing = backend.getHardwareProfile(minerId);
-    if (existing) {
-      hwCpuCores = existing.cpuCores ?? 8;
-      hwCpuThreads = existing.cpuThreads ?? 0;
-      hwRamGb = existing.ramGb ?? 16;
-      hwGpuModel = existing.gpuModel ?? '';
-      hwGpuVram = existing.gpuVram ?? 0;
-      hwStorageGb = existing.storageGb ?? 256;
-      hwNetworkMbps = existing.networkMbps ?? 50;
-    }
+  const minerWithdrawals = $derived.by(() => {
+    if (!minerId) return [];
+    return ($backendState.withdrawals ?? [])
+      .filter(w => w.minerId === minerId)
+      .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
   });
 
-  function saveHardware() {
-    if (!minerId) return;
-    backend.upsertHardwareProfile({
-      minerId,
-      profile: {
-        minerId,
-        cpuCores: hwCpuCores,
-        cpuThreads: hwCpuThreads || undefined,
-        ramGb: hwRamGb,
-        gpuModel: hwGpuModel || undefined,
-        gpuVram: hwGpuVram || undefined,
-        storageGb: hwStorageGb,
-        networkMbps: hwNetworkMbps,
-      }
-    });
-  }
+  const recentWithdrawals = $derived(minerWithdrawals.slice(0, 5));
+
+  const withdrawalStatusConfig = {
+    completed: { label: 'Completed', color: 'var(--success)', bg: 'rgba(76,183,130,0.12)' },
+    pending: { label: 'Pending', color: 'var(--warning)', bg: 'rgba(242,153,74,0.12)' },
+    processing: { label: 'Processing', color: 'var(--info)', bg: 'rgba(110,159,255,0.12)' },
+    failed: { label: 'Failed', color: 'var(--error)', bg: 'rgba(239,68,68,0.12)' },
+  };
 
   function addAddress() {
     const v = newWithdrawalAddress.trim();
@@ -66,370 +226,920 @@
     backend.removeWithdrawalAddress({ minerId, walletAddress: addr });
   }
 
-  const tabs = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'wallet', label: 'Wallet & Assets', icon: WalletIcon },
-    { id: 'hardware', label: 'My Hardware', icon: Cpu },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'security', label: 'Security', icon: Shield },
+  /* ═══════════════════════════════════════════════════ */
+  /*  NOTIFICATIONS TAB STATE                            */
+  /* ═══════════════════════════════════════════════════ */
+  const notifPrefs = [
+    { title: 'App Updates', desc: 'When subscribed projects push new versions', defaultOn: true },
+    { title: 'Earnings', desc: 'Daily summary of earned rewards', defaultOn: false },
+    { title: 'Subscriptions', desc: 'New subscriber activity on your projects', defaultOn: true },
+    { title: 'Proofs', desc: 'Proof submission and verification updates', defaultOn: true },
+    { title: 'Governance', desc: 'New DAO proposals and voting reminders', defaultOn: true },
+    { title: 'Security', desc: 'Login attempts and suspicious activity', defaultOn: true },
+    { title: 'Staking', desc: 'Staking rewards and delegation changes', defaultOn: false },
   ];
 
-  // Notification toggles
-  let notifGovernance = $state(true);
-  let notifMining = $state(true);
-  let notifRewards = $state(false);
+  let notifToggles = $state(notifPrefs.map(p => p.defaultOn));
+  let deliveryMethod = $state('in-app');
+  let quietFrom = $state('22:00');
+  let quietTo = $state('07:00');
 
-  // Security toggles
-  let sessionLock = $state(false);
+  /* ═══════════════════════════════════════════════════ */
+  /*  BADGES TAB STATE                                   */
+  /* ═══════════════════════════════════════════════════ */
+  let filterKind = $state('all');
 
-  // Roles
-  const roles = $derived($wallet ? backend.listRoles($wallet.address) : []);
-  const hasGovernance = $derived(roles.includes('governance'));
-  const hasOperator = $derived(roles.includes('operator'));
-  const enrollment = $derived($wallet ? backend.getDeveloperEnrollment($wallet.address) : null);
-  const enrollmentStatus = $derived(enrollment?.status ?? 'none');
+  const earnedBadges = $derived.by(() => {
+    if (!minerId) return [];
+    return backend.listBadges(minerId);
+  });
+
+  const earnedNames = $derived(new Set(earnedBadges.map(b => b.name)));
+  const notEarnedBadges = $derived(availableBadges.filter(b => !earnedNames.has(b.name)));
+  const filteredEarned = $derived(filterKind === 'all' ? earnedBadges : earnedBadges.filter(b => b.kind === filterKind));
+  const filteredNotEarned = $derived(filterKind === 'all' ? notEarnedBadges : notEarnedBadges.filter(b => b.kind === filterKind));
+  const rarestBadge = $derived(earnedBadges.length > 0 ? earnedBadges[0] : null);
+  const latestBadge = $derived(earnedBadges.length > 0 ? earnedBadges.reduce((a, b) => (new Date(b.mintedAt) > new Date(a.mintedAt) ? b : a)) : null);
+
+  const badgeFilterTabs = [
+    { id: 'all', label: 'All' },
+    { id: 'milestone', label: 'Milestone' },
+    { id: 'performance', label: 'Performance' },
+    { id: 'community', label: 'Community' },
+    { id: 'governance', label: 'Governance' },
+  ];
 </script>
 
-<div class="animate-fadeIn px-6 pt-6 pb-12">
-  <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight mb-6">Account Settings</h1>
-
-  <div class="flex flex-col md:flex-row gap-6">
-    <!-- Sidebar Nav -->
-    <div class="flex flex-col h-auto bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px] space-y-0.5 w-full md:w-52 p-1.5">
-      {#each tabs as tab}
-        <button
-          type="button"
-          class="w-full flex items-center px-3 py-2 text-[13px] rounded-[5px] transition-colors"
-          class:bg-[var(--accent-subtle)]={activeTab === tab.id}
-          class:text-[var(--text-accent)]={activeTab === tab.id}
-          class:text-[var(--text-secondary)]={activeTab !== tab.id}
-          onclick={() => activeTab = tab.id}
-        >
-          <svelte:component this={tab.icon} class="h-4 w-4 mr-2.5" />
-          {tab.label}
-        </button>
-      {/each}
+<div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
+  <div class="max-w-[960px] mx-auto">
+    <!-- Page header -->
+    <div class="mb-6">
+      <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">Settings</h1>
+      <p class="text-[13px] text-[var(--text-secondary)] mt-1 hidden md:block">Manage your account, devices, and preferences.</p>
     </div>
 
-    <!-- Content Area -->
-    <div class="flex-1">
+    <!-- Layout: sidebar + content -->
+    <div class="flex flex-col md:flex-row gap-4 md:gap-6">
+      <!-- Tab navigation: horizontal scroll on mobile, vertical sidebar on desktop -->
+      <nav class="flex md:flex-col w-full md:w-[180px] flex-shrink-0 gap-0.5 md:sticky md:top-6 md:self-start overflow-x-auto">
+        {#each tabs as tab}
+          {@const isActive = activeTab === tab.id}
+          <button
+            type="button"
+            class="flex items-center gap-2.5 md:w-full px-3 py-2 text-[13px] rounded-[6px] text-left transition-colors whitespace-nowrap flex-shrink-0 {isActive ? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
+            onclick={() => activeTab = tab.id}
+          >
+            <svelte:component this={tab.icon} class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+            {tab.label}
+          </button>
+        {/each}
+      </nav>
 
-      <!-- Profile Tab -->
-      {#if activeTab === 'profile'}
-        <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-          <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Public Profile</h2>
-          <div class="flex items-center gap-5 mb-5">
-            <div class="h-16 w-16 rounded-full bg-[var(--accent-subtle)] flex items-center justify-center text-[var(--text-accent)] font-bold text-[20px]">
-              N
-            </div>
-            <div>
-              <button type="button" class="btn-secondary mb-1.5">Upload New Avatar</button>
-              <p class="text-[11px] text-[var(--text-tertiary)]">JPG, GIF or PNG. Max size of 800K</p>
-            </div>
-          </div>
+      <!-- Content area -->
+      <div class="flex-1 min-w-0">
 
-          <div class="grid gap-4">
-            <div class="grid gap-1.5">
-              <label class="text-[12px] font-medium text-[var(--text-secondary)]">Display Name</label>
-              <input value="NecterUser_9382" class="h-8 text-[13px] rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
+        <!-- ═══════════════════════════════════════════ -->
+        <!--  1. PROFILE TAB                             -->
+        <!-- ═══════════════════════════════════════════ -->
+        {#if activeTab === 'profile'}
+          {#if !walletAddress}
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] text-center py-12">
+              <p class="text-[13px] text-[var(--text-secondary)] mb-3">Connect a wallet to edit your profile.</p>
+              <button class="btn-pill" onclick={() => $showConnectModal = true}>Connect Wallet</button>
             </div>
-            <div class="grid gap-1.5">
-              <label class="text-[12px] font-medium text-[var(--text-secondary)]">Email Address</label>
-              <input value="user@example.com" class="h-8 text-[13px] rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-            </div>
-            <div class="grid gap-1.5">
-              <label class="text-[12px] font-medium text-[var(--text-secondary)]">Bio</label>
-              <input value="Building decentralized AI infrastructure." class="h-8 text-[13px] rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-            </div>
-          </div>
-
-          <div class="mt-5 flex justify-end">
-            <button type="button" class="btn-subscribe">Save Changes</button>
-          </div>
-        </div>
-      {/if}
-
-      <!-- Wallet Tab -->
-      {#if activeTab === 'wallet'}
-        <div class="space-y-5">
-          <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-            <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Connected Wallets</h2>
-            {#if $wallet}
-              <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between mb-4">
-                <div class="flex items-center gap-3">
-                  <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600"></div>
-                  <div class="min-w-0">
-                    <p class="font-mono text-[13px] text-[var(--text-primary)] truncate">{$wallet.address}</p>
-                    <div class="flex items-center gap-2">
-                      <span class="inline-flex items-center px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[11px] font-medium text-[var(--text-secondary)]">Primary</span>
-                      <span class="text-[11px] text-[var(--text-tertiary)] font-mono">
-                        Balance: {($backendState.walletBalancesByAddress[$wallet.address] ?? 0).toFixed(2)} NECTA
-                      </span>
+          {:else}
+            <div class="space-y-5">
+              <!-- Avatar + identity header -->
+              <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+                <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Identity</h2>
+                <div class="flex items-start gap-4 mb-5">
+                  <div class="flex flex-col items-center gap-2">
+                    <div class="relative">
+                      <div class="w-[72px] h-[72px] rounded-[14px] bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {#if avatarSrc}
+                          <img src={avatarSrc} alt="Avatar" class="w-[72px] h-[72px] object-cover rounded-[14px]" />
+                        {:else}
+                          <span class="text-[20px] font-bold text-[var(--text-tertiary)]">{initials}</span>
+                        {/if}
+                      </div>
+                      <label class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[var(--accent-base)] flex items-center justify-center cursor-pointer border-2 border-[var(--surface-1)]">
+                        <Upload size={10} strokeWidth={2} class="text-[#0C0C0E]" />
+                        <input type="file" accept="image/*" onchange={handleAvatarUpload} class="hidden" />
+                      </label>
+                    </div>
+                  </div>
+                  <div class="min-w-0 flex-1 pt-1">
+                    <p class="text-[14px] font-semibold text-[var(--text-primary)] truncate">{displayName || 'Your Name'}</p>
+                    <p class="text-[11px] text-[var(--text-tertiary)] font-mono truncate mb-2">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
+                    <div class="flex items-center gap-3 flex-wrap">
+                      <div class="flex items-center gap-1.5">
+                        <Clock size={11} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
+                        <span class="text-[11px] text-[var(--text-tertiary)]">Member since November 2025</span>
+                      </div>
+                      <a
+                        href="/profiles/{walletAddress}"
+                        class="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-accent)] hover:underline no-underline"
+                      >
+                        View Public Profile
+                        <ExternalLink size={10} strokeWidth={1.5} />
+                      </a>
                     </div>
                   </div>
                 </div>
-                <button type="button" class="btn-secondary" style="color: var(--error)" onclick={disconnectWallet}>
-                  <LogOut class="h-4 w-4 mr-1.5" />
-                  Disconnect
-                </button>
-              </div>
-            {:else}
-              <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between mb-4">
-                <div>
-                  <p class="text-[13px] font-medium text-[var(--text-primary)]">No wallet connected</p>
-                  <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Connect to manage mining and withdrawals.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Display Name <span class="text-[var(--error)]">*</span></label>
+                    <input bind:value={displayName} placeholder="e.g. NecterMiner42" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Email</label>
+                    <input type="email" bind:value={email} placeholder="user@example.com" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
                 </div>
-                <button type="button" class="btn-pill" onclick={() => $showConnectModal = true}>
-                  <WalletIcon class="h-4 w-4 mr-1.5" />
-                  Connect
+                <div class="mt-3">
+                  <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Bio</label>
+                  <textarea
+                    bind:value={bio}
+                    placeholder="Short description..."
+                    rows="3"
+                    class="w-full text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] p-2.5 resize-vertical leading-relaxed focus:border-[var(--accent-base)] outline-none transition-colors"
+                  ></textarea>
+                  <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Shows on your public profile. Keep it under 200 characters.</p>
+                </div>
+              </div>
+
+              <!-- Details -->
+              <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+                <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Details</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Website</label>
+                    <input type="url" bind:value={website} placeholder="https://yourproject.com" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Location</label>
+                    <input bind:value={location} placeholder="San Francisco, CA" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Founded</label>
+                    <input bind:value={founded} placeholder="2024" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Category</label>
+                    <input bind:value={category} placeholder="IoT & Wireless" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                </div>
+                <div class="mt-3">
+                  <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Tags</label>
+                  <input bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Comma-separated. Used for search and discovery.</p>
+                </div>
+              </div>
+
+              <!-- Social Links -->
+              <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+                <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Social Links</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">X / Twitter</label>
+                    <input bind:value={twitter} placeholder="handle (without @)" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Discord</label>
+                    <input bind:value={discord} placeholder="server invite code" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">GitHub</label>
+                    <input bind:value={github} placeholder="org or username" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Telegram</label>
+                    <input bind:value={telegram} placeholder="channel or group" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save -->
+              <div class="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onclick={handleSaveProfile}
+                  disabled={saving || !displayName.trim()}
+                  class="btn-subscribe flex items-center gap-1.5 {saving || !displayName.trim() ? 'opacity-40' : 'opacity-100'}"
+                >
+                  <Save size={14} strokeWidth={2} />
+                  {saving ? 'Saving...' : 'Save Profile'}
                 </button>
               </div>
-            {/if}
-          </div>
 
-          <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-            <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Withdrawal Address Book</h2>
-            <p class="text-[12px] text-[var(--text-secondary)] mb-4">
-              Manage saved payout addresses here.
-            </p>
+              <!-- Divider -->
+              <div class="border-t border-[var(--border-default)] my-2"></div>
 
-            {#if !minerId}
-              <div class="text-[13px] text-[var(--text-secondary)]">Connect a wallet to manage saved addresses.</div>
-            {:else}
+              <!-- Advanced -->
               <div class="space-y-3">
-                <div class="flex gap-2">
-                  <input
-                    bind:value={newWithdrawalAddress}
-                    placeholder="Add address (0x...)"
-                    class="flex-1 h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3 placeholder:text-[var(--text-tertiary)]"
-                  />
-                  <button type="button" class="btn-subscribe" onclick={addAddress}>
-                    <Plus class="h-4 w-4" />
-                    Add
+                <!-- Referral Link -->
+                <div class="p-4 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-between">
+                  <div class="min-w-0 flex-1 mr-3">
+                    <p class="text-[13px] font-medium text-[var(--text-primary)] mb-0.5">Referral Link</p>
+                    <p class="text-[12px] font-mono text-[var(--text-secondary)] truncate">
+                      https://necter.io/ref/{walletAddress?.slice(0, 8) ?? 'connect'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="flex items-center gap-1.5 h-8 px-3 rounded-[5px] bg-[var(--surface-2)] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
+                    onclick={() => {
+                      const url = `https://necter.io/ref/${walletAddress?.slice(0, 8) ?? 'connect'}`;
+                      navigator.clipboard.writeText(url);
+                      showToast('Copied', 'Referral link copied to clipboard.');
+                    }}
+                  >
+                    <Copy class="h-3.5 w-3.5" strokeWidth={1.5} />
+                    Copy
                   </button>
                 </div>
-                <div class="space-y-1.5">
-                  {#if savedWithdrawalAddresses.length === 0}
-                    <div class="text-[13px] text-[var(--text-secondary)]">No saved addresses yet.</div>
-                  {:else}
-                    {#each savedWithdrawalAddresses as addr}
-                      <div class="flex items-center justify-between p-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)]">
-                        <div class="font-mono text-[12px] text-[var(--text-primary)] truncate">{addr}</div>
-                        <button
-                          type="button"
-                          class="btn-secondary"
-                          style="color: var(--error); width: 28px; padding: 0;"
-                          onclick={() => removeAddress(addr)}
-                        >
-                          <Trash2 class="h-4 w-4" />
-                        </button>
-                      </div>
-                    {/each}
-                  {/if}
+
+                <!-- API Keys -->
+                <a
+                  href="/develop/api-keys"
+                  class="p-4 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-between no-underline hover:bg-[var(--surface-2)] transition-colors block"
+                >
+                  <div class="flex items-center gap-2.5">
+                    <Key class="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+                    <span class="text-[13px] font-medium text-[var(--text-primary)]">Manage API Keys</span>
+                  </div>
+                  <ChevronRight class="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+                </a>
+
+                <!-- Export Data -->
+                <div class="p-4 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-between">
+                  <div>
+                    <p class="text-[13px] font-medium text-[var(--text-primary)] mb-0.5">Export Data</p>
+                    <p class="text-[12px] text-[var(--text-secondary)]">Download all your mining data as JSON.</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="flex items-center gap-1.5 h-8 px-3 rounded-[5px] bg-[var(--surface-2)] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
+                    onclick={() => {
+                      const exportData = {
+                        exportedAt: new Date().toISOString(),
+                        walletAddress,
+                        minerId,
+                        subscriptions: $backendState.subscriptions.filter(s => s.minerId === minerId),
+                        proofs: $backendState.proofs.filter(p => p.minerId === minerId),
+                        payouts: ($backendState.payouts ?? []).filter(e => e.minerId === minerId),
+                      };
+                      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `necter-export-${new Date().toISOString().slice(0, 10)}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      showToast('Export started', 'Your data file is downloading.');
+                    }}
+                  >
+                    <Download class="h-3.5 w-3.5" strokeWidth={1.5} />
+                    Export
+                  </button>
                 </div>
-              </div>
-            {/if}
-          </div>
-        </div>
-      {/if}
 
-      <!-- Hardware Tab -->
-      {#if activeTab === 'hardware'}
-        <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">My Hardware</h2>
-              <p class="text-[12px] text-[var(--text-secondary)]">
-                Your saved hardware profile used for compatibility checks and earnings estimates.
-              </p>
-            </div>
-            <a href="/mining/hardware-checker" class="btn-secondary">Open Compatibility Checker</a>
-          </div>
-
-          {#if !minerId}
-            <div class="mt-4 bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between">
-              <div>
-                <p class="text-[13px] font-medium text-[var(--text-primary)]">Connect a wallet to save hardware</p>
-                <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Your hardware profile is stored per wallet.</p>
-              </div>
-              <button type="button" class="btn-pill" onclick={() => $showConnectModal = true}>
-                <WalletIcon class="h-4 w-4 mr-1.5" />
-                Connect
-              </button>
-            </div>
-          {:else}
-            <div class="mt-5 grid gap-4">
-              <div class="grid gap-1.5">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">CPU Cores</label>
-                <input type="number" bind:value={hwCpuCores} class="h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-              </div>
-              <div class="grid gap-1.5">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">CPU Threads (optional)</label>
-                <input type="number" bind:value={hwCpuThreads} class="h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-              </div>
-              <div class="grid gap-1.5">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">RAM (GB)</label>
-                <input type="number" bind:value={hwRamGb} class="h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-              </div>
-              <div class="grid gap-1.5">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">GPU Model (optional)</label>
-                <input bind:value={hwGpuModel} placeholder="e.g. NVIDIA RTX 3080" class="h-8 text-[13px] rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3 placeholder:text-[var(--text-tertiary)]" />
-              </div>
-              <div class="grid gap-1.5">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">GPU VRAM (GB, optional)</label>
-                <input type="number" bind:value={hwGpuVram} class="h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-              </div>
-              <div class="grid gap-1.5">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">Storage (GB)</label>
-                <input type="number" bind:value={hwStorageGb} class="h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-              </div>
-              <div class="grid gap-1.5">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">Network (Mbps)</label>
-                <input type="number" bind:value={hwNetworkMbps} class="h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3" />
-              </div>
-              <div class="pt-1 flex justify-end">
-                <button type="button" class="btn-subscribe" onclick={saveHardware}>Save Hardware Profile</button>
+                <!-- Delete Account -->
+                <div class="p-4 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-between">
+                  <div>
+                    <p class="text-[13px] font-medium text-[var(--error)] mb-0.5">Delete Account</p>
+                    <p class="text-[12px] text-[var(--text-secondary)]">Permanently remove your account and all associated data.</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="flex items-center gap-1.5 h-8 px-3 rounded-[5px] border text-[11px] font-medium cursor-pointer transition-colors bg-[rgba(239,68,68,0.08)] border-[rgba(239,68,68,0.25)] text-[var(--error)]"
+                    onclick={() => alert('This is a demo')}
+                  >
+                    <AlertTriangle class="h-3.5 w-3.5" strokeWidth={1.5} />
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           {/if}
-        </div>
-      {/if}
+        {/if}
 
-      <!-- Notifications Tab -->
-      {#if activeTab === 'notifications'}
-        <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-          <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-5">Notification Preferences</h2>
-          <div class="space-y-5">
-            <div class="flex items-center justify-between">
-              <div class="space-y-0.5">
-                <label class="text-[13px] text-[var(--text-primary)]">Governance Proposals</label>
-                <p class="text-[12px] text-[var(--text-secondary)]">Receive updates about new DAO proposals</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" bind:checked={notifGovernance} class="sr-only peer" />
-                <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-              </label>
+        <!-- ═══════════════════════════════════════════ -->
+        <!--  2. DEVICES TAB                             -->
+        <!-- ═══════════════════════════════════════════ -->
+        {#if activeTab === 'devices'}
+          {#if !minerId}
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] text-center py-12">
+              <Cpu class="h-8 w-8 mx-auto text-[var(--text-tertiary)] mb-3" strokeWidth={1} />
+              <p class="text-[13px] text-[var(--text-secondary)] mb-3">Connect a wallet to view your devices.</p>
+              <button class="btn-pill" onclick={() => $showConnectModal = true}>Connect Wallet</button>
             </div>
-            <div class="flex items-center justify-between">
-              <div class="space-y-0.5">
-                <label class="text-[13px] text-[var(--text-primary)]">Mining Alerts</label>
-                <p class="text-[12px] text-[var(--text-secondary)]">Get notified if your node goes offline</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" bind:checked={notifMining} class="sr-only peer" />
-                <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-              </label>
-            </div>
-            <div class="flex items-center justify-between">
-              <div class="space-y-0.5">
-                <label class="text-[13px] text-[var(--text-primary)]">Reward Deposits</label>
-                <p class="text-[12px] text-[var(--text-secondary)]">Daily summary of earned rewards</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" bind:checked={notifRewards} class="sr-only peer" />
-                <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-      {/if}
-
-      <!-- Security Tab -->
-      {#if activeTab === 'security'}
-        <div class="space-y-5">
-          <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-            <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Security</h2>
-            <p class="text-[12px] text-[var(--text-secondary)] mb-5">
-              Prototype settings (replace with real auth, MFA, and device management in production).
-            </p>
+          {:else}
             <div class="space-y-4">
+              <!-- Header with Add button -->
               <div class="flex items-center justify-between">
-                <div class="space-y-0.5">
-                  <label class="text-[13px] text-[var(--text-primary)]">Require wallet for sensitive actions</label>
-                  <p class="text-[12px] text-[var(--text-secondary)]">Subscriptions, withdrawals, governance actions</p>
-                </div>
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded-[3px] bg-[rgba(76,183,130,0.12)] text-[11px] font-medium text-[var(--success)]">Enabled</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="space-y-0.5">
-                  <label class="text-[13px] text-[var(--text-primary)]">Session lock</label>
-                  <p class="text-[12px] text-[var(--text-secondary)]">Auto-lock UI after inactivity</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" bind:checked={sessionLock} class="sr-only peer" />
-                  <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-            <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Prototype Roles</h2>
-            <p class="text-[12px] text-[var(--text-secondary)] mb-5">
-              In production, roles come from on-chain state + verification.
-            </p>
-
-            {#if !$wallet}
-              <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between">
-                <div>
-                  <p class="text-[13px] font-medium text-[var(--text-primary)]">Connect a wallet to manage roles</p>
-                  <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Roles are stored per wallet address.</p>
-                </div>
-                <button type="button" class="btn-pill" onclick={() => $showConnectModal = true}>
-                  <WalletIcon class="h-4 w-4 mr-1.5" />
-                  Connect
+                <span class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em]">Your Devices</span>
+                <button type="button" onclick={() => showAddDevice = !showAddDevice} class="text-[11px] text-[var(--text-accent)] bg-transparent border-none cursor-pointer font-medium">
+                  {showAddDevice ? 'Cancel' : '+ Add Device'}
                 </button>
               </div>
-            {:else}
-              <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                  <div class="space-y-0.5">
-                    <label class="text-[13px] text-[var(--text-primary)]">Developer enrollment</label>
-                    <p class="text-[12px] text-[var(--text-secondary)]">
-                      Apply to access the Developer Portal. Status:
-                      <span class="capitalize text-[var(--text-primary)] font-medium">
-                        {enrollmentStatus === 'none' ? 'not enrolled' : enrollmentStatus}
-                      </span>
-                    </p>
+
+              <!-- Add device form -->
+              {#if showAddDevice}
+                <div class="rounded-[8px] border border-[var(--border-accent)] bg-[var(--accent-subtle)] p-4 space-y-3">
+                  <div>
+                    <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Device Name</label>
+                    <input type="text" bind:value={newDeviceName} placeholder="e.g. Office Server" class="w-full h-8 px-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] text-[var(--text-primary)] outline-none" />
                   </div>
-                  <a href="/develop" class="btn-secondary">Open</a>
+                  <div>
+                    <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Type</label>
+                    <div class="flex gap-2">
+                      {#each ['desktop', 'server', 'laptop', 'custom'] as t}
+                        <button type="button" onclick={() => newDeviceType = t}
+                          class="h-7 px-2.5 rounded-[5px] text-[11px] font-medium border-none cursor-pointer capitalize {newDeviceType === t ? 'bg-[var(--accent-base)] text-[#0C0C0E]' : 'bg-[var(--surface-2)] text-[var(--text-secondary)]'}">
+                          {t}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                  <button type="button" disabled={!newDeviceName.trim()} onclick={addDevice} class="btn-subscribe h-8 {newDeviceName.trim() ? 'opacity-100' : 'opacity-40'}">
+                    Add Device
+                  </button>
                 </div>
-                <div class="flex items-center justify-between">
-                  <div class="space-y-0.5">
-                    <label class="text-[13px] text-[var(--text-primary)]">Governance</label>
-                    <p class="text-[12px] text-[var(--text-secondary)]">Create proposals, vote, and review listings.</p>
+              {/if}
+
+              <!-- Stats row -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-lg overflow-hidden">
+                {#each [
+                  { label: 'Devices', value: devices.length.toString() },
+                  { label: 'Online', value: `${onlineCount} of ${devices.length}` },
+                  { label: 'Total Earned', value: `$${totalDeviceEarned.toFixed(0)}` },
+                  { label: 'Avg Uptime', value: `${avgUptime.toFixed(1)}%` },
+                ] as s}
+                  <div class="bg-[var(--surface-1)] px-3.5 py-3">
+                    <span class="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.02em]">{s.label}</span>
+                    <p class="text-[18px] font-semibold font-mono text-[var(--text-primary)] mt-1">{s.value}</p>
                   </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasGovernance}
-                      onchange={(e) => backend.setRoleEnabled({ walletAddress: $wallet.address, role: 'governance', enabled: e.target.checked })}
-                      class="sr-only peer"
-                    />
-                    <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                  </label>
+                {/each}
+              </div>
+
+              <!-- Device list -->
+              {#if devices.length === 0}
+                <div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-1)] p-12 text-center">
+                  <Cpu class="h-10 w-10 mx-auto text-[var(--text-tertiary)] mb-3" strokeWidth={1} />
+                  <p class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">No devices detected</p>
+                  <p class="text-[13px] text-[var(--text-secondary)] max-w-[360px] mx-auto">Install the Necter miner on your machine and sign in with this wallet.</p>
                 </div>
-                <div class="flex items-center justify-between">
-                  <div class="space-y-0.5">
-                    <label class="text-[13px] text-[var(--text-primary)]">Operator</label>
-                    <p class="text-[12px] text-[var(--text-secondary)]">Use fleet operations tooling inside Dev Portal.</p>
+              {:else}
+                <div class="space-y-3">
+                  {#each devices as device (device.id)}
+                    {@const TypeIcon = typeIcons[device.type] ?? Cpu}
+                    {@const status = statusConfig[device.status] ?? statusConfig.offline}
+                    {@const isExpanded = expandedDevice === device.id}
+                    <div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-1)] overflow-hidden">
+                      <!-- Main card -->
+                      <button
+                        type="button"
+                        onclick={() => expandedDevice = isExpanded ? null : device.id}
+                        class="w-full text-left bg-transparent border-none cursor-pointer p-4 hover:bg-[var(--surface-2)] transition-colors"
+                      >
+                        <div class="flex items-start gap-4">
+                          <!-- Icon + status -->
+                          <div class="relative flex-shrink-0">
+                            <div class="w-11 h-11 rounded-[10px] bg-[var(--surface-3)] flex items-center justify-center">
+                              <svelte:component this={TypeIcon} class="h-5 w-5 text-[var(--text-secondary)]" strokeWidth={1.5} />
+                            </div>
+                            <div
+                              class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--surface-1)]"
+                              style="background: {status.color}; box-shadow: 0 0 6px {status.dot};"
+                            ></div>
+                          </div>
+
+                          <!-- Info -->
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                              <h3 class="text-[14px] font-semibold text-[var(--text-primary)] truncate">{device.name}</h3>
+                              <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[var(--text-tertiary)] uppercase">{device.type}</span>
+                              <span class="text-[10px] font-medium" style="color: {status.color}">{status.label}</span>
+                            </div>
+                            <!-- Hardware specs -->
+                            <div class="flex flex-wrap gap-1.5 mb-2">
+                              {#if device.hardware.gpu}
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-2)] text-[var(--text-secondary)] font-mono">{device.hardware.gpu}</span>
+                              {/if}
+                              {#if device.hardware.cpu}
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-2)] text-[var(--text-secondary)] font-mono">{device.hardware.cpu}</span>
+                              {/if}
+                              {#if device.hardware.ram}
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-2)] text-[var(--text-secondary)] font-mono">{device.hardware.ram}</span>
+                              {/if}
+                            </div>
+                            <!-- Stats row -->
+                            <div class="flex items-center gap-4 text-[11px] text-[var(--text-tertiary)]">
+                              <span>{device.subscribedAppIds.length} project{device.subscribedAppIds.length !== 1 ? 's' : ''}</span>
+                              <span class="font-mono text-[var(--text-accent)]">${device.totalEarned.toFixed(2)}</span>
+                              <span>{device.uptime.toFixed(1)}% uptime</span>
+                              <span class="flex items-center gap-1"><Clock class="h-3 w-3" /> {lastSeenText(device)}</span>
+                            </div>
+                          </div>
+
+                          <!-- Expand chevron -->
+                          <ChevronDown
+                            class="h-4 w-4 text-[var(--text-tertiary)] transition-transform duration-150 flex-shrink-0 mt-1 {isExpanded ? 'rotate-180' : ''}"
+                            strokeWidth={1.5}
+                          />
+                        </div>
+                      </button>
+
+                      <!-- Expanded details -->
+                      {#if isExpanded}
+                        <div class="border-t border-[var(--border-default)] p-4 space-y-4">
+                          <!-- Hardware grid -->
+                          <div>
+                            <p class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-2">Hardware</p>
+                            <div class="grid grid-cols-2 gap-2">
+                              {#each [
+                                { icon: Cpu, label: 'GPU', value: device.hardware.gpu ? `${device.hardware.gpu}${device.hardware.gpuVram ? ` (${device.hardware.gpuVram}GB)` : ''}` : 'None' },
+                                { icon: Cpu, label: 'CPU', value: `${device.hardware.cpu ?? 'Unknown'}${device.hardware.cpuCores ? ` \u00b7 ${device.hardware.cpuCores} cores` : ''}` },
+                                { icon: HardDrive, label: 'RAM', value: device.hardware.ram ?? 'Unknown' },
+                                { icon: HardDrive, label: 'Storage', value: device.hardware.storage ?? 'Unknown' },
+                                { icon: Wifi, label: 'Bandwidth', value: device.hardware.bandwidth ?? 'Unknown' },
+                                { icon: Monitor, label: 'Location', value: device.location ?? 'Unknown' },
+                              ] as spec}
+                                <div class="flex items-center gap-2 p-2 rounded-[5px] bg-[var(--surface-2)]">
+                                  <svelte:component this={spec.icon} class="h-3.5 w-3.5 text-[var(--text-tertiary)] flex-shrink-0" strokeWidth={1.5} />
+                                  <div>
+                                    <p class="text-[10px] text-[var(--text-tertiary)]">{spec.label}</p>
+                                    <p class="text-[11px] text-[var(--text-primary)] font-mono">{spec.value}</p>
+                                  </div>
+                                </div>
+                              {/each}
+                            </div>
+                          </div>
+
+                          <!-- Mining Resource Allocation -->
+                          <div>
+                            <p class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-2">Mining Resource Allocation</p>
+                            <div class="space-y-3">
+                              {#each [{ label: 'CPU', key: 'cpu' }, { label: 'GPU', key: 'gpu' }, { label: 'RAM', key: 'ram' }] as res}
+                                <div class="flex items-center gap-3">
+                                  <span class="text-[11px] text-[var(--text-secondary)] w-8 flex-shrink-0">{res.label}</span>
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value="50"
+                                    class="flex-1 h-1.5 cursor-pointer"
+                                    style="accent-color: var(--accent-base);"
+                                    oninput={(e) => {
+                                      const span = e.target.nextElementSibling;
+                                      if (span) span.textContent = `${e.target.value}%`;
+                                    }}
+                                  />
+                                  <span class="text-[11px] font-mono text-[var(--text-primary)] w-8 text-right">50%</span>
+                                </div>
+                              {/each}
+                            </div>
+                            <p class="text-[10px] text-[var(--text-tertiary)] mt-2">Percentage of each resource allocated to mining tasks on this device.</p>
+                          </div>
+
+                          <!-- Device Alerts toggle -->
+                          <div class="flex items-center justify-between">
+                            <div class="space-y-0.5">
+                              <p class="text-[12px] font-medium text-[var(--text-primary)]">Enable alerts for this device</p>
+                              <p class="text-[11px] text-[var(--text-tertiary)]">Downtime, high resource usage, proof failures</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                              <input type="checkbox" checked class="sr-only peer" />
+                              <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                            </label>
+                          </div>
+
+                          <!-- Manage actions -->
+                          <div class="flex items-center justify-between pt-3 border-t border-[var(--border-default)]">
+                            <div class="flex items-center gap-2">
+                              {#if editingName === device.id}
+                                <div class="flex items-center gap-2">
+                                  <input type="text" bind:value={editNameValue} class="h-7 px-2 rounded-[4px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[12px] text-[var(--text-primary)] outline-none w-[160px]" />
+                                  <button type="button" onclick={() => { if (editNameValue.trim()) { backend.updateDevice(device.id, { name: editNameValue.trim() }); showToast('Device renamed'); } editingName = null; }} class="text-[11px] text-[var(--text-accent)] bg-transparent border-none cursor-pointer font-medium">Save</button>
+                                  <button type="button" onclick={() => editingName = null} class="text-[11px] text-[var(--text-tertiary)] bg-transparent border-none cursor-pointer">Cancel</button>
+                                </div>
+                              {:else}
+                                <button type="button" onclick={() => { editingName = device.id; editNameValue = device.name; }} class="text-[11px] text-[var(--text-secondary)] bg-transparent border-none cursor-pointer hover:text-[var(--text-primary)]">Rename</button>
+                              {/if}
+                            </div>
+                            <button type="button" onclick={() => { if (confirm(`Remove ${device.name}?`)) { backend.removeDevice(device.id); showToast('Device removed'); } }} class="text-[11px] text-[var(--error)] bg-transparent border-none cursor-pointer hover:underline">Remove</button>
+                          </div>
+
+                          <!-- Meta -->
+                          <div class="flex items-center justify-between text-[10px] text-[var(--text-tertiary)] pt-2">
+                            <span class="font-mono">{device.id}</span>
+                            <span>Region: {device.location ?? 'Unknown'}</span>
+                            <span>{new Date(device.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        {/if}
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!--  3. WALLET TAB                              -->
+        <!-- ═══════════════════════════════════════════ -->
+        {#if activeTab === 'wallet'}
+          <div class="space-y-5">
+            <!-- Connected wallet -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Connected Wallet</h2>
+              {#if $wallet}
+                <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center" style="background: linear-gradient(135deg, #AB9FF2, #6C5CE7)">
+                      <svg width="16" height="14" viewBox="0 0 128 112" fill="none">
+                        <path d="M108.87 56.29c0 27.54-22.34 49.88-49.88 49.88h-2.5A49.88 49.88 0 0 1 8.35 62.3c2.5-28.95 27.98-50.43 57.07-48.02a49.88 49.88 0 0 1 43.45 42.01zM36.89 52.32a5.6 5.6 0 1 0 0-11.2 5.6 5.6 0 0 0 0 11.2zm25.2 0a5.6 5.6 0 1 0 0-11.2 5.6 5.6 0 0 0 0 11.2z" fill="white"/>
+                      </svg>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-mono text-[13px] text-[var(--text-primary)] truncate">{$wallet.address}</p>
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[11px] font-medium text-[var(--text-secondary)]">Primary</span>
+                        <span class="text-[11px] text-[var(--text-tertiary)] font-mono">
+                          {($backendState.walletBalancesByAddress[$wallet.address] ?? 0).toFixed(2)} NECTA
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasOperator}
-                      onchange={(e) => backend.setRoleEnabled({ walletAddress: $wallet.address, role: 'operator', enabled: e.target.checked })}
-                      class="sr-only peer"
-                    />
-                    <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                  </label>
+                  <button
+                    type="button"
+                    class="btn-secondary flex-shrink-0 text-[var(--error)]"
+                    onclick={disconnectWallet}
+                  >
+                    <LogOut class="h-4 w-4 mr-1.5" />
+                    Disconnect
+                  </button>
+                </div>
+              {:else}
+                <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between">
+                  <div>
+                    <p class="text-[13px] font-medium text-[var(--text-primary)]">No wallet connected</p>
+                    <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Connect to manage mining and withdrawals.</p>
+                  </div>
+                  <button type="button" class="btn-pill" onclick={() => $showConnectModal = true}>
+                    <WalletIcon class="h-4 w-4 mr-1.5" />
+                    Connect
+                  </button>
+                </div>
+              {/if}
+            </div>
+
+            <!-- Transaction history -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="text-[13px] font-semibold text-[var(--text-primary)] tracking-[0.01em]">Transaction History</h2>
+                  <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Recent withdrawal activity for this miner.</p>
                 </div>
               </div>
-            {/if}
-          </div>
-        </div>
-      {/if}
 
+              {#if !minerId}
+                <div class="text-[13px] text-[var(--text-secondary)]">Connect a wallet to view transactions.</div>
+              {:else if recentWithdrawals.length === 0}
+                <div class="text-center py-8">
+                  <WalletIcon class="h-8 w-8 mx-auto text-[var(--text-tertiary)] mb-2" strokeWidth={1} />
+                  <p class="text-[13px] text-[var(--text-secondary)]">No withdrawals yet.</p>
+                  <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Completed withdrawals will appear here.</p>
+                </div>
+              {:else}
+                <div class="space-y-0 overflow-x-auto border border-[var(--border-default)] rounded-lg" style="-webkit-overflow-scrolling: touch;">
+                  <div class="min-w-[420px]">
+                    <!-- Table header -->
+                    <div class="grid gap-3 px-3 py-2 bg-[var(--surface-2)] border-b border-[var(--border-default)]" style="grid-template-columns: 1fr 80px 100px 90px;">
+                      <span class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em]">Date</span>
+                      <span class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em]">Type</span>
+                      <span class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] text-right">Amount</span>
+                      <span class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] text-right">Status</span>
+                    </div>
+                    {#each recentWithdrawals as w (w.id)}
+                      {@const sc = withdrawalStatusConfig[w.status] ?? withdrawalStatusConfig.pending}
+                      <div class="grid gap-3 px-3 py-2.5 hover:bg-[var(--surface-2)] transition-colors border-b border-[var(--border-default)]" style="grid-template-columns: 1fr 80px 100px 90px;">
+                        <span class="text-[12px] text-[var(--text-secondary)]">
+                          {new Date(w.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        <span class="text-[12px] text-[var(--text-secondary)]">Withdrawal</span>
+                        <span class="text-[12px] text-[var(--text-primary)] font-mono text-right">{w.amount.toFixed(2)} NECTA</span>
+                        <span class="flex justify-end">
+                          <span class="inline-flex items-center px-1.5 py-0.5 rounded-[3px] text-[10px] font-medium" style="background: {sc.bg}; color: {sc.color};">
+                            {sc.label}
+                          </span>
+                        </span>
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+                {#if minerWithdrawals.length > 5}
+                  <p class="text-[11px] text-[var(--text-tertiary)] mt-2 text-center">
+                    Showing 5 of {minerWithdrawals.length} transactions.
+                  </p>
+                {/if}
+              {/if}
+            </div>
+
+            <!-- Withdrawal addresses -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Withdrawal Address Book</h2>
+              <p class="text-[12px] text-[var(--text-secondary)] mb-4">Manage saved payout addresses.</p>
+
+              {#if !minerId}
+                <div class="text-[13px] text-[var(--text-secondary)]">Connect a wallet to manage saved addresses.</div>
+              {:else}
+                <div class="space-y-3">
+                  <div class="flex gap-2">
+                    <input
+                      bind:value={newWithdrawalAddress}
+                      placeholder="Add address (0x...)"
+                      class="flex-1 h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3 placeholder:text-[var(--text-tertiary)]"
+                    />
+                    <button type="button" class="btn-subscribe flex items-center gap-1" onclick={addAddress}>
+                      <Plus class="h-4 w-4" />
+                      Add
+                    </button>
+                  </div>
+                  <div class="space-y-1.5">
+                    {#if savedWithdrawalAddresses.length === 0}
+                      <div class="text-[13px] text-[var(--text-secondary)]">No saved addresses yet.</div>
+                    {:else}
+                      {#each savedWithdrawalAddresses as addr}
+                        <div class="flex items-center justify-between p-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)]">
+                          <div class="font-mono text-[12px] text-[var(--text-primary)] truncate">{addr}</div>
+                          <button
+                            type="button"
+                            class="btn-secondary w-7 p-0 text-[var(--error)]"
+                            onclick={() => removeAddress(addr)}
+                          >
+                            <Trash2 class="h-4 w-4" />
+                          </button>
+                        </div>
+                      {/each}
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+            </div>
+
+            <!-- Additional Wallets -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-[13px] font-semibold text-[var(--text-primary)] tracking-[0.01em]">Additional Wallets</h2>
+                  <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Link another wallet for multi-chain payouts.</p>
+                </div>
+                <button
+                  type="button"
+                  class="btn-secondary flex items-center gap-1.5 text-[12px]"
+                  onclick={() => $showConnectModal = true}
+                >
+                  <Plus size={14} strokeWidth={1.5} />
+                  Connect Another
+                </button>
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!--  4. NOTIFICATIONS TAB                       -->
+        <!-- ═══════════════════════════════════════════ -->
+        {#if activeTab === 'notifications'}
+          <div class="space-y-5">
+            <!-- Global notification toggles -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-5 tracking-[0.01em]">Notification Preferences</h2>
+              <div class="space-y-5">
+                {#each notifPrefs as pref, i}
+                  <div class="flex items-center justify-between">
+                    <div class="space-y-0.5">
+                      <label class="text-[13px] text-[var(--text-primary)]">{pref.title}</label>
+                      <p class="text-[12px] text-[var(--text-secondary)]">{pref.desc}</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" bind:checked={notifToggles[i]} class="sr-only peer" />
+                      <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                    </label>
+                  </div>
+                {/each}
+              </div>
+            </div>
+
+            <!-- Delivery Method -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Delivery Method</h2>
+              <p class="text-[12px] text-[var(--text-secondary)] mb-4">Choose how you receive notifications.</p>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  onclick={() => deliveryMethod = 'in-app'}
+                  class="h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer {deliveryMethod === 'in-app' ? 'border border-[var(--accent-base)] bg-[var(--accent-subtle)] text-[var(--text-accent)]' : 'border border-[var(--border-default)] bg-[var(--surface-2)] text-[var(--text-secondary)]'}"
+                >
+                  In-app only
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  class="h-[34px] px-4 rounded-[6px] text-[12px] font-medium border border-[var(--border-default)] cursor-not-allowed bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50"
+                >
+                  Email + In-app
+                  <span class="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[var(--text-tertiary)]">coming soon</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quiet Hours -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Quiet Hours</h2>
+              <p class="text-[12px] text-[var(--text-secondary)] mb-4">Suppress notifications between these times.</p>
+              <div class="flex items-center gap-3">
+                <div>
+                  <label class="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1">From</label>
+                  <input
+                    type="time"
+                    bind:value={quietFrom}
+                    class="h-8 px-2.5 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[12px] font-mono text-[var(--text-primary)] outline-none focus:border-[var(--accent-base)] transition-colors"
+                  />
+                </div>
+                <span class="text-[12px] text-[var(--text-tertiary)] mt-4">to</span>
+                <div>
+                  <label class="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1">To</label>
+                  <input
+                    type="time"
+                    bind:value={quietTo}
+                    class="h-8 px-2.5 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[12px] font-mono text-[var(--text-primary)] outline-none focus:border-[var(--accent-base)] transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!--  5. BADGES TAB                              -->
+        <!-- ═══════════════════════════════════════════ -->
+        {#if activeTab === 'badges'}
+          {#if !minerId}
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] text-center py-12">
+              <Award class="h-8 w-8 mx-auto text-[var(--text-tertiary)] mb-3" strokeWidth={1} />
+              <p class="text-[13px] text-[var(--text-secondary)] mb-3">Connect a wallet to view your badges.</p>
+              <button class="btn-pill" onclick={() => $showConnectModal = true}>Connect Wallet</button>
+            </div>
+          {:else}
+            <div class="space-y-4">
+              <!-- Stats row -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-lg overflow-hidden">
+                {#each [
+                  { label: 'Collected', value: `${earnedBadges.length} / ${availableBadges.length}` },
+                  { label: 'Rarest', value: rarestBadge?.name ?? 'None yet' },
+                  { label: 'Latest', value: latestBadge?.name ?? 'None yet' },
+                  { label: 'Completion', value: `${Math.round((earnedBadges.length / availableBadges.length) * 100)}%` },
+                ] as s}
+                  <div class="bg-[var(--surface-1)] px-4 py-3.5">
+                    <span class="text-[11px] font-medium text-[var(--text-tertiary)] tracking-[0.02em] uppercase">{s.label}</span>
+                    <p class="text-[14px] font-semibold text-[var(--text-primary)] mt-1.5 overflow-hidden text-ellipsis whitespace-nowrap">{s.value}</p>
+                  </div>
+                {/each}
+              </div>
+
+              <!-- Filter tabs -->
+              <div class="flex gap-1 flex-wrap">
+                {#each badgeFilterTabs as tab}
+                  <button
+                    type="button"
+                    onclick={() => filterKind = tab.id}
+                    class="h-7 px-3 rounded-[5px] text-[12px] font-medium border-none cursor-pointer transition-all duration-100 ease-out {filterKind === tab.id ? 'bg-[var(--accent-subtle)] text-[var(--text-accent)]' : 'bg-[var(--surface-1)] text-[var(--text-secondary)]'}"
+                  >
+                    {tab.label}
+                  </button>
+                {/each}
+              </div>
+
+              <!-- Earned Badges -->
+              {#if filteredEarned.length > 0}
+                <div>
+                  <p class="text-[10px] font-semibold tracking-[0.04em] uppercase text-[var(--text-tertiary)] mb-3">
+                    Earned ({filteredEarned.length})
+                  </p>
+                  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {#each filteredEarned as b (b.id)}
+                      {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
+                      <div class="badge-card">
+                        <div class="badge-icon w-16 h-16 relative">
+                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" />
+                        </div>
+                        <p class="text-[13px] font-semibold m-0 leading-[18px] text-[var(--text-primary)]">{b.name}</p>
+                        <p class="text-[11px] leading-[16px] m-0 text-[var(--text-secondary)]">{b.description}</p>
+                        <div class="flex items-center gap-1.5 mt-auto flex-wrap justify-center">
+                          <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[10px] font-medium tracking-[0.02em]" style="background: {meta.bg}; color: {meta.color};">
+                            {meta.label}
+                          </span>
+                          {#if b.mintedAt}
+                            <span class="text-[10px] text-[var(--text-tertiary)]">
+                              {new Date(b.mintedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          {/if}
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Locked Badges -->
+              <div>
+                <p class="text-[10px] font-semibold tracking-[0.04em] uppercase text-[var(--text-tertiary)] mb-3">
+                  {filteredEarned.length > 0 ? `Locked (${filteredNotEarned.length})` : `All Badges (${filteredNotEarned.length})`}
+                </p>
+                {#if filteredNotEarned.length === 0 && filteredEarned.length === 0}
+                  <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-6 py-12 text-center">
+                    <p class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">No badges in this category yet</p>
+                    <p class="text-[13px] text-[var(--text-secondary)]">Try selecting a different filter.</p>
+                  </div>
+                {:else}
+                  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {#each filteredNotEarned as b (b.name)}
+                      {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
+                      <div class="badge-card locked">
+                        <div class="badge-icon w-16 h-16 relative">
+                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" />
+                          <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--surface-2)] border-2 border-[var(--surface-1)] flex items-center justify-center">
+                            <Lock size={10} strokeWidth={2} class="text-[var(--text-tertiary)]" />
+                          </div>
+                        </div>
+                        <p class="text-[13px] font-semibold m-0 leading-[18px] text-[var(--text-secondary)]">{b.name}</p>
+                        <p class="text-[11px] leading-[16px] m-0 text-[var(--text-tertiary)]">{b.description}</p>
+                        <div class="flex items-center gap-1.5 mt-auto flex-wrap justify-center">
+                          <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[10px] font-medium tracking-[0.02em]" style="background: var(--surface-3); color: var(--text-tertiary);">
+                            {meta.label}
+                          </span>
+                          <span class="text-[10px] text-[var(--text-tertiary)]">Locked</span>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/if}
+        {/if}
+
+      </div>
     </div>
   </div>
 </div>
+
+<style>
+  .badge-card {
+    position: relative;
+    background: var(--surface-1);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    transition: transform 200ms ease-out, border-color 200ms ease-out, box-shadow 200ms ease-out;
+    cursor: default;
+    overflow: hidden;
+  }
+  .badge-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: var(--border-hover);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 0 1px var(--border-hover);
+  }
+  .badge-card:hover .badge-icon {
+    transform: rotateY(360deg) scale(1.1);
+  }
+  .badge-icon {
+    transition: transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-style: preserve-3d;
+  }
+  .badge-card.locked {
+    opacity: 0.5;
+  }
+  .badge-card.locked:hover {
+    opacity: 0.7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .badge-card.locked:hover .badge-icon {
+    transform: scale(1.05);
+    filter: grayscale(0.6);
+  }
+  .badge-card.locked .badge-icon {
+    filter: grayscale(1) brightness(0.7);
+  }
+</style>

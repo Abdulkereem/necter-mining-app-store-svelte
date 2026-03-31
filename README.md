@@ -1,42 +1,51 @@
-# sv
+# Necter Mining App Store — SvelteKit
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit 2 + Svelte 5 port of the Necter Mining App Store. A decentralized mining marketplace for the Necter Network.
 
-## Creating a project
+## Live Demo
 
-If you're seeing this, you've probably already done this step. Congrats!
+**[mining-app-store-svelte.vercel.app](https://mining-app-store-svelte.vercel.app)**
 
-```sh
-# create a new project
-npx sv create my-app
+## Tech Stack
+
+- **Framework**: SvelteKit 2 + Svelte 5 (runes: $state, $derived, $effect)
+- **Styling**: Tailwind CSS 4 with CSS variables
+- **Language**: TypeScript 5
+- **State**: Mock backend store (shared with Next.js version)
+- **Charts**: HTML/CSS bar charts (no Chart.js dependency)
+- **Toasts**: svelte-french-toast
+- **Icons**: lucide-svelte
+- **Fonts**: Inter + JetBrains Mono
+
+## Getting Started
+
+```bash
+pnpm install
+pnpm dev
 ```
 
-To recreate this project with the same configuration:
+Open [http://localhost:5173](http://localhost:5173).
 
-```sh
-# recreate this project
-npx sv@0.13.0 create --template minimal --types ts --no-install mining-app-store-svelte
-```
+## Pages
 
-## Developing
+- **Discover** — Hero carousel, story cards, curated collections, trending
+- **App Detail** — 4 tabs (Overview, Economics, Requirements, Reviews)
+- **My Mining** — Dashboard, earnings, proofs with mobile/desktop layouts
+- **Leaderboards** — Projects, earners, uptime rankings
+- **Governance** — Vote on proposals, review listings, create proposals
+- **Activity** — Event feed with filters and day grouping
+- **Settings** — Profile, devices, wallet, notifications, badges
+- **Search** — Live search with suggested projects
+- **Withdraw** — Earnings summary and withdrawal form
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Mobile
 
-```sh
-npm run dev
+Full mobile responsive design with:
+- Bottom tab navigation (Discover, Mining, Leaderboard, Governance, Search)
+- Top bar with profile avatar, logo, help + notifications
+- Bottom sheet modals
+- Separate mobile/desktop layouts where needed
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+## License
 
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+MIT
