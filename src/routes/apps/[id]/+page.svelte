@@ -383,6 +383,17 @@
 					{/if}
 					<div class="flex-1"></div>
 					<button
+						onclick={handlePrimary}
+						class="inline-flex items-center gap-1 h-7 px-[10px] rounded-[5px] text-[12px] font-semibold cursor-pointer border-0
+							{miningStatus === 'not-subscribed'
+							? 'bg-[var(--accent-base)] text-[#0C0C0E]'
+							: miningStatus === 'subscribed'
+								? 'bg-[var(--success)] text-[#0C0C0E]'
+								: 'bg-[var(--error)] text-white'}"
+					>
+						{#if miningStatus === 'not-subscribed'}Subscribe{:else if miningStatus === 'subscribed'}Start Mining{:else}Stop Mining{/if}
+					</button>
+					<button
 						onclick={openShareFromUrl}
 						class="inline-flex items-center gap-1 h-7 px-[10px] rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-2)] text-[var(--text-secondary)] text-[12px] cursor-pointer"
 					>
@@ -1420,7 +1431,7 @@
 		     STICKY CTA BAR
 		════════════════════════════════════════════════════════ -->
 		<div
-			class="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border-default)] bg-[var(--surface-1)]/95 backdrop-blur-sm"
+			class="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border-default)] bg-[var(--surface-1)]/95 backdrop-blur-sm md:hidden"
 		>
 			<div class="max-w-[960px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
 				<div class="flex items-center gap-3">
