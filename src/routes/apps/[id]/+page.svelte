@@ -178,10 +178,6 @@
 			$showConnectModal = true;
 			return;
 		}
-		if (missingAttestations.length > 0) {
-			showToast(`Cannot subscribe: This network requires attestations you don't have yet: ${missingAttestations.join(', ')}.`);
-			return;
-		}
 		if (existingSubscription) {
 			pendingSubId = existingSubscription.id;
 			isWizardOpen = true;
