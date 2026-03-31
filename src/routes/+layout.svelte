@@ -3,6 +3,7 @@
 	import '@fontsource-variable/inter';
 	import '@fontsource-variable/jetbrains-mono';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import MobileNav from '$lib/components/MobileNav.svelte';
 	import ConnectWalletModal from '$lib/components/ConnectWalletModal.svelte';
 	import { Toaster } from 'svelte-french-toast';
 	import { hydrateBackend } from '$lib/stores/backend';
@@ -30,7 +31,8 @@
 	<div class="hidden md:block">
 		<Sidebar />
 	</div>
-	<div class="md:ml-[220px]">
+	<MobileNav />
+	<div class="md:ml-[220px] pt-[48px] pb-[64px] md:pt-0 md:pb-0">
 		<main class="min-h-screen">
 			{@render children()}
 		</main>

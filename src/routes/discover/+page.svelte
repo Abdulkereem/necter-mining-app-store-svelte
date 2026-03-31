@@ -4,8 +4,8 @@
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor } from '$lib/stores/wallet';
 	import { appIconDataUri } from '$lib/app-icon';
-	import { Users, TrendingUp, ChevronRight, ChevronLeft } from 'lucide-svelte';
-	import type { App, AppCategory } from '$lib/types';
+	import { ChevronRight, ChevronLeft } from 'lucide-svelte';
+	import type { App } from '$lib/types';
 
 	/* ─── Helper ─── */
 	function appIcon(app: App): string {
@@ -14,13 +14,10 @@
 			: appIconDataUri({ id: app.id, name: app.name, category: app.category });
 	}
 
-	function chunk<T>(arr: T[], size: number): T[][] {
-		const result: T[][] = [];
-		for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
-		return result;
-	}
+	/* ═══════════════════════════════════════════
+	   HERO CAROUSEL constants
+	   ═══════════════════════════════════════════ */
 
-	/* ─── Hero constants ─── */
 	const heroGradients = [
 		{ from: '#1a0a2e', to: '#0d1b3e', accent: '#FFBF00' },
 		{ from: '#0a1e0d', to: '#0d2b1a', accent: '#4CB782' },
@@ -35,20 +32,26 @@
 		'Chainlink': '/screenshots/chainlink-2.jpg',
 		'Akash Network': '/screenshots/akash-1.png',
 		'The Graph': '/screenshots/thegraph-2.jpg',
-		'Polkadot': '/screenshots/polkadot-1.png',
+		'Polkadot': '/screenshots/polkadot-hero.webp',
 		'Grass': '/screenshots/grass-1.png',
 		'Bittensor': '/screenshots/bittensor-1.png',
 		'Ocean Protocol': '/screenshots/ocean-1.png',
 		'Storj': '/screenshots/storj-1.webp',
 		'Golem Network': '/screenshots/golem-1.png',
 		'Livepeer Network': '/screenshots/livepeer-1.png',
-		'Arweave': '/screenshots/arweave-1.jpg'
+		'Arweave': '/screenshots/arweave-1.jpg',
+		'DockHive': '/screenshots/dockhive-hero.png',
+		'TIWA': '/screenshots/tiwa-hero.png',
+		'Bitcoin': '/screenshots/bitcoin-hero.jpg',
+		'Ethereum': '/screenshots/ethereum-hero.jpg',
+		'Theta Network': '/screenshots/theta-1.jpg',
+		'0x Protocol': '/screenshots/0x-1.jpg'
 	};
 
-	const heroLabels = ['FEATURED NETWORK', "EDITORS' CHOICE", 'NEW & NOTEWORTHY', 'TRENDING'];
+	const heroLabels = ['FEATURED PROJECT', "EDITORS' CHOICE", 'NEW & NOTEWORTHY', 'TRENDING'];
 
 	const heroTitles = [
-		(name: string) => `${name}, the #1 mining network`,
+		(name: string) => `${name}, the #1 mining project`,
 		(name: string) => `Why miners love ${name}`,
 		(name: string) => `${name} just launched on Necter`,
 		(name: string) => `${name} is trending now`
@@ -64,11 +67,11 @@
 	];
 
 	const storyLabels = [
-		'NETWORKS WE LOVE',
+		'PROJECTS WE LOVE',
 		'MAJOR UPDATE',
 		'GET STARTED',
-		'BEHIND THE APP',
-		'APPS WE LOVE'
+		'BEHIND THE PROJECT',
+		"EDITORS' PICK"
 	];
 
 	const storyTitles = [
@@ -79,35 +82,15 @@
 		(name: string) => `Why ${name} stands out`
 	];
 
-	/* ─── Categories ─── */
-	const categories = [
-		'All',
-		'AI/ML',
-		'DePIN',
-		'Storage',
-		'Compute',
-		'IoT',
-		'Bandwidth',
-		'Blockchain',
-		'Data Sovereignty',
-		'Content Delivery'
-	];
-
 	/* ─── State ─── */
 	let heroActive = $state(0);
 	let heroTimer: ReturnType<typeof setInterval> | null = $state(null);
 	let showOnboarding = $state(false);
 	let hasAutoShown = $state(false);
-	let searchQuery = $state('');
-	let activeCategory = $state<string>('All');
-	let sortBy = $state<'reputation' | 'earnings' | 'miners' | 'newest'>('reputation');
 
 	/* ─── ScrollRow refs ─── */
 	let storyScrollRef = $state<HTMLDivElement | null>(null);
-	let bestNewScrollRef = $state<HTMLDivElement | null>(null);
-	let trendingScrollRef = $state<HTMLDivElement | null>(null);
 	let topEarningScrollRef = $state<HTMLDivElement | null>(null);
-	let topMinersScrollRef = $state<HTMLDivElement | null>(null);
 
 	function scrollRow(ref: HTMLDivElement | null, dir: 'left' | 'right') {
 		if (!ref) return;
@@ -129,13 +112,18 @@
 		return out;
 	});
 
-	// Hero carousel — top 4 by reputation
-	const heroApps = $derived(
-		[...appsUniq].sort((a, b) => b.reputationScore - a.reputationScore).slice(0, 4)
-	);
+	// Hero carousel — prioritize DockHive + TIWA + Atum, fill rest by reputation
+	const heroApps = $derived.by(() => {
+		const priorityNames = new Set(['DockHive', 'TIWA', 'Atum']);
+		const priority = appsUniq.filter((a) => priorityNames.has(a.name));
+		const rest = [...appsUniq]
+			.filter((a) => !priorityNames.has(a.name))
+			.sort((a, b) => b.reputationScore - a.reputationScore);
+		return [...priority, ...rest].slice(0, 4);
+	});
 	const heroIds = $derived(new Set(heroApps.map((a) => a.id)));
 
-	// Story cards — featured apps below hero
+	// Story cards — featured apps below hero, prioritize DockHive/Atum/TIWA
 	const storyApps = $derived.by(() => {
 		const priorityNames = new Set(['DockHive', 'Atum', 'TIWA']);
 		const pool = [...appsUniq].filter((a) => !heroIds.has(a.id));
@@ -147,7 +135,7 @@
 	});
 	const storyIds = $derived(new Set(storyApps.map((a) => a.id)));
 
-	// Best new & updated
+	// Best new projects
 	const bestNew = $derived(
 		[...appsUniq]
 			.filter((a) => !heroIds.has(a.id) && !storyIds.has(a.id))
@@ -156,7 +144,7 @@
 	);
 	const bestNewIds = $derived(new Set(bestNew.map((a) => a.id)));
 
-	// Trending — simple inline selector (no separate selectors module yet)
+	// Trending — inline selector
 	const trending = $derived.by(() => {
 		const state = $backendState;
 		const now = Date.now();
@@ -200,47 +188,9 @@
 	const topEarning = $derived(
 		[...appsUniq].sort((a, b) => b.avgEarningsPerDay - a.avgEarningsPerDay).slice(0, 7)
 	);
-	const topMiners = $derived(
-		[...appsUniq].sort((a, b) => b.totalMiners - a.totalMiners).slice(0, 7)
-	);
 
 	// Curated collections
 	const curatedCollections = $derived(backend.listCuratedCollections());
-
-	// Search / filter / sort
-	const filteredApps = $derived.by(() => {
-		let result = [...appsUniq];
-		if (searchQuery.trim()) {
-			const q = searchQuery.toLowerCase();
-			result = result.filter(
-				(a) =>
-					a.name.toLowerCase().includes(q) ||
-					a.category.toLowerCase().includes(q) ||
-					a.developer.toLowerCase().includes(q) ||
-					(a.tags ?? []).some((t) => t.toLowerCase().includes(q))
-			);
-		}
-		if (activeCategory !== 'All') {
-			result = result.filter((a) => a.category === activeCategory);
-		}
-		switch (sortBy) {
-			case 'earnings':
-				result.sort((a, b) => b.avgEarningsPerDay - a.avgEarningsPerDay);
-				break;
-			case 'miners':
-				result.sort((a, b) => b.totalMiners - a.totalMiners);
-				break;
-			case 'newest':
-				result.sort(
-					(a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-				);
-				break;
-			default:
-				result.sort((a, b) => b.reputationScore - a.reputationScore);
-		}
-		return result;
-	});
-	const isFiltering = $derived(searchQuery.trim() !== '' || activeCategory !== 'All');
 
 	/* ─── Hero carousel timer ─── */
 	function resetHeroTimer() {
@@ -287,8 +237,6 @@
 	<!-- ═══ HERO CAROUSEL (full-width, auto-rotating) ═══ -->
 	{#if heroApps.length > 0}
 		{@const app = heroApps[heroActive]}
-		{@const grad = heroGradients[heroActive % heroGradients.length]}
-		{@const label = heroLabels[heroActive % heroLabels.length]}
 		<div class="relative w-full overflow-hidden">
 			<!-- Background layers -->
 			{#each heroApps as a, i (a.id)}
@@ -303,7 +251,7 @@
 							class="absolute inset-0 bg-cover bg-center"
 							style="background-image: url({img})"
 						></div>
-						<div class="absolute inset-0 bg-black/70"></div>
+						<div class="absolute inset-0 bg-black/40"></div>
 					{:else}
 						<div
 							class="absolute inset-0"
@@ -315,83 +263,53 @@
 
 			<!-- Honeycomb overlay -->
 			<div class="absolute inset-0 bg-honeycomb opacity-60 z-[1] pointer-events-none"></div>
+			<!-- Bottom gradient for text readability -->
+			<div
+				class="absolute inset-x-0 bottom-0 h-[60%] z-[2] pointer-events-none"
+				style="background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)"
+			></div>
 
-			<!-- Content — clickable to app detail -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<!-- Content — text at bottom-left -->
 			<a
 				href="/apps/{app.id}"
-				class="relative z-10 block px-8 pt-10 pb-8 no-underline cursor-pointer"
-				onclick={(e) => {
-					if ((e.target as HTMLElement).closest('button')) e.preventDefault();
-				}}
+				class="relative z-10 flex flex-col justify-end px-4 md:px-8 pb-8 md:pb-10 pt-[280px] md:pt-[420px] no-underline cursor-pointer"
 			>
-				<!-- Label -->
-				<p
-					class="text-[10px] font-bold uppercase tracking-[0.1em] mb-3 transition-colors duration-500"
-					style="color: {grad.accent}"
-				>
-					{label}
-				</p>
-
-				<!-- Title + subtitle with crossfade -->
-				<div class="min-h-[120px] mb-6">
-					{#each heroApps as a, i (a.id)}
-						<div
-							class="absolute transition-all duration-500 {i === heroActive
-								? 'opacity-100 translate-y-0'
-								: 'opacity-0 translate-y-2 pointer-events-none'}"
-						>
-							<h2
-								class="text-[28px] font-semibold text-white leading-tight mb-2 max-w-[600px]"
-							>
-								{heroTitles[i % heroTitles.length](a.name)}
-							</h2>
-							<p class="text-[14px] text-white/60 max-w-[500px] line-clamp-2">
-								{a.description}
-							</p>
-						</div>
-					{/each}
-				</div>
-
-				<!-- App lockup at bottom -->
-				<div class="flex items-center gap-4">
-					<img
-						src={appIcon(app)}
-						alt={app.name}
-						width="48"
-						height="48"
-						class="rounded-[12px] flex-shrink-0"
-					/>
-					<div class="flex-1 min-w-0">
-						<p class="text-[14px] font-medium text-white truncate">{app.name}</p>
-						<p class="text-[12px] text-white/50">{app.developer}</p>
-					</div>
-					<button
-						type="button"
-						class="btn-subscribe flex-shrink-0"
-						onclick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							goto(`/apps/${app.id}?action=mine`);
-						}}
+				{#each heroApps as a, i (a.id)}
+					<div
+						class="absolute bottom-8 md:bottom-8 left-4 md:left-8 right-4 md:right-8 transition-all duration-500 {i === heroActive
+							? 'opacity-100 translate-y-0'
+							: 'opacity-0 translate-y-2 pointer-events-none'}"
 					>
-						Subscribe
-					</button>
-				</div>
+						<p
+							class="text-[10px] font-bold uppercase tracking-[0.1em] mb-2 transition-colors duration-500"
+							style="color: {heroGradients[i % heroGradients.length].accent}"
+						>
+							{heroLabels[i % heroLabels.length]}
+						</p>
+						<h2
+							class="text-[18px] md:text-[22px] font-semibold text-white leading-tight mb-2 max-w-[500px]"
+						>
+							{heroTitles[i % heroTitles.length](a.name)}
+						</h2>
+						<p class="text-[12px] md:text-[14px] text-white/60 max-w-[500px] line-clamp-2">
+							{a.description}
+						</p>
+					</div>
+				{/each}
 			</a>
 
 			<!-- Navigation arrows -->
 			<button
 				type="button"
 				onclick={() => heroGo('prev')}
-				class="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-black/50 transition-colors"
+				class="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm items-center justify-center hover:bg-black/50 transition-colors"
 			>
 				<ChevronLeft class="h-5 w-5 text-white/80" strokeWidth={1.5} />
 			</button>
 			<button
 				type="button"
 				onclick={() => heroGo('next')}
-				class="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-black/50 transition-colors"
+				class="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm items-center justify-center hover:bg-black/50 transition-colors"
 			>
 				<ChevronRight class="h-5 w-5 text-white/80" strokeWidth={1.5} />
 			</button>
@@ -414,47 +332,52 @@
 		</div>
 	{/if}
 
-	<!-- ═══ EDITORIAL CONTENT — curated discovery ═══ -->
+	<!-- ═══ EDITORIAL CONTENT ═══ -->
 
 	<!-- Story cards -->
-	<div class="px-6 pt-3">
+	<div class="px-4 md:px-6 pt-3">
 		<div class="relative group/scroll">
 			<div
 				bind:this={storyScrollRef}
-				class="flex gap-6 overflow-x-auto pb-1"
+				class="flex gap-4 md:gap-6 overflow-x-auto pb-1"
 				style="scrollbar-width: none"
 			>
 				{#each storyApps as app, i (app.id)}
 					{@const colors = storyColors[i % storyColors.length]}
 					{@const storyLabel = storyLabels[i % storyLabels.length]}
+					{@const bgImg = heroImages[app.name] ?? null}
 					<a
 						href="/apps/{app.id}"
-						class="group block flex-shrink-0 w-[280px] rounded-[10px]"
+						class="group block flex-shrink-0 w-[240px] md:w-[280px] rounded-[10px]"
 					>
 						<!-- Image area -->
 						<div
 							class="h-[158px] rounded-t-[10px] relative overflow-hidden"
-							style="background: linear-gradient(160deg, {colors.bg}, {colors.bg}dd)"
+							style={bgImg ? undefined : `background: linear-gradient(160deg, ${colors.bg}, ${colors.bg}dd)`}
 						>
-							<!-- Decorative accent circles -->
-							<div
-								class="absolute -right-8 -bottom-8 w-[120px] h-[120px] rounded-full opacity-20"
-								style="background: {colors.accent}"
-							></div>
-							<div
-								class="absolute -left-4 -top-4 w-[60px] h-[60px] rounded-full opacity-10"
-								style="background: {colors.accent}"
-							></div>
-							<!-- App icon centered -->
-							<div class="absolute inset-0 flex items-center justify-center">
-								<img
-									src={appIcon(app)}
-									alt={app.name}
-									width="64"
-									height="64"
-									class="rounded-[14px]"
-								/>
-							</div>
+							{#if bgImg}
+								<img src={bgImg} alt="" class="absolute inset-0 w-full h-full object-cover" />
+							{:else}
+								<!-- Decorative accent circles -->
+								<div
+									class="absolute -right-8 -bottom-8 w-[120px] h-[120px] rounded-full opacity-20"
+									style="background: {colors.accent}"
+								></div>
+								<div
+									class="absolute -left-4 -top-4 w-[60px] h-[60px] rounded-full opacity-10"
+									style="background: {colors.accent}"
+								></div>
+								<!-- App icon centered — only when no background image -->
+								<div class="absolute inset-0 flex items-center justify-center">
+									<img
+										src={appIcon(app)}
+										alt={app.name}
+										width="64"
+										height="64"
+										class="rounded-[14px]"
+									/>
+								</div>
+							{/if}
 						</div>
 						<!-- Text below image -->
 						<div class="pt-2.5 pb-1">
@@ -479,113 +402,70 @@
 			<button
 				type="button"
 				onclick={() => scrollRow(storyScrollRef, 'left')}
-				class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
+				class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
 			>
 				<ChevronLeft class="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={1.5} />
 			</button>
 			<button
 				type="button"
 				onclick={() => scrollRow(storyScrollRef, 'right')}
-				class="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
+				class="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
 			>
 				<ChevronRight class="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={1.5} />
 			</button>
 		</div>
 	</div>
 
-	<div class="px-6 space-y-0">
-		<!-- ─── Best New & Updated ─── -->
-		<section>
-			<div
-				style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
-			>
+	<div class="px-4 md:px-6 space-y-0">
+		<!-- ─── Best New Projects ─── -->
+		{#if bestNew.length > 0}
+			<section>
 				<div
-					style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
+					style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
 				>
-					<h2
-						style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin: 0"
-					>
-						Best New & Updated
-					</h2>
-					<a
-						href="/category"
-						style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
-					>
-						See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
-					</a>
-				</div>
-				<div class="relative group/scroll">
 					<div
-						bind:this={bestNewScrollRef}
-						class="flex gap-6 overflow-x-auto pb-1"
-						style="scrollbar-width: none"
+						style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
 					>
-						{#each chunk(bestNew, 3) as group, gi}
-							<div class="flex-shrink-0 w-[340px]">
-								{#each group as app (app.id)}
-									<a href="/apps/{app.id}" class="group block">
-										<div
-											class="flex items-center gap-3.5 py-3 border-b border-[var(--border-default)] last:border-b-0"
-										>
-											<img
-												src={appIcon(app)}
-												alt={app.name}
-												width="40"
-												height="40"
-												class="rounded-[10px] flex-shrink-0"
-											/>
-											<div class="flex-1 min-w-0">
-												<h3
-													class="text-[13px] font-medium text-[var(--text-primary)] truncate"
-												>
-													{app.name}
-												</h3>
-												<p
-													class="text-[11px] text-[var(--text-tertiary)] truncate"
-												>
-													{app.category}
-												</p>
-											</div>
-											<button
-												type="button"
-												class="btn-subscribe flex-shrink-0"
-												onclick={(e) => {
-													e.preventDefault();
-													e.stopPropagation();
-													goto(`/apps/${app.id}?action=mine`);
-												}}
-											>
-												Subscribe
-											</button>
-										</div>
-									</a>
-								{/each}
-							</div>
+						<h2
+							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
+							style="letter-spacing: -0.006em"
+						>
+							Best New Projects
+						</h2>
+						<a
+							href="/category"
+							style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
+						>
+							See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
+						</a>
+					</div>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+						{#each bestNew as app (app.id)}
+							<a
+								href="/apps/{app.id}"
+								class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
+							>
+								<img
+									src={appIcon(app)}
+									alt={app.name}
+									width="40"
+									height="40"
+									style="border-radius: 10px; flex-shrink: 0"
+								/>
+								<div class="flex-1 min-w-0">
+									<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">
+										{app.name}
+									</p>
+									<p class="text-[11px] text-[var(--text-tertiary)] m-0">
+										{app.category} · ${app.avgEarningsPerDay.toFixed(0)}/d
+									</p>
+								</div>
+							</a>
 						{/each}
 					</div>
-					<button
-						type="button"
-						onclick={() => scrollRow(bestNewScrollRef, 'left')}
-						class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
-					>
-						<ChevronLeft
-							class="h-4 w-4 text-[var(--text-secondary)]"
-							strokeWidth={1.5}
-						/>
-					</button>
-					<button
-						type="button"
-						onclick={() => scrollRow(bestNewScrollRef, 'right')}
-						class="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
-					>
-						<ChevronRight
-							class="h-4 w-4 text-[var(--text-secondary)]"
-							strokeWidth={1.5}
-						/>
-					</button>
 				</div>
-			</div>
-		</section>
+			</section>
+		{/if}
 
 		<!-- ─── Trending Now ─── -->
 		{#if trending.length > 0}
@@ -597,74 +477,173 @@
 						style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
 					>
 						<h2
-							style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin: 0"
+							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
+							style="letter-spacing: -0.006em"
 						>
 							Trending Now
 						</h2>
 						<a
-							href="/category"
+							href="/leaderboards"
 							style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
 						>
-							See All
-							<ChevronRight
-								style="width: 12px; height: 12px"
-								strokeWidth={1.5}
-							/>
+							See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
+						</a>
+					</div>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+						{#each trending as app (app.id)}
+							<a
+								href="/apps/{app.id}"
+								class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
+							>
+								<img
+									src={appIcon(app)}
+									alt={app.name}
+									width="40"
+									height="40"
+									style="border-radius: 10px; flex-shrink: 0"
+								/>
+								<div class="flex-1 min-w-0">
+									<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">
+										{app.name}
+									</p>
+									<p class="text-[11px] text-[var(--text-tertiary)] m-0">
+										{app.category} · ${app.avgEarningsPerDay.toFixed(0)}/d
+									</p>
+								</div>
+							</a>
+						{/each}
+					</div>
+				</div>
+			</section>
+		{/if}
+
+		<!-- ─── Curated Collections ─── -->
+		{#each curatedCollections.slice(0, 5) as col (col.id)}
+			{@const colAppIds = new Set(col.appIds)}
+			{@const colApps = appsUniq.filter((a) => colAppIds.has(a.id)).slice(0, 6)}
+			{#if colApps.length > 0}
+				<section>
+					<div
+						style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
+					>
+						<div
+							style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: {col.description ? '4px' : '12px'}"
+						>
+							<h2
+								class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
+								style="letter-spacing: -0.006em"
+							>
+								{col.title}
+							</h2>
+							<a
+								href="/category"
+								style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
+							>
+								See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
+							</a>
+						</div>
+						{#if col.description}
+							<p
+								style="font-size: 12px; color: var(--text-tertiary); margin: 0 0 12px; line-height: 16px"
+							>
+								{col.description}
+							</p>
+						{/if}
+						<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+							{#each colApps as app (app.id)}
+								<a
+									href="/apps/{app.id}"
+									class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
+								>
+									<img
+										src={appIcon(app)}
+										alt={app.name}
+										width="40"
+										height="40"
+										style="border-radius: 10px; flex-shrink: 0"
+									/>
+									<div class="flex-1 min-w-0">
+										<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">
+											{app.name}
+										</p>
+										<p class="text-[11px] text-[var(--text-tertiary)] m-0">
+											{app.category} · ${app.avgEarningsPerDay.toFixed(0)}/d
+										</p>
+									</div>
+								</a>
+							{/each}
+						</div>
+					</div>
+				</section>
+			{/if}
+		{/each}
+
+		<!-- ─── Top Earning ─── -->
+		{#if topEarning.length > 0}
+			<section>
+				<div
+					style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
+				>
+					<div
+						style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
+					>
+						<h2
+							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
+							style="letter-spacing: -0.006em"
+						>
+							Top Earning
+						</h2>
+						<a
+							href="/leaderboards"
+							style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
+						>
+							See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
 						</a>
 					</div>
 					<div class="relative group/scroll">
 						<div
-							bind:this={trendingScrollRef}
-							class="flex gap-6 overflow-x-auto pb-1"
+							bind:this={topEarningScrollRef}
+							class="flex gap-4 md:gap-6 overflow-x-auto pb-1"
 							style="scrollbar-width: none"
 						>
-							{#each chunk(trending, 3) as group, gi}
-								<div class="flex-shrink-0 w-[340px]">
-									{#each group as app (app.id)}
-										<a href="/apps/{app.id}" class="group block">
-											<div
-												class="flex items-center gap-3.5 py-3 border-b border-[var(--border-default)] last:border-b-0"
+							{#each topEarning as app, i (app.id)}
+								<a href="/apps/{app.id}" class="group flex-shrink-0 no-underline">
+									<div class="flex items-center gap-3 w-[180px] md:w-[200px]">
+										<span
+											class="text-[18px] font-bold tabular-nums text-[var(--text-tertiary)] w-5 text-right flex-shrink-0"
+										>
+											{i + 1}
+										</span>
+										<img
+											src={appIcon(app)}
+											alt={app.name}
+											width="48"
+											height="48"
+											class="rounded-[10px] flex-shrink-0"
+										/>
+										<div class="flex-1 min-w-0">
+											<h3
+												class="text-[13px] font-medium text-[var(--text-primary)] truncate"
 											>
-												<img
-													src={appIcon(app)}
-													alt={app.name}
-													width="40"
-													height="40"
-													class="rounded-[10px] flex-shrink-0"
-												/>
-												<div class="flex-1 min-w-0">
-													<h3
-														class="text-[13px] font-medium text-[var(--text-primary)] truncate"
-													>
-														{app.name}
-													</h3>
-													<p
-														class="text-[11px] text-[var(--text-tertiary)] truncate"
-													>
-														{app.category}
-													</p>
-												</div>
-												<button
-													type="button"
-													class="btn-subscribe flex-shrink-0"
-													onclick={(e) => {
-														e.preventDefault();
-														e.stopPropagation();
-														goto(`/apps/${app.id}?action=mine`);
-													}}
-												>
-													Subscribe
-												</button>
-											</div>
-										</a>
-									{/each}
-								</div>
+												{app.name}
+											</h3>
+											<p class="text-[11px] text-[var(--text-tertiary)] truncate">
+												{app.category}
+											</p>
+											<p
+												class="text-[11px] font-mono text-[var(--text-accent)] mt-0.5"
+											>
+												${app.avgEarningsPerDay.toFixed(0)}/d
+											</p>
+										</div>
+									</div>
+								</a>
 							{/each}
 						</div>
 						<button
 							type="button"
-							onclick={() => scrollRow(trendingScrollRef, 'left')}
-							class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
+							onclick={() => scrollRow(topEarningScrollRef, 'left')}
+							class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
 						>
 							<ChevronLeft
 								class="h-4 w-4 text-[var(--text-secondary)]"
@@ -673,8 +652,8 @@
 						</button>
 						<button
 							type="button"
-							onclick={() => scrollRow(trendingScrollRef, 'right')}
-							class="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
+							onclick={() => scrollRow(topEarningScrollRef, 'right')}
+							class="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
 						>
 							<ChevronRight
 								class="h-4 w-4 text-[var(--text-secondary)]"
@@ -685,284 +664,5 @@
 				</div>
 			</section>
 		{/if}
-
-		<!-- ─── Top Charts: Earning ─── -->
-		<section>
-			<div
-				style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
-			>
-				<div
-					style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
-				>
-					<h2
-						style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin: 0"
-					>
-						Top Earning
-					</h2>
-					<a
-						href="/category"
-						style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
-					>
-						See All
-						<ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
-					</a>
-				</div>
-				<div class="relative group/scroll">
-					<div
-						bind:this={topEarningScrollRef}
-						class="flex gap-6 overflow-x-auto pb-1"
-						style="scrollbar-width: none"
-					>
-						{#each topEarning as app, i (app.id)}
-							<a href="/apps/{app.id}" class="group flex-shrink-0">
-								<div class="flex items-center gap-3 w-[160px]">
-									<span
-										class="text-[20px] font-bold tabular-nums text-[var(--text-tertiary)] w-5 text-right"
-									>
-										{i + 1}
-									</span>
-									<img
-										src={appIcon(app)}
-										alt={app.name}
-										width="48"
-										height="48"
-										class="rounded-[10px] flex-shrink-0"
-									/>
-									<div class="flex-1 min-w-0">
-										<h3
-											class="text-[13px] font-medium text-[var(--text-primary)] truncate"
-										>
-											{app.name}
-										</h3>
-										<p
-											class="text-[11px] text-[var(--text-tertiary)] truncate"
-										>
-											{app.category}
-										</p>
-										<button
-											type="button"
-											class="btn-subscribe mt-1"
-											onclick={(e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												goto(`/apps/${app.id}?action=mine`);
-											}}
-										>
-											Subscribe
-										</button>
-									</div>
-								</div>
-							</a>
-						{/each}
-					</div>
-					<button
-						type="button"
-						onclick={() => scrollRow(topEarningScrollRef, 'left')}
-						class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
-					>
-						<ChevronLeft
-							class="h-4 w-4 text-[var(--text-secondary)]"
-							strokeWidth={1.5}
-						/>
-					</button>
-					<button
-						type="button"
-						onclick={() => scrollRow(topEarningScrollRef, 'right')}
-						class="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
-					>
-						<ChevronRight
-							class="h-4 w-4 text-[var(--text-secondary)]"
-							strokeWidth={1.5}
-						/>
-					</button>
-				</div>
-			</div>
-		</section>
-
-		<!-- ─── Top Charts: Most Miners ─── -->
-		<section>
-			<div
-				style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
-			>
-				<div
-					style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
-				>
-					<h2
-						style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin: 0"
-					>
-						Most Miners
-					</h2>
-					<a
-						href="/category"
-						style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
-					>
-						See All
-						<ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
-					</a>
-				</div>
-				<div class="relative group/scroll">
-					<div
-						bind:this={topMinersScrollRef}
-						class="flex gap-6 overflow-x-auto pb-1"
-						style="scrollbar-width: none"
-					>
-						{#each topMiners as app, i (app.id)}
-							<a href="/apps/{app.id}" class="group flex-shrink-0">
-								<div class="flex items-center gap-3 w-[160px]">
-									<span
-										class="text-[20px] font-bold tabular-nums text-[var(--text-tertiary)] w-5 text-right"
-									>
-										{i + 1}
-									</span>
-									<img
-										src={appIcon(app)}
-										alt={app.name}
-										width="48"
-										height="48"
-										class="rounded-[10px] flex-shrink-0"
-									/>
-									<div class="flex-1 min-w-0">
-										<h3
-											class="text-[13px] font-medium text-[var(--text-primary)] truncate"
-										>
-											{app.name}
-										</h3>
-										<p
-											class="text-[11px] text-[var(--text-tertiary)] truncate"
-										>
-											{app.category}
-										</p>
-										<button
-											type="button"
-											class="btn-subscribe mt-1"
-											onclick={(e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												goto(`/apps/${app.id}?action=mine`);
-											}}
-										>
-											Subscribe
-										</button>
-									</div>
-								</div>
-							</a>
-						{/each}
-					</div>
-					<button
-						type="button"
-						onclick={() => scrollRow(topMinersScrollRef, 'left')}
-						class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
-					>
-						<ChevronLeft
-							class="h-4 w-4 text-[var(--text-secondary)]"
-							strokeWidth={1.5}
-						/>
-					</button>
-					<button
-						type="button"
-						onclick={() => scrollRow(topMinersScrollRef, 'right')}
-						class="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border-default)] flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-150 z-10"
-					>
-						<ChevronRight
-							class="h-4 w-4 text-[var(--text-secondary)]"
-							strokeWidth={1.5}
-						/>
-					</button>
-				</div>
-			</div>
-		</section>
-
-		<!-- ─── Curated Collections ─── -->
-		{#each curatedCollections as col (col.id)}
-			{@const colAppIds = new Set(col.appIds)}
-			{@const colApps = appsUniq.filter((a) => colAppIds.has(a.id)).slice(0, 6)}
-			{#if colApps.length > 0}
-				<section>
-					<div
-						style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
-					>
-						<div
-							style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px"
-						>
-							<h2
-								style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin: 0"
-							>
-								{col.title}
-							</h2>
-							<a
-								href="/category"
-								style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
-							>
-								See All
-								<ChevronRight
-									style="width: 12px; height: 12px"
-									strokeWidth={1.5}
-								/>
-							</a>
-						</div>
-						{#if col.description}
-							<p
-								style="font-size: 12px; color: var(--text-tertiary); margin: 0 0 12px; line-height: 16px"
-							>
-								{col.description}
-							</p>
-						{/if}
-						<div
-							style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px"
-						>
-							{#each colApps as app (app.id)}
-								<a
-									href="/apps/{app.id}"
-									class="curated-card"
-									style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; text-decoration: none; transition: all 100ms"
-									onmouseenter={(e) => {
-										const el = e.currentTarget as HTMLElement;
-										el.style.borderColor = 'var(--border-hover)';
-										el.style.background = 'var(--surface-2)';
-									}}
-									onmouseleave={(e) => {
-										const el = e.currentTarget as HTMLElement;
-										el.style.borderColor = 'var(--border-default)';
-										el.style.background = 'var(--surface-1)';
-									}}
-								>
-									<img
-										src={appIcon(app)}
-										alt={app.name}
-										width="40"
-										height="40"
-										style="border-radius: 10px; flex-shrink: 0"
-									/>
-									<div style="flex: 1; min-width: 0">
-										<p
-											style="font-size: 13px; font-weight: 500; color: var(--text-primary); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
-										>
-											{app.name}
-										</p>
-										<p
-											style="font-size: 11px; color: var(--text-tertiary); margin: 0"
-										>
-											{app.category} · ${app.avgEarningsPerDay.toFixed(0)}/day
-										</p>
-									</div>
-									<div style="text-align: right; flex-shrink: 0">
-										<p
-											style="font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary); margin: 0; font-feature-settings: 'tnum' 1"
-										>
-											{app.totalMiners.toLocaleString()}
-										</p>
-										<p
-											style="font-size: 10px; color: var(--text-tertiary); margin: 0"
-										>
-											miners
-										</p>
-									</div>
-								</a>
-							{/each}
-						</div>
-					</div>
-				</section>
-			{/if}
-		{/each}
 	</div>
 </div>
