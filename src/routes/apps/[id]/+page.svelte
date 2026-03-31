@@ -9,6 +9,7 @@
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 	import { getAppScreenshots } from '$lib/app-screenshots';
 	import { shareOrCopy } from '$lib/share';
+	import NodeSetupWizard from '$lib/components/NodeSetupWizard.svelte';
 	import {
 		Star,
 		Cpu,
@@ -144,6 +145,9 @@
 	let miningStatus = $state<'not-subscribed' | 'subscribed' | 'mining'>('not-subscribed');
 	let miningStats = $state({ tasksCompleted: 0, earnings: 0, uptime: 0, proofs: 0 });
 
+	let isWizardOpen = $state(false);
+	let pendingSubId = $state<string | null>(null);
+
 	let activeTab = $state('overview');
 	let shareOpen = $state(false);
 	let shareUrl = $state('');
@@ -179,25 +183,12 @@
 			return;
 		}
 		if (existingSubscription) {
-			goto(`/mining/${encodeURIComponent(existingSubscription.id)}`);
+			pendingSubId = existingSubscription.id;
+			isWizardOpen = true;
 			return;
 		}
-		const sub = backend.subscribeToApp({
-			appId: app!.id,
-			minerId: $actor.minerId,
-			walletAddress: $actor.walletAddress,
-			stakeAmount,
-		});
-		if (!sub) {
-			showToast(
-				missingAttestations.length > 0
-					? `Missing attestations: ${missingAttestations.join(', ')}.`
-					: 'This subscription could not be created.'
-			);
-			return;
-		}
-		showToast('Subscribed! This network is now in My Mining.');
-		goto(`/mining/${encodeURIComponent(sub.id)}`);
+		// Open wizard -- the wizard itself handles subscription on completion
+		isWizardOpen = true;
 	}
 
 	function handleStartMining() {
@@ -1467,6 +1458,34 @@
 		</div>
 
 		<!-- ═══════════════════════════════════════════════════════
+		     NODE SETUP WIZARD
+		════════════════════════════════════════════════════════ -->
+		{#if isWizardOpen && app}
+			<NodeSetupWizard
+				appId={app.id}
+				appName={app.name}
+				requirements={{
+					gpu: app.requirements?.gpu,
+					ram: app.requirements?.ram,
+					storage: app.requirements?.storage,
+				}}
+				stakingAmount={stakeAmount}
+				onClose={() => {
+					isWizardOpen = false;
+					pendingSubId = null;
+				}}
+				onComplete={(subscriptionId) => {
+					isWizardOpen = false;
+					const subId = subscriptionId ?? pendingSubId;
+					if (subId) {
+						goto(`/mining/${encodeURIComponent(subId)}`);
+					}
+					pendingSubId = null;
+				}}
+			/>
+		{/if}
+
+		<!-- ═══════════════════════════════════════════════════════
 		     SHARE DIALOG
 		════════════════════════════════════════════════════════ -->
 		{#if shareOpen}
@@ -1549,7 +1568,7 @@
 							</p>
 							<select
 								bind:value={reportCategory}
-								class="h-8 px-2 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-2)] text-[var(--text-secondary)] text-[13px] cursor-pointer"
+								class="h-9 px-3 py-2 rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] text-[13px] cursor-pointer outline-none"
 							>
 								<option value="scam">Scam</option>
 								<option value="malware">Malware</option>
@@ -1568,7 +1587,7 @@
 							</p>
 							<select
 								bind:value={reportSeverity}
-								class="h-8 px-2 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-2)] text-[var(--text-secondary)] text-[13px] cursor-pointer"
+								class="h-9 px-3 py-2 rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] text-[13px] cursor-pointer outline-none"
 							>
 								<option value="low">Low</option>
 								<option value="medium">Medium</option>
@@ -1586,7 +1605,7 @@
 								bind:value={reportReason}
 								rows="5"
 								placeholder="Explain what's wrong. Fake rewards, suspicious URLs, malware behavior, abusive economics..."
-								class="w-full px-3 py-2 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-2)] text-[var(--text-primary)] text-[13px] resize-y"
+								class="w-full px-3 py-2 rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] text-[13px] resize-y outline-none"
 							></textarea>
 						</div>
 					</div>

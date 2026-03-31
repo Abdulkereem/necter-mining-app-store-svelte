@@ -473,43 +473,6 @@
 			{/if}
 		</div>
 
-		<!-- Recent Decisions — desktop only -->
-		{#if decisions.length > 0}
-			<div class="hidden md:block mt-8">
-				<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-3">Recent Decisions</h2>
-				<div
-					class="rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)] overflow-hidden divide-y divide-[var(--border-default)]"
-				>
-					{#each decisions as d, i}
-						<div class="flex items-center justify-between px-4 py-2.5">
-							<div class="flex items-center gap-2 min-w-0">
-								<span
-									class="text-[10px] font-semibold px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[var(--text-tertiary)] uppercase"
-									>{d.kind}</span
-								>
-								<span class="text-[13px] text-[var(--text-primary)] truncate">{d.title}</span>
-							</div>
-							<div class="flex items-center gap-2 flex-shrink-0">
-								<span
-									class="text-[11px] font-medium capitalize {d.status === 'passed' ||
-									d.status === 'approved' ||
-									d.status === 'executed'
-										? 'text-[var(--success)]'
-										: 'text-[var(--error)]'}">{d.status}</span
-								>
-								<span class="text-[10px] text-[var(--text-tertiary)] font-mono"
-									>{new Date(d.date).toLocaleDateString('en-US', {
-										month: 'short',
-										day: 'numeric',
-									})}</span
-								>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
 		<!-- Developer Applications — desktop only -->
 		{#if hasGovRole && (pendingDeveloperVerifications.length > 0 || pendingDeveloperEnrollments.length > 0)}
 			<div class="mb-8 hidden md:block mt-8">
@@ -591,6 +554,43 @@
 												notes: 'Rejected.',
 											})
 										)}>Reject</button
+								>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Recent Decisions — desktop only -->
+		{#if decisions.length > 0}
+			<div class="hidden md:block mt-8">
+				<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-3">Recent Decisions</h2>
+				<div
+					class="rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)] overflow-hidden divide-y divide-[var(--border-default)]"
+				>
+					{#each decisions as d, i}
+						<div class="flex items-center justify-between px-4 py-2.5">
+							<div class="flex items-center gap-2 min-w-0">
+								<span
+									class="text-[10px] font-semibold px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[var(--text-tertiary)] uppercase"
+									>{d.kind}</span
+								>
+								<span class="text-[13px] text-[var(--text-primary)] truncate">{d.title}</span>
+							</div>
+							<div class="flex items-center gap-2 flex-shrink-0">
+								<span
+									class="text-[11px] font-medium capitalize {d.status === 'passed' ||
+									d.status === 'approved' ||
+									d.status === 'executed'
+										? 'text-[var(--success)]'
+										: 'text-[var(--error)]'}">{d.status}</span
+								>
+								<span class="text-[10px] text-[var(--text-tertiary)] font-mono"
+									>{new Date(d.date).toLocaleDateString('en-US', {
+										month: 'short',
+										day: 'numeric',
+									})}</span
 								>
 							</div>
 						</div>

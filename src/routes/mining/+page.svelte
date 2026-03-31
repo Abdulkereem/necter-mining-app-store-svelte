@@ -3,7 +3,6 @@
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
 	import { appIconDataUri } from '$lib/app-icon';
-	import { badgeIconDataUri } from '$lib/badge-icon';
 	import EarningsPanel from '$lib/components/mining/EarningsPanel.svelte';
 	import { ArrowUpRight } from 'lucide-svelte';
 	import type { App } from '$lib/types';
@@ -111,7 +110,6 @@
 			}));
 	});
 
-	let minerBadges = $derived(minerId ? backend.listBadges(minerId) : []);
 
 	let latestPayouts = $derived.by(() => {
 		if (!minerId) return [];
@@ -229,7 +227,7 @@
 		return `${(avg / 3600).toFixed(1)}h`;
 	});
 
-	// Proofs daily rate chart (last 14 days)
+	// Proofs daily rate chart (last 14 days) — stacked submitted vs verified
 	let proofsDailyRate = $derived.by(() => {
 		const days = 14;
 		const now = new Date();
@@ -242,27 +240,42 @@
 			d.setUTCDate(utcAnchor.getUTCDate() - i);
 			keys.push(d.toISOString().slice(0, 10));
 		}
-		const byDay = new Map<string, number>();
+		const submittedByDay = new Map<string, number>();
+		const verifiedByDay = new Map<string, number>();
 		for (const p of proofs) {
 			const day = String(p.submittedAt).slice(0, 10);
-			byDay.set(day, (byDay.get(day) ?? 0) + 1);
+			submittedByDay.set(day, (submittedByDay.get(day) ?? 0) + 1);
+			if (p.status === 'verified') {
+				verifiedByDay.set(day, (verifiedByDay.get(day) ?? 0) + 1);
+			}
 		}
-		const bars = keys.map((k) => ({ date: k, count: byDay.get(k) ?? 0 }));
-		const maxVal = Math.max(...bars.map((b) => b.count), 1);
+		const bars = keys.map((k) => ({
+			date: k,
+			submitted: submittedByDay.get(k) ?? 0,
+			verified: verifiedByDay.get(k) ?? 0
+		}));
+		const maxVal = Math.max(...bars.map((b) => b.submitted), 1);
 		return { bars, maxVal };
 	});
 
-	// Proofs failure breakdown
-	let failureBreakdown = $derived.by(() => {
-		const rejected = proofs.filter((p) => p.status === 'rejected');
-		const reasons = new Map<string, number>();
-		for (const p of rejected) {
-			const reason = (p as any).rejectReason ?? 'Unknown';
-			reasons.set(reason, (reasons.get(reason) ?? 0) + 1);
+	// Failure rate by project
+	let failureByProject = $derived.by(() => {
+		const byApp = new Map<string, { total: number; failed: number }>();
+		for (const p of proofs) {
+			const entry = byApp.get(p.appId) ?? { total: 0, failed: 0 };
+			entry.total++;
+			if (p.status === 'rejected') entry.failed++;
+			byApp.set(p.appId, entry);
 		}
-		return [...reasons.entries()]
-			.sort((a, b) => b[1] - a[1])
-			.map(([reason, count]) => ({ reason, count }));
+		return [...byApp.entries()]
+			.filter(([, v]) => v.failed > 0)
+			.sort((a, b) => b[1].failed - a[1].failed)
+			.map(([appId, { total, failed }]) => ({
+				appId,
+				appName: appsById.get(appId)?.name ?? appId,
+				total,
+				failed
+			}));
 	});
 
 	function statusColor(status: string): string {
@@ -272,6 +285,48 @@
 			case 'slashed': return 'var(--error)';
 			default: return 'var(--text-tertiary)';
 		}
+	}
+
+	// Activity feed helpers
+	function eventLabel(type: string): string {
+		const labels: Record<string, string> = {
+			proof_verified: 'Proof verified',
+			payout_distributed: 'Payout',
+			job_completed: 'Job completed',
+			job_started: 'Job started',
+			job_queued: 'Job queued',
+			job_failed: 'Job failed',
+			slash_applied: 'Slashing',
+			proof_submitted: 'Proof submitted',
+			proof_disputed: 'Dispute filed',
+			proof_dispute_resolved: 'Dispute resolved',
+			subscription_created: 'Subscribed',
+			subscription_paused: 'Paused',
+			subscription_resumed: 'Resumed',
+			subscription_blocked: 'Blocked',
+			withdrawal_requested: 'Withdrawal requested',
+			withdrawal_completed: 'Withdrawal completed',
+			wallet_connected: 'Wallet connected',
+			badge_awarded: 'Badge earned'
+		};
+		return labels[type] ?? type.replace(/_/g, ' ');
+	}
+
+	function eventIconColor(type: string): string {
+		const destructive = ['slash_applied', 'job_failed', 'subscription_blocked'];
+		const success = ['proof_verified', 'payout_distributed', 'withdrawal_completed', 'badge_awarded'];
+		if (destructive.includes(type)) return 'var(--error)';
+		if (success.includes(type)) return 'var(--success)';
+		return 'var(--text-secondary)';
+	}
+
+	// Toast helper
+	let toastMessage = $state<string | null>(null);
+	let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+	function showToast(msg: string) {
+		toastMessage = msg;
+		if (toastTimeout) clearTimeout(toastTimeout);
+		toastTimeout = setTimeout(() => { toastMessage = null; }, 3000);
 	}
 </script>
 
@@ -313,10 +368,10 @@
 		</div>
 	</div>
 {:else}
-	<div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-6 md:pb-12">
+	<div class="animate-fadeIn px-0 md:px-6 pt-4 md:pt-6 pb-6 md:pb-12">
 
 		<!-- ── Page header ── -->
-		<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+		<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 px-4 md:px-0">
 			<div>
 				<h1 class="text-[20px] font-semibold tracking-tight" style="color: var(--text-primary);">My Mining</h1>
 				<p class="text-[12px] mt-0.5 hidden md:block" style="color: var(--text-tertiary);">
@@ -356,7 +411,7 @@
 				</div>
 			{:else if proofs.length === 0}
 				<div class="py-8 text-center">
-					<p class="text-[13px]" style="color: var(--text-tertiary);">No proofs yet. Subscribe to a network and start mining to generate proofs.</p>
+					<p class="text-[13px]" style="color: var(--text-tertiary);">No proofs yet. Subscribe to a project and start mining to generate proofs.</p>
 				</div>
 			{:else}
 				<div class="flex flex-col gap-4">
@@ -376,49 +431,51 @@
 						{/each}
 					</div>
 
-					<!-- Daily rate chart -->
-					<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-						<div class="px-3 md:px-4 py-2 md:py-3 border-b flex items-center justify-between" style="border-color: var(--border-default);">
-							<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Daily proof rate (14d)</span>
-						</div>
-						<div class="px-4 py-3">
-							<div class="flex items-end gap-[3px]" style="height: 100px;">
-								{#each proofsDailyRate.bars as bar, i}
-									{@const h = bar.count > 0 ? Math.max(4, (bar.count / proofsDailyRate.maxVal) * 100) : 2}
+					<!-- Daily rate chart — stacked submitted/verified -->
+					{#if proofsDailyRate.bars.length > 0}
+						<div class="rounded-lg overflow-hidden border px-4 py-3.5" style="background: var(--surface-1); border-color: var(--border-default);">
+							<div class="flex items-center justify-between mb-2.5">
+								<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Proof Rate (14d)</span>
+							</div>
+							<div class="flex items-end gap-[3px]" style="height: 60px;">
+								{#each proofsDailyRate.bars as bar}
+									{@const totalH = bar.submitted > 0 ? (bar.submitted / proofsDailyRate.maxVal) * 60 : 0}
+									{@const verifiedH = bar.verified > 0 ? (bar.verified / proofsDailyRate.maxVal) * 60 : 0}
 									<div
-										title="{bar.count} proofs on {bar.date}"
-										style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {i === proofsDailyRate.bars.length - 1 ? 'var(--accent-base)' : 'var(--accent-subtle)'}; transition: height 200ms ease-out; cursor: default;"
-									></div>
+										title="{bar.date}: {bar.verified}/{bar.submitted}"
+										style="flex: 1; position: relative; height: {totalH}px; cursor: default; transition: transform 100ms;"
+									>
+										<div style="position: absolute; bottom: 0; left: 0; right: 0; height: {totalH}px; border-radius: 2px 2px 0 0; background: var(--surface-3);"></div>
+										<div style="position: absolute; bottom: 0; left: 0; right: 0; height: {verifiedH}px; border-radius: 2px 2px 0 0; background: var(--success); opacity: 0.7;"></div>
+									</div>
 								{/each}
 							</div>
-							<div class="flex justify-between mt-1.5">
-								<span class="text-[10px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">
-									{(() => { const d = new Date(proofsDailyRate.bars[0]?.date ?? ''); return `${d.getMonth()+1}/${d.getDate()}`; })()}
-								</span>
-								<span class="text-[10px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">Today</span>
+							<div class="flex items-center gap-3 mt-1.5">
+								<div class="flex items-center gap-1">
+									<div class="w-2 h-2 rounded-sm" style="background: var(--surface-3);"></div>
+									<span class="text-[10px]" style="color: var(--text-tertiary);">Submitted</span>
+								</div>
+								<div class="flex items-center gap-1">
+									<div class="w-2 h-2 rounded-sm" style="background: var(--success); opacity: 0.7;"></div>
+									<span class="text-[10px]" style="color: var(--text-tertiary);">Verified</span>
+								</div>
 							</div>
 						</div>
-					</div>
+					{/if}
 
-					<!-- Failure breakdown (if any rejections) -->
-					{#if failureBreakdown.length > 0}
-						<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-							<div class="px-3 md:px-4 py-2 md:py-3 border-b" style="border-color: var(--border-default);">
-								<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Failure breakdown</span>
-							</div>
-							<div class="p-3 md:p-4 flex flex-col gap-2">
-								{#each failureBreakdown as item}
-									<div class="flex items-center justify-between gap-3">
-										<span class="text-[12px] font-medium" style="color: var(--text-secondary);">{item.reason}</span>
-										<div class="flex items-center gap-2 flex-1 min-w-0 max-w-[200px]">
-											<div class="flex-1 h-[6px] rounded-full overflow-hidden" style="background: var(--surface-2);">
-												<div
-													class="h-full rounded-full"
-													style="width: {Math.min(100, (item.count / rejectedCount) * 100)}%; background: var(--error);"
-												></div>
-											</div>
-											<span class="text-[11px] shrink-0" style="font-family: var(--font-mono); color: var(--text-tertiary);">{item.count}</span>
+					<!-- Failure Rate by Project -->
+					{#if failureByProject.length > 0}
+						<div class="rounded-lg overflow-hidden border px-4 py-3.5" style="background: var(--surface-1); border-color: var(--border-default);">
+							<span class="text-[11px] font-semibold tracking-widest uppercase block mb-2.5" style="color: var(--text-tertiary);">Failure Rate by Project</span>
+							<div class="flex flex-col gap-2">
+								{#each failureByProject as p}
+									{@const failRate = p.total > 0 ? (p.failed / p.total) * 100 : 0}
+									<div class="flex items-center gap-2.5">
+										<span class="text-[12px] w-[120px] overflow-hidden text-ellipsis whitespace-nowrap shrink-0" style="color: var(--text-primary);">{p.appName}</span>
+										<div class="flex-1 h-1 rounded-sm overflow-hidden" style="background: var(--surface-3);">
+											<div class="h-1 rounded-sm" style="width: {failRate}%; background: var(--error); opacity: 0.7;"></div>
 										</div>
+										<span class="text-[11px] w-[55px] text-right shrink-0" style="font-family: var(--font-mono); color: var(--error);">{p.failed}/{p.total}</span>
 									</div>
 								{/each}
 							</div>
@@ -471,7 +528,7 @@
 								class="grid h-8 px-3 items-center border-b"
 								style="grid-template-columns: 1fr 120px 80px 80px 80px; border-color: var(--border-default);"
 							>
-								{#each ['Network', 'Proof Hash', 'Status', 'Reward', 'Date'] as col, i}
+								{#each ['Project', 'Proof Hash', 'Status', 'Reward', 'Date'] as col, i}
 									<span
 										class="text-[10px] font-semibold tracking-widest uppercase"
 										style="color: var(--text-tertiary); text-align: {i > 0 ? 'right' : 'left'};"
@@ -575,14 +632,19 @@
 					<div class="px-3 py-2.5 border-b flex items-center justify-between" style="border-color: var(--border-default);">
 						<span class="text-[13px] font-semibold" style="color: var(--text-primary);">Subscriptions</span>
 						<a href="/mining/subscriptions" class="text-[11px] font-medium no-underline" style="color: var(--text-accent);">
-							View All
+							View All ({subs.length})
 						</a>
 					</div>
 
 					{#if subs.length === 0}
-						<div class="px-4 py-6 text-center">
-							<p class="text-[13px] mb-3" style="color: var(--text-secondary);">You are not mining any networks yet.</p>
-							<a href="/discover" class="btn-subscribe">Discover networks</a>
+						<div class="text-center overflow-hidden">
+							<div class="w-full h-[140px] overflow-hidden">
+								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" />
+							</div>
+							<div class="px-4 pt-4 pb-6">
+								<p class="text-[13px] mb-3" style="color: var(--text-secondary);">You are not mining any projects yet.</p>
+								<a href="/discover" class="btn-subscribe">Discover projects</a>
+							</div>
 						</div>
 					{:else}
 						{#each subs as s, idx}
@@ -603,12 +665,6 @@
 									<div class="text-[11px]" style="color: var(--text-tertiary);">
 										{s.totalEarned.toFixed(2)} NECTA &middot; {s.uptime.toFixed(0)}%
 									</div>
-								</div>
-								<div class="flex items-center gap-1.5 shrink-0">
-									<span class={statusDotClass(s.status)}></span>
-									<span class="text-[11px] font-medium capitalize" style="color: {statusColor(s.status)};">
-										{s.status}
-									</span>
 								</div>
 							</a>
 						{/each}
@@ -655,9 +711,9 @@
 							<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">30-day earnings</span>
 						</div>
 						<div class="px-4 py-3">
-							<div class="flex items-end gap-[2px]" style="height: 260px;">
+							<div class="flex items-end gap-[2px]" style="height: 340px;">
 								{#each earningsSeries as d, i}
-									{@const h = d.value > 0 ? Math.max(4, (d.value / chartMax) * 250) : 2}
+									{@const h = d.value > 0 ? Math.max(4, (d.value / chartMax) * 330) : 2}
 									<div
 										title="{d.date}: {d.value.toFixed(4)} NECTA"
 										style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {i === earningsSeries.length - 1 ? 'var(--accent-base)' : 'var(--accent-subtle)'}; transition: height 200ms ease-out; cursor: default;"
@@ -703,10 +759,10 @@
 							</div>
 						</div>
 
-						<!-- Top networks -->
+						<!-- Top projects -->
 						<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
 							<div class="px-3 py-2.5 border-b" style="border-color: var(--border-default);">
-								<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Top networks</span>
+								<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Top projects</span>
 							</div>
 							<div class="py-1">
 								{#if topNetworks.length === 0}
@@ -734,28 +790,6 @@
 							</div>
 						</div>
 
-						<!-- Badges -->
-						<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-							<div class="px-3 py-2.5 border-b flex items-center gap-1.5" style="border-color: var(--border-default);">
-								<span class="text-[11px] font-semibold tracking-widest uppercase flex-1" style="color: var(--text-tertiary);">Badges</span>
-								<a href="/mining/badges" class="text-[11px] no-underline" style="color: var(--text-accent);">View all &rarr;</a>
-							</div>
-							<div class="p-2.5 flex flex-col gap-1.5">
-								{#if minerBadges.length === 0}
-									<p class="text-[12px] leading-4" style="color: var(--text-tertiary);">No badges yet. Complete tasks to earn milestone badges.</p>
-								{:else}
-									{#each minerBadges.slice(0, 8) as b}
-										<div class="flex items-center gap-2.5 p-1.5 rounded-[5px]" style="background: var(--surface-2);">
-											<img src={badgeIconDataUri(b.name, b.kind, 64)} alt="" class="w-8 h-8 shrink-0" />
-											<div class="min-w-0">
-												<div class="text-[12px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">{b.name}</div>
-												<div class="text-[11px] overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-tertiary);">{b.description}</div>
-											</div>
-										</div>
-									{/each}
-								{/if}
-							</div>
-						</div>
 					</div>
 				</div>
 
@@ -787,7 +821,7 @@
 							class="grid h-8 px-3 items-center border-b"
 							style="grid-template-columns: 1fr 80px 80px 80px 80px 80px; border-color: var(--border-default);"
 						>
-							{#each ['Network', 'Status', 'Earned', 'Tasks', 'Uptime', ''] as col, i}
+							{#each ['Project', 'Status', 'Earned', 'Tasks', 'Uptime', ''] as col, i}
 								<span
 									class="text-[10px] font-semibold tracking-widest uppercase"
 									style="color: var(--text-tertiary); text-align: {i > 0 ? 'right' : 'left'}; {i > 0 && i < 5 ? 'padding-right: 8px;' : ''}"
@@ -854,7 +888,7 @@
 						<div class="px-4 py-2.5 border-b flex items-center justify-between gap-3" style="border-color: var(--border-default);">
 							<div>
 								<span class="text-[14px] font-semibold -tracking-tight" style="color: var(--text-primary);">Recommended for you</span>
-								<p class="text-[12px] mt-0.5" style="color: var(--text-tertiary);">Based on your hardware profile and network performance</p>
+								<p class="text-[12px] mt-0.5" style="color: var(--text-tertiary);">Based on your hardware profile and project performance</p>
 							</div>
 							<a href="/discover" class="inline-flex items-center gap-1 text-[12px] no-underline shrink-0" style="color: var(--text-accent);">
 								Browse all
@@ -877,8 +911,39 @@
 											${app.avgEarningsPerDay.toFixed(2)}/day &middot; {app.reputationScore.toFixed(0)} rep
 										</div>
 									</div>
-									<span class="btn-subscribe" style="pointer-events: none;">Subscribe</span>
+									<button type="button" class="btn-subscribe shrink-0" onclick={(e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); if (!$actor) { showConnectModal.set(true); return; } if (minerId) { try { backend.subscribeToApp({ appId: app.id, minerId }); showToast(`Subscribed to ${app.name}`); } catch {} } }}>Subscribe</button>
 								</a>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Recent Activity — desktop only -->
+				{#if recentEvents.length > 0}
+					<div class="hidden md:block rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
+						<div class="px-4 py-2.5 border-b flex items-center justify-between" style="border-color: var(--border-default);">
+							<span class="text-sm font-semibold" style="color: var(--text-primary);">Recent Activity</span>
+							<span class="text-[12px] tabular-nums" style="color: var(--text-secondary);">{recentEvents.length}</span>
+						</div>
+						<div class="divide-y" style="--tw-divide-color: var(--border-default);">
+							{#each recentEvents.slice(0, 4) as evt}
+								<div class="flex items-center gap-3 px-4 py-2.5">
+									<span
+										class="inline-flex h-6 w-6 items-center justify-center rounded shrink-0"
+										style="background: var(--surface-2);"
+									>
+										<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+											<circle cx="6" cy="6" r="3" fill={eventIconColor(evt.type)} />
+										</svg>
+									</span>
+									<div class="min-w-0 flex-1">
+										<span class="text-[12px] block overflow-hidden text-ellipsis whitespace-nowrap">
+											<span class="font-medium" style="color: var(--text-primary);">{eventLabel(evt.type)}</span>
+											<span style="color: var(--text-secondary);"> &middot; {evt.message}</span>
+										</span>
+									</div>
+									<span class="text-[11px] shrink-0" style="color: var(--text-secondary);">{relativeTime(evt.createdAt)}</span>
+								</div>
 							{/each}
 						</div>
 					</div>
@@ -886,4 +951,14 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Toast notification -->
+	{#if toastMessage}
+		<div
+			class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-[13px] font-medium shadow-lg"
+			style="background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border-default);"
+		>
+			{toastMessage}
+		</div>
+	{/if}
 {/if}

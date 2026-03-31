@@ -5,6 +5,7 @@
 	import { actor } from '$lib/stores/wallet';
 	import { appIconDataUri } from '$lib/app-icon';
 	import { ChevronRight, ChevronLeft } from 'lucide-svelte';
+	import MinerOnboardingModal from '$lib/components/MinerOnboardingModal.svelte';
 	import type { App } from '$lib/types';
 
 	/* ─── Helper ─── */
@@ -666,3 +667,6 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Miner onboarding modal -->
+<MinerOnboardingModal open={showOnboarding} onClose={() => showOnboarding = false} />

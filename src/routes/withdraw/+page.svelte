@@ -1,16 +1,12 @@
 <script>
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
-  import { ArrowLeft, ArrowDownToLine, Plus } from 'lucide-svelte';
+  import { ArrowLeft, ArrowDownToLine } from 'lucide-svelte';
 
   let amount = $state('');
   let destination = $state('');
-  let newAddress = $state('');
   let network = 'Necter L2';
   let submitting = $state(false);
-
-  /** @type {string[]} */
-  let savedAddresses = $state(['0x1a2b3c4d5e6f7890abcdef1234567890abcdef12', '0xdeadbeefcafe00000000000000000000deadbeef']);
 
   const walletAddress = $derived($actor?.walletAddress ?? null);
   const minerId = $derived($actor?.minerId ?? null);
@@ -39,20 +35,11 @@
     withdrawals.filter((/** @type {any} */ w) => w.status === 'pending' || w.status === 'processing').reduce((/** @type {number} */ sum, /** @type {any} */ w) => sum + w.amount, 0)
   );
 
-  // Fee calculations
   const numericAmount = $derived(Number(amount) || 0);
-  const networkFee = $derived(numericAmount * 0.005);
-  const gasFee = 0.02;
-  const totalFees = $derived(networkFee + gasFee);
-  const youReceive = $derived(numericAmount > 0 ? Math.max(0, numericAmount - totalFees) : 0);
 
   const canWithdraw = $derived(
     !submitting && amount && numericAmount > 0 && numericAmount <= availableBalance
   );
-
-  function handleMax() {
-    amount = availableBalance.toFixed(2);
-  }
 
   function handleWithdraw() {
     if (!walletAddress || !minerId || !canWithdraw) return;
@@ -70,13 +57,6 @@
     } finally {
       submitting = false;
     }
-  }
-
-  function addAddress() {
-    const trimmed = newAddress.trim();
-    if (!trimmed || savedAddresses.includes(trimmed)) return;
-    savedAddresses = [...savedAddresses, trimmed];
-    newAddress = '';
   }
 
   /** @type {Record<string, { bg: string; text: string }>} */
@@ -130,8 +110,8 @@
       {#each [
         { label: 'Available Balance', value: fmtCurrency(availableBalance), accent: true },
         { label: 'Total Earned', value: fmtCurrency(totalEarned), accent: false },
+        { label: 'Total Withdrawn', value: fmtCurrency(totalWithdrawn), accent: false },
         { label: 'Pending', value: fmtCurrency(pendingAmount), accent: false },
-        { label: 'Withdrawn', value: fmtCurrency(totalWithdrawn), accent: false },
       ] as stat}
         <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
           <p style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; margin-bottom: 4px;">
@@ -144,7 +124,7 @@
       {/each}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
       <!-- Withdrawal form -->
       <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 20px;">
         <h2 style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin-bottom: 16px;">
@@ -157,8 +137,7 @@
             <label style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 6px;">
               Amount
             </label>
-            <div style="position: relative; display: flex; gap: 8px; align-items: stretch;">
-              <div style="position: relative; flex: 1;">
+            <div style="position: relative;">
                 <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text-tertiary);">$</span>
                 <input
                   type="number"
@@ -166,14 +145,6 @@
                   placeholder="0.00"
                   style="width: 100%; height: 36px; padding-left: 28px; padding-right: 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 13px; font-family: var(--font-mono); color: var(--text-primary); outline: none; font-feature-settings: 'tnum';"
                 />
-              </div>
-              <button
-                type="button"
-                onclick={handleMax}
-                style="height: 36px; padding: 0 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 11px; font-weight: 600; color: var(--text-accent); cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;"
-              >
-                Max
-              </button>
             </div>
             <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
               Available: ${availableBalance.toFixed(2)}
@@ -185,15 +156,12 @@
             <label style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 6px;">
               Destination Address
             </label>
-            <select
+            <input
+              type="text"
               bind:value={destination}
-              style="width: 100%; height: 36px; padding: 0 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); outline: none; appearance: auto;"
-            >
-              <option value="">Connected wallet ({walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)})</option>
-              {#each savedAddresses as addr}
-                <option value={addr}>{addr.slice(0, 10)}...{addr.slice(-6)}</option>
-              {/each}
-            </select>
+              placeholder={walletAddress}
+              style="width: 100%; height: 36px; padding: 0 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); outline: none;"
+            />
             <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
               Leave blank to withdraw to connected wallet
             </p>
@@ -209,28 +177,6 @@
             </div>
           </div>
 
-          <!-- Fee breakdown -->
-          {#if numericAmount > 0}
-            <div style="background: var(--surface-0); border: 1px solid var(--border-default); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: var(--text-tertiary);">Amount</span>
-                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum';">${numericAmount.toFixed(2)}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: var(--text-tertiary);">Network Fee (0.5%)</span>
-                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--text-secondary); font-feature-settings: 'tnum';">-${networkFee.toFixed(2)}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: var(--text-tertiary);">Gas Fee</span>
-                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--text-secondary); font-feature-settings: 'tnum';">-${gasFee.toFixed(2)}</span>
-              </div>
-              <div style="border-top: 1px solid var(--border-default); padding-top: 6px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);">You Receive</span>
-                <span style="font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--text-accent); font-feature-settings: 'tnum';">${youReceive.toFixed(2)}</span>
-              </div>
-            </div>
-          {/if}
-
           <button
             type="button"
             onclick={handleWithdraw}
@@ -243,28 +189,6 @@
           </button>
         </div>
 
-        <!-- Add new withdrawal address -->
-        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-default);">
-          <label style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 6px;">
-            Add New Withdrawal Address
-          </label>
-          <div style="display: flex; gap: 8px;">
-            <input
-              type="text"
-              bind:value={newAddress}
-              placeholder="0x..."
-              style="flex: 1; height: 36px; padding: 0 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); outline: none;"
-            />
-            <button
-              type="button"
-              onclick={addAddress}
-              disabled={!newAddress.trim()}
-              style="height: 36px; width: 36px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); color: var(--text-secondary); cursor: {newAddress.trim() ? 'pointer' : 'not-allowed'}; opacity: {newAddress.trim() ? 1 : 0.4}; display: flex; align-items: center; justify-content: center;"
-            >
-              <Plus size={14} strokeWidth={1.5} />
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Recent withdrawals -->

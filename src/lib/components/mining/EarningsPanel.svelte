@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
-	import { ArrowUpRight, Download, ExternalLink } from 'lucide-svelte';
+	import { ArrowUpRight, Download } from 'lucide-svelte';
 
 	type TimeRange = '7d' | '30d' | '90d' | 'all';
 
@@ -82,14 +82,19 @@
 	let recipientAddress = $derived(recipient || walletAddress);
 
 	let minerWithdrawals = $derived(
-		minerId ? $backendState.withdrawals.filter((w) => w.minerId === minerId) : []
+		minerId
+			? $backendState.withdrawals
+					.filter((w) => w.minerId === minerId)
+					.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
+			: []
 	);
 
-	let selectedWithdrawal = $derived(
-		selectedWithdrawalId
-			? (minerWithdrawals.find((w) => w.id === selectedWithdrawalId) ?? null)
-			: null
-	);
+	const statusColors: Record<string, { color: string; bg: string }> = {
+		completed: { color: 'var(--success)', bg: 'rgba(76,183,130,0.12)' },
+		pending: { color: 'var(--warning)', bg: 'rgba(242,153,74,0.12)' },
+		processing: { color: 'var(--info)', bg: 'rgba(110,159,255,0.12)' },
+		failed: { color: 'var(--error)', bg: 'rgba(239,68,68,0.12)' }
+	};
 
 	// Earnings chart data
 	let chartData = $derived.by(() => {
@@ -172,60 +177,52 @@
 		a.click();
 		URL.revokeObjectURL(url);
 	}
-
-	function addAddress() {
-		const addr = prompt('Add a new withdrawal address:');
-		if (addr?.trim() && minerId) {
-			backend.addWithdrawalAddress({ minerId, walletAddress: addr.trim() });
-		}
-	}
 </script>
 
 {#if !$actor || !$wallet}
 	<!-- Hidden when no wallet -->
 {:else}
-	<div style="display: flex; flex-direction: column; gap: 32px;">
+	<div style="display: flex; flex-direction: column; gap: 16px;">
 		<!-- Summary stats -->
 		<div
-			style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border-default); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;"
+			class="grid grid-cols-2 md:grid-cols-4"
+			style="gap: 1px; background: var(--border-default); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;"
 		>
 			{#each [
 				{
 					label: 'Available',
-					value: availableBalance.toFixed(4),
+					value: availableBalance.toFixed(2),
 					sub: `≈ $${(availableBalance * NECTA_USD).toFixed(2)}`,
 					color: 'var(--success)'
 				},
 				{
 					label: 'Total Earned',
-					value: totalEarned.toFixed(4),
+					value: totalEarned.toFixed(2),
 					sub: `≈ $${(totalEarned * NECTA_USD).toFixed(2)}`,
 					color: null
 				},
 				{
 					label: 'Pending',
-					value: pendingRewards.toFixed(4),
+					value: pendingRewards.toFixed(2),
 					sub: `≈ $${(pendingRewards * NECTA_USD).toFixed(2)}`,
-					color: null,
-					muted: true
+					color: null
 				},
-				{ label: 'This Month', value: thisMonth().toFixed(4), sub: null, color: null }
+				{ label: 'This Month', value: thisMonth().toFixed(2), sub: 'NECTA', color: null }
 			] as stat}
 				<div
 					style="background: var(--surface-1); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;"
 				>
 					<span
-						style="font-size: 11px; font-weight: 500; color: var(--text-tertiary); letter-spacing: 0.02em; text-transform: uppercase;"
+						style="font-size: 10px; font-weight: 500; color: var(--text-tertiary); letter-spacing: 0.02em; text-transform: uppercase;"
 					>
 						{stat.label}
 					</span>
 					<span
-						style="font-size: 22px; font-weight: 600; font-family: var(--font-mono); color: {stat.color ??
-							(stat.muted ? 'var(--text-secondary)' : 'var(--text-primary)')}; letter-spacing: -0.02em; line-height: 28px; font-feature-settings: 'tnum' 1;"
+						style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: {stat.color ?? 'var(--text-primary)'}; letter-spacing: -0.02em; line-height: 28px; font-feature-settings: 'tnum' 1;"
 					>
 						{stat.value}
 					</span>
-					<span style="font-size: 11px; color: var(--text-tertiary); letter-spacing: 0.02em;">
+					<span style="font-size: 10px; color: var(--text-tertiary); letter-spacing: 0.02em;">
 						{stat.sub ?? 'NECTA'}
 					</span>
 				</div>
@@ -237,46 +234,48 @@
 			style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;"
 		>
 			<div
-				style="padding: 12px 16px 8px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between;"
+				style="padding: 12px 16px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between;"
 			>
 				<span
 					style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary);"
 				>
-					Earnings trend
+					Earnings Trend
 				</span>
-				<div style="display: flex; gap: 2px;">
+				<div style="display: flex; gap: 2px; background: var(--surface-2); border-radius: 5px; padding: 2px;">
 					{#each ['7d', '30d', '90d', 'all'] as range}
 						<button
 							type="button"
 							onclick={() => (timeRange = range as TimeRange)}
 							style="height: 24px; padding: 0 8px; border-radius: 4px; font-size: 11px; font-weight: 500; border: none; cursor: pointer; background: {timeRange ===
 							range
-								? 'var(--accent-subtle)'
+								? 'var(--surface-1)'
 								: 'transparent'}; color: {timeRange === range
-								? 'var(--text-accent)'
-								: 'var(--text-tertiary)'}; transition: background 100ms ease-out, color 100ms ease-out;"
+								? 'var(--text-primary)'
+								: 'var(--text-tertiary)'}; box-shadow: {timeRange === range
+								? '0 1px 3px rgba(0,0,0,0.2)'
+								: 'none'}; transition: background 100ms ease-out, color 100ms ease-out;"
 						>
 							{range === 'all' ? 'All' : range}
 						</button>
 					{/each}
 				</div>
 			</div>
-			<div style="padding: 16px 16px 12px;">
+			<div style="padding: 16px;">
 				<div style="margin-bottom: 12px;">
 					<span
 						style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: var(--text-primary); letter-spacing: -0.02em;"
 					>
-						{chartData.periodTotal.toFixed(4)}
+						{chartData.periodTotal.toFixed(2)}
 					</span>
 					<span style="font-size: 12px; color: var(--text-tertiary); margin-left: 6px;"
 						>NECTA</span
 					>
 				</div>
-				<div style="display: flex; align-items: flex-end; gap: 2px; height: 120px;">
+				<div style="display: flex; align-items: flex-end; gap: 2px; height: 150px;">
 					{#each chartData.bars as val, i}
-						{@const h = val > 0 ? Math.max(4, (val / chartData.maxVal) * 120) : 2}
+						{@const h = val > 0 ? Math.max(4, (val / chartData.maxVal) * 140) : 2}
 						<div
-							title="{val.toFixed(4)} NECTA"
+							title="{val.toFixed(2)} NECTA"
 							style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {i ===
 							chartData.bars.length - 1
 								? 'var(--accent-base)'
@@ -300,289 +299,179 @@
 		</div>
 
 		<!-- Withdraw + Withdrawals -->
-		<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;">
-			<!-- Withdraw Funds -->
+		<div class="mobile-stack" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px;">
+			<!-- Withdraw form -->
 			<div
-				style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 24px;"
+				style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 20px;"
 			>
-				<h2
-					style="font-size: 14px; font-weight: 600; letter-spacing: -0.006em; color: var(--text-primary); margin-bottom: 24px;"
+				<h3
+					style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px;"
 				>
-					Withdraw Funds
-				</h2>
+					Withdraw
+				</h3>
 
-				<div style="display: flex; flex-direction: column; gap: 20px;">
-					<!-- Amount -->
-					<div>
-						<label
-							style="display: block; font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;"
-						>
-							Withdrawal Amount
-						</label>
-						<div style="display: flex; gap: 8px;">
-							<input
-								type="number"
-								bind:value={amount}
-								placeholder="Enter amount (NECTA)"
-								style="flex: 1; height: 32px; padding: 0 10px; font-size: 13px; font-family: var(--font-mono); background: var(--surface-0); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); outline: none;"
-							/>
-							<button
-								type="button"
-								onclick={() => (amount = availableBalance.toString())}
-								style="height: 32px; padding: 0 12px; font-size: 13px; background: var(--surface-2); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); cursor: pointer;"
-							>
-								Max
-							</button>
-						</div>
-					</div>
-
-					<!-- Destination -->
-					<div>
-						<label
-							style="display: block; font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;"
-						>
-							Destination Wallet
-						</label>
-						<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
-							<select
-								bind:value={recipient}
-								style="height: 32px; padding: 0 10px; font-size: 13px; font-family: var(--font-mono); background: var(--surface-0); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); outline: none;"
-							>
-								{#each savedRecipients as addr}
-									<option value={addr}>{addr}</option>
-								{/each}
-							</select>
-							<button
-								type="button"
-								onclick={addAddress}
-								style="height: 32px; padding: 0 12px; font-size: 13px; background: var(--surface-2); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); cursor: pointer;"
-							>
-								Add Address
-							</button>
-						</div>
-					</div>
-
-					<!-- Fee summary -->
-					<div
-						style="background: var(--surface-2); padding: 16px; border-radius: 8px; border: 1px solid var(--border-default);"
+				<!-- Amount -->
+				<div style="margin-bottom: 12px;">
+					<label
+						style="display: block; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;"
 					>
-						<div
-							style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;"
+						Amount
+					</label>
+					<div style="display: flex; gap: 6px;">
+						<input
+							type="number"
+							bind:value={amount}
+							placeholder="0.00"
+							style="flex: 1; height: 36px; padding: 0 10px; font-size: 13px; font-family: var(--font-mono); background: var(--surface-0); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); outline: none;"
+						/>
+						<button
+							type="button"
+							onclick={() => (amount = availableBalance.toString())}
+							style="height: 36px; padding: 0 12px; font-size: 11px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-secondary); cursor: pointer;"
 						>
-							<span style="color: var(--text-secondary);">Withdrawal Amount</span>
-							<span
-								style="font-weight: 500; color: var(--text-primary); font-family: var(--font-mono);"
-								>{parsedAmount.toFixed(4)} NECTA</span
-							>
-						</div>
-						<div
-							style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;"
-						>
-							<span style="color: var(--text-secondary);">Network Fee</span>
-							<span
-								style="font-weight: 500; color: var(--text-primary); font-family: var(--font-mono);"
-								>{feeNecta.toFixed(4)} NECTA</span
-							>
-						</div>
-						<div
-							style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;"
-						>
-							<span style="color: var(--text-secondary);">Estimated Gas</span>
-							<span
-								style="font-weight: 500; color: var(--text-primary); font-family: var(--font-mono);"
-								>{gasNecta.toFixed(2)} NECTA</span
-							>
-						</div>
-						<div
-							style="display: flex; justify-content: space-between; font-size: 13px; border-top: 1px solid var(--border-default); padding-top: 8px; margin-top: 8px;"
-						>
-							<span style="font-weight: 500; color: var(--text-primary);">You Receive</span>
-							<span
-								style="font-weight: 600; color: var(--success); font-family: var(--font-mono);"
-								>{Math.max(0, parsedAmount - totalFees).toFixed(4)} NECTA</span
-							>
-						</div>
-						<div
-							style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-tertiary); margin-top: 4px;"
-						>
-							<span>USD estimate</span>
-							<span style="font-family: var(--font-mono);"
-								>≈ ${(Math.max(0, parsedAmount - totalFees) * NECTA_USD).toFixed(2)} USD</span
-							>
-						</div>
+							Max
+						</button>
 					</div>
-
-					<!-- Withdraw button -->
-					<button
-						type="button"
-						onclick={handleWithdraw}
-						disabled={!$wallet || !canWithdraw}
-						class="btn-subscribe"
-						style="width: 100%; height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 500;"
-					>
-						<ArrowUpRight size={16} strokeWidth={1.5} />
-						Withdraw
-					</button>
 				</div>
+
+				<!-- Destination -->
+				<div style="margin-bottom: 12px;">
+					<label
+						style="display: block; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;"
+					>
+						Destination
+					</label>
+					<select
+						bind:value={recipient}
+						style="appearance: none; width: 100%; height: 36px; padding: 0 10px; font-size: 12px; font-family: var(--font-mono); background: var(--surface-0); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); outline: none; cursor: pointer;"
+					>
+						{#each savedRecipients as addr}
+							<option value={addr}>{addr.slice(0, 10)}...{addr.slice(-6)}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Fee breakdown -->
+				<div
+					style="background: var(--surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--border-default); margin-bottom: 12px;"
+				>
+					{#each [
+						{ label: 'Amount', value: `${parsedAmount.toFixed(2)} NECTA` },
+						{ label: 'Network Fee', value: `${feeNecta.toFixed(4)} NECTA` },
+						{ label: 'Gas', value: `${gasNecta.toFixed(2)} NECTA` }
+					] as row}
+						<div
+							style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px;"
+						>
+							<span style="color: var(--text-tertiary);">{row.label}</span>
+							<span
+								style="color: var(--text-primary); font-family: var(--font-mono);"
+								>{row.value}</span
+							>
+						</div>
+					{/each}
+					<div
+						style="border-top: 1px solid var(--border-default); margin-top: 6px; padding-top: 6px; display: flex; justify-content: space-between; font-size: 13px;"
+					>
+						<span style="font-weight: 600; color: var(--text-primary);">You Receive</span>
+						<span
+							style="font-weight: 600; color: var(--success); font-family: var(--font-mono);"
+							>{Math.max(0, parsedAmount - totalFees).toFixed(2)} NECTA</span
+						>
+					</div>
+				</div>
+
+				<!-- Withdraw button -->
+				<button
+					type="button"
+					onclick={handleWithdraw}
+					disabled={!$wallet || !canWithdraw}
+					class="btn-subscribe"
+					style="width: 100%; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; opacity: {canWithdraw ? 1 : 0.4};"
+				>
+					<ArrowUpRight size={14} strokeWidth={2} />
+					Withdraw
+				</button>
 			</div>
 
 			<!-- Recent Withdrawals -->
-			<div>
-				<div
-					style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;"
-				>
-					<h2
-						style="font-size: 14px; font-weight: 600; letter-spacing: -0.006em; color: var(--text-primary);"
-					>
-						Recent Withdrawals
-					</h2>
-					<button
-						type="button"
-						onclick={exportCsv}
-						disabled={minerWithdrawals.length === 0}
-						style="height: 32px; padding: 0 12px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); background: transparent; border: none; cursor: pointer; border-radius: 5px;"
-					>
-						<Download size={16} strokeWidth={1.5} />
-						Export CSV
-					</button>
-				</div>
-				<div style="display: flex; flex-direction: column; gap: 12px;">
-					{#each minerWithdrawals as withdrawal}
-						<button
-							type="button"
-							onclick={() => (selectedWithdrawalId = withdrawal.id)}
-							style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px; cursor: pointer; text-align: left; transition: background 100ms ease-out;"
-						>
-							<div
-								style="display: flex; justify-content: space-between; margin-bottom: 8px;"
-							>
-								<span
-									style="font-size: 13px; font-weight: 600; color: var(--text-primary); font-family: var(--font-mono);"
-									>{withdrawal.amount.toFixed(4)} NECTA</span
-								>
-								<span
-									style="font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: {withdrawal.status ===
-									'completed'
-										? 'var(--success-subtle, rgba(0,200,100,0.1))'
-										: 'var(--surface-2)'}; color: {withdrawal.status === 'completed'
-										? 'var(--success)'
-										: 'var(--text-secondary)'};"
-								>
-									{withdrawal.status}
-								</span>
-							</div>
-							<p style="font-size: 11px; color: var(--text-tertiary);">
-								{new Date(withdrawal.requestedAt).toLocaleDateString('en-US', {
-									month: 'short',
-									day: 'numeric',
-									year: 'numeric'
-								})}
-							</p>
-						</button>
-					{/each}
-					{#if minerWithdrawals.length === 0}
-						<div
-							style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 24px; text-align: center;"
-						>
-							<p style="font-size: 13px; color: var(--text-secondary);">
-								No withdrawals yet
-							</p>
-						</div>
-					{/if}
-				</div>
-			</div>
-		</div>
-
-		<!-- Withdrawal detail modal -->
-		{#if selectedWithdrawal}
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);"
-				onkeydown={(e) => {
-					if (e.key === 'Escape') selectedWithdrawalId = null;
-				}}
-				onclick={() => (selectedWithdrawalId = null)}
+				style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 20px;"
 			>
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					style="background: var(--surface-2); border: 1px solid var(--border-default); border-radius: 12px; padding: 24px; max-width: 480px; width: 100%;"
-					onclick={(e) => e.stopPropagation()}
+					style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;"
 				>
 					<h3
-						style="font-size: 14px; font-weight: 600; letter-spacing: -0.006em; color: var(--text-primary); margin-bottom: 16px;"
+						style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0;"
 					>
-						Withdrawal details
+						Withdrawals
 					</h3>
-					<div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-						<div style="display: flex; justify-content: space-between;">
-							<span style="color: var(--text-secondary);">Amount</span>
-							<span
-								style="font-weight: 500; color: var(--text-primary); font-family: var(--font-mono);"
-								>{selectedWithdrawal.amount.toFixed(4)} NECTA</span
-							>
-						</div>
-						<div style="display: flex; justify-content: space-between;">
-							<span style="color: var(--text-secondary);">Fee</span>
-							<span
-								style="font-weight: 500; color: var(--text-primary); font-family: var(--font-mono);"
-								>{selectedWithdrawal.fee.toFixed(4)} NECTA</span
-							>
-						</div>
-						<div style="display: flex; justify-content: space-between;">
-							<span style="color: var(--text-secondary);">Status</span>
-							<span
-								style="font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: {selectedWithdrawal.status ===
-								'completed'
-									? 'var(--success-subtle, rgba(0,200,100,0.1))'
-									: 'var(--surface-3)'}; color: {selectedWithdrawal.status === 'completed'
-									? 'var(--success)'
-									: 'var(--text-secondary)'};"
-							>
-								{selectedWithdrawal.status}
-							</span>
-						</div>
-						<div
-							style="display: flex; justify-content: space-between; gap: 12px;"
+					{#if minerWithdrawals.length > 0}
+						<button
+							type="button"
+							onclick={exportCsv}
+							style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-tertiary); background: transparent; border: none; cursor: pointer;"
 						>
-							<span style="color: var(--text-secondary);">Recipient</span>
-							<span
-								style="font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-								>{selectedWithdrawal.walletAddress}</span
-							>
-						</div>
-						<div style="display: flex; justify-content: space-between;">
-							<span style="color: var(--text-secondary);">Requested</span>
-							<span style="color: var(--text-primary);"
-								>{new Date(selectedWithdrawal.requestedAt).toLocaleString()}</span
-							>
-						</div>
-						{#if selectedWithdrawal.completedAt}
-							<div style="display: flex; justify-content: space-between;">
-								<span style="color: var(--text-secondary);">Completed</span>
-								<span style="color: var(--text-primary);"
-									>{new Date(selectedWithdrawal.completedAt).toLocaleString()}</span
-								>
-							</div>
-						{/if}
-						{#if selectedWithdrawal.txHash}
-							<div
-								style="display: flex; align-items: center; justify-content: space-between; gap: 12px;"
-							>
-								<span style="color: var(--text-secondary);">Tx hash</span>
-								<button
-									type="button"
-									onclick={() =>
-										navigator.clipboard?.writeText(selectedWithdrawal?.txHash ?? '')}
-									style="font-family: var(--font-mono); font-size: 12px; color: var(--text-accent); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;"
-								>
-									{selectedWithdrawal.txHash}
-									<ExternalLink size={14} strokeWidth={1.5} />
-								</button>
-							</div>
-						{/if}
-					</div>
+							<Download size={12} strokeWidth={1.5} />
+							CSV
+						</button>
+					{/if}
 				</div>
+
+				{#if minerWithdrawals.length === 0}
+					<p style="font-size: 12px; color: var(--text-tertiary); text-align: center; padding: 24px 0;">
+						No withdrawals yet
+					</p>
+				{:else}
+					<div style="display: flex; flex-direction: column; gap: 6px;">
+						{#each minerWithdrawals.slice(0, 8) as w}
+							{@const sc = statusColors[w.status] ?? statusColors.pending}
+							<div
+								onclick={() => (selectedWithdrawalId = selectedWithdrawalId === w.id ? null : w.id)}
+								style="padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-default); cursor: pointer; transition: background 100ms; background: {selectedWithdrawalId === w.id ? 'var(--surface-2)' : 'transparent'};"
+								role="button"
+								tabindex="0"
+								onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectedWithdrawalId = selectedWithdrawalId === w.id ? null : w.id; }}
+							>
+								<div style="display: flex; align-items: center; justify-content: space-between;">
+									<span
+										style="font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum' 1;"
+										>{w.amount.toFixed(2)} NECTA</span
+									>
+									<span
+										style="font-size: 10px; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; background: {sc.bg}; color: {sc.color};"
+										>{w.status}</span
+									>
+								</div>
+								<span style="font-size: 10px; color: var(--text-tertiary);">
+									{new Date(w.requestedAt).toLocaleDateString('en-US', {
+										month: 'short',
+										day: 'numeric',
+										year: 'numeric'
+									})}
+								</span>
+
+								<!-- Expanded detail -->
+								{#if selectedWithdrawalId === w.id}
+									<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-default); display: flex; flex-direction: column; gap: 4px;">
+										{#each [
+											{ label: 'Fee', value: `${w.fee.toFixed(4)} NECTA` },
+											{ label: 'To', value: `${w.walletAddress.slice(0, 10)}...${w.walletAddress.slice(-6)}` },
+											...(w.completedAt ? [{ label: 'Completed', value: new Date(w.completedAt).toLocaleDateString() }] : []),
+											...(w.txHash ? [{ label: 'Tx', value: w.txHash.slice(0, 16) + '...' }] : [])
+										] as row}
+											<div style="display: flex; justify-content: space-between; font-size: 11px;">
+												<span style="color: var(--text-tertiary);">{row.label}</span>
+												<span style="color: var(--text-secondary); font-family: var(--font-mono);">{row.value}</span>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</div>
-		{/if}
+		</div>
 	</div>
 {/if}

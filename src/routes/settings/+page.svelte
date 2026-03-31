@@ -4,6 +4,7 @@
   import { showToast, showError } from '$lib/stores/toast';
   import { minerAvatarDataUri } from '$lib/miner-avatar';
   import { badgeIconDataUri } from '$lib/badge-icon';
+  import { appIconDataUri } from '$lib/app-icon';
   import {
     User, Wallet as WalletIcon, Bell, Monitor, Award, Save, Upload, Copy,
     Key, ChevronRight, ChevronDown, Clock, Lock, ExternalLink, Download,
@@ -43,41 +44,41 @@
 
   /* ── Available badges ── */
   const availableBadges = [
-    { name: 'First Proof Verified', description: 'Submit and verify your very first proof on the Necter network.', kind: 'milestone' },
-    { name: '10 Proofs Verified', description: 'Verify 10 proofs across any combination of projects.', kind: 'milestone' },
-    { name: 'Centurion', description: '100 verified proofs. Your hardware has proven it can handle real workloads.', kind: 'milestone' },
-    { name: 'Proof Machine', description: '1,000 verified proofs. Consistent value for the projects you serve.', kind: 'milestone' },
-    { name: '10K Club', description: '10,000 lifetime proofs. Your node is a pillar of the ecosystem.', kind: 'milestone' },
-    { name: 'First Payout', description: 'Your first NECTA hits your wallet. Compute to reward, complete.', kind: 'milestone' },
-    { name: 'Diamond Hands', description: '1,000 NECTA earned. You mined through volatility.', kind: 'milestone' },
-    { name: 'Whale Miner', description: '10,000 NECTA lifetime earnings. Top 1% of all miners.', kind: 'milestone' },
-    { name: 'First Withdrawal', description: 'Move NECTA from mining balance to your own wallet.', kind: 'milestone' },
-    { name: 'Hardware Upgraded', description: 'Update your hardware profile after upgrading your rig.', kind: 'milestone' },
-    { name: 'Ironclad', description: '99.9% uptime for 30 straight days.', kind: 'performance' },
-    { name: 'Always On', description: '100% uptime for a full 7 days.', kind: 'performance' },
-    { name: 'Top 10 Earner', description: 'Break into the top 10 earners on any project leaderboard.', kind: 'performance' },
-    { name: 'Efficiency King', description: '99.5%+ proof success rate over 500 submissions.', kind: 'performance' },
-    { name: 'Zero Slashing', description: 'Complete 500+ tasks with zero slashing events.', kind: 'performance' },
-    { name: 'Reputation 90+', description: 'Push your miner reputation score above 90.', kind: 'performance' },
-    { name: 'Early Adopter', description: 'Subscribe to a project within 48 hours of launch.', kind: 'community' },
-    { name: 'Network Hopper', description: 'Mine on 3+ networks at once.', kind: 'community' },
-    { name: 'Category Explorer', description: 'Mine across 4+ categories.', kind: 'community' },
-    { name: 'Pioneer', description: 'Among the first 50 miners on a newly launched project.', kind: 'community' },
-    { name: 'Loyal Miner', description: '90+ consecutive days on one project.', kind: 'community' },
-    { name: 'Fleet Commander', description: 'Operate 5+ mining nodes from a single operator account.', kind: 'community' },
-    { name: 'Reviewer', description: 'Leave 5 honest reviews on projects you mined.', kind: 'community' },
-    { name: 'Node Setup Complete', description: 'Run through the full node setup wizard.', kind: 'community' },
-    { name: 'Network Creator', description: 'Deploy your first mining project on Necter.', kind: 'community' },
-    { name: 'First Miner Attracted', description: 'A real miner subscribes to your project.', kind: 'community' },
-    { name: '10 Miners Onboarded', description: '10 miners actively running proofs on your project.', kind: 'community' },
-    { name: 'Payout Distributed', description: 'Your project distributes its first NECTA rewards.', kind: 'community' },
-    { name: 'Multi-Project Dev', description: 'Deploy and maintain 3+ live projects on Necter.', kind: 'community' },
-    { name: '5-Star Project', description: 'Your project reaches a 4.5+ average rating.', kind: 'community' },
-    { name: 'First Vote', description: 'Cast your first vote on a governance proposal.', kind: 'governance' },
-    { name: 'Active Citizen', description: 'Vote on 10+ proposals.', kind: 'governance' },
-    { name: 'Proposal Author', description: 'Draft a governance proposal that reaches quorum.', kind: 'governance' },
-    { name: 'DAO Reviewer', description: 'Review and vote on 3 project listing applications.', kind: 'governance' },
-    { name: 'Watchdog', description: 'Flag 3 projects for confirmed policy violations.', kind: 'governance' },
+    { name: 'First Proof Verified', description: 'Submit and verify your very first proof on the Necter network. Every miner\'s journey starts here', kind: 'milestone' },
+    { name: '10 Proofs Verified', description: 'Verify 10 proofs across any combination of projects. Your node is warmed up', kind: 'milestone' },
+    { name: 'Centurion', description: '100 verified proofs. Your hardware has proven it can handle real workloads', kind: 'milestone' },
+    { name: 'Proof Machine', description: '1,000 verified proofs. You\'re generating consistent value for the projects you serve', kind: 'milestone' },
+    { name: '10K Club', description: '10,000 lifetime proofs. Your node is a pillar of the Necter ecosystem', kind: 'milestone' },
+    { name: 'First Payout', description: 'Your first NECTA hits your wallet. The loop from compute to reward is complete', kind: 'milestone' },
+    { name: 'Diamond Hands', description: '1,000 NECTA earned. You\'ve mined through volatility and come out ahead', kind: 'milestone' },
+    { name: 'Whale Miner', description: '10,000 NECTA lifetime earnings. Top 1% of all miners on Necter', kind: 'milestone' },
+    { name: 'First Withdrawal', description: 'Move NECTA from your mining balance to your own wallet for the first time', kind: 'milestone' },
+    { name: 'Hardware Upgraded', description: 'Update your hardware profile after upgrading your rig. The network notices', kind: 'milestone' },
+    { name: 'Ironclad', description: '99.9% uptime for 30 straight days. Your node is more reliable than most cloud providers', kind: 'performance' },
+    { name: 'Always On', description: '100% uptime for a full 7 days. Zero downtime, zero missed jobs, zero excuses', kind: 'performance' },
+    { name: 'Top 10 Earner', description: 'Break into the top 10 earners on any project leaderboard. The hive knows your name', kind: 'performance' },
+    { name: 'Efficiency King', description: '99.5%+ proof success rate over 500 submissions. Almost zero wasted compute cycles', kind: 'performance' },
+    { name: 'Zero Slashing', description: 'Complete 500+ tasks with zero slashing events. Clean record, clean reputation', kind: 'performance' },
+    { name: 'Reputation 90+', description: 'Push your miner reputation score above 90. Projects trust you with their best jobs', kind: 'performance' },
+    { name: 'Early Adopter', description: 'Subscribe to a project within 48 hours of launch. First movers get the best rewards', kind: 'community' },
+    { name: 'Network Hopper', description: 'Mine on 3+ networks at once. Your node splits its resources across the ecosystem', kind: 'community' },
+    { name: 'Category Explorer', description: 'Mine across 4+ categories: AI, Storage, DePIN, IoT, Compute. Jack of all chains', kind: 'community' },
+    { name: 'Pioneer', description: 'Among the first 50 miners on a newly launched project. You took the risk before the crowd', kind: 'community' },
+    { name: 'Loyal Miner', description: '90+ consecutive days on one project. Loyalty builds reputation and unlocks higher tiers', kind: 'community' },
+    { name: 'Fleet Commander', description: 'Operate 5+ mining nodes from a single operator account. You\'re running infrastructure', kind: 'community' },
+    { name: 'Reviewer', description: 'Leave 5 honest reviews on projects you\'ve mined. Help other miners choose wisely', kind: 'community' },
+    { name: 'Node Setup Complete', description: 'Run through the full node setup wizard and get your first node online and verified', kind: 'community' },
+    { name: 'Network Creator', description: 'Deploy your first mining project on Necter. From config to live in one session', kind: 'community' },
+    { name: 'First Miner Attracted', description: 'A real miner subscribes to your project for the first time. Your creation has demand', kind: 'community' },
+    { name: '10 Miners Onboarded', description: '10 miners are now actively running proofs on your project. You\'ve built something real', kind: 'community' },
+    { name: 'Payout Distributed', description: 'Your project distributes its first round of NECTA rewards to miners automatically', kind: 'community' },
+    { name: 'Multi-Project Dev', description: 'Deploy and maintain 3+ live projects on Necter. You\'re building a mining empire', kind: 'community' },
+    { name: '5-Star Project', description: 'Your project reaches a 4.5+ average rating from miners. Quality recognized by the community', kind: 'community' },
+    { name: 'First Vote', description: 'Cast your first vote on a Necter governance proposal. Your stake, your voice', kind: 'governance' },
+    { name: 'Active Citizen', description: 'Vote on 10+ proposals. You\'re shaping how the project evolves', kind: 'governance' },
+    { name: 'Proposal Author', description: 'Draft a governance proposal that reaches quorum. You moved the conversation forward', kind: 'governance' },
+    { name: 'DAO Reviewer', description: 'Review and vote on 3 project listing applications. You decide what gets into the store', kind: 'governance' },
+    { name: 'Watchdog', description: 'Flag 3 projects for confirmed policy violations. You keep the ecosystem honest', kind: 'governance' },
   ];
 
   /* ═══════════════════════════════════════════════════ */
@@ -214,6 +215,31 @@
     failed: { label: 'Failed', color: 'var(--error)', bg: 'rgba(239,68,68,0.12)' },
   };
 
+  function handleExportCsv() {
+    if (minerWithdrawals.length === 0) return;
+    const headers = ['Date', 'Type', 'Amount (NECTA)', 'Fee (NECTA)', 'Status', 'Wallet Address', 'Tx Hash'];
+    const rows = minerWithdrawals.map(w => [
+      new Date(w.requestedAt).toISOString(),
+      'Withdrawal',
+      w.amount.toFixed(4),
+      w.fee.toFixed(4),
+      w.status,
+      w.walletAddress,
+      w.txHash ?? '',
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `necter-withdrawals-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('CSV exported', `${minerWithdrawals.length} transaction${minerWithdrawals.length !== 1 ? 's' : ''} exported.`);
+  }
+
   function addAddress() {
     const v = newWithdrawalAddress.trim();
     if (!v || !minerId) return;
@@ -230,16 +256,22 @@
   /*  NOTIFICATIONS TAB STATE                            */
   /* ═══════════════════════════════════════════════════ */
   const notifPrefs = [
+    { title: 'Governance Proposals', desc: 'Receive updates about new DAO proposals', defaultOn: true },
+    { title: 'Mining Alerts', desc: 'Get notified if your node goes offline', defaultOn: true },
+    { title: 'Reward Deposits', desc: 'Daily summary of earned rewards', defaultOn: false },
     { title: 'App Updates', desc: 'When subscribed projects push new versions', defaultOn: true },
-    { title: 'Earnings', desc: 'Daily summary of earned rewards', defaultOn: false },
-    { title: 'Subscriptions', desc: 'New subscriber activity on your projects', defaultOn: true },
-    { title: 'Proofs', desc: 'Proof submission and verification updates', defaultOn: true },
-    { title: 'Governance', desc: 'New DAO proposals and voting reminders', defaultOn: true },
-    { title: 'Security', desc: 'Login attempts and suspicious activity', defaultOn: true },
-    { title: 'Staking', desc: 'Staking rewards and delegation changes', defaultOn: false },
+    { title: 'Badge Earned', desc: 'Notification when you unlock a new badge', defaultOn: true },
   ];
 
   let notifToggles = $state(notifPrefs.map(p => p.defaultOn));
+
+  const subscribedApps = $derived.by(() => {
+    if (!minerId) return [];
+    const subs = ($backendState.subscriptions ?? []).filter(s => s.minerId === minerId);
+    const appMap = new Map(($backendState.apps ?? []).map(a => [a.id, a]));
+    return subs.map(s => appMap.get(s.appId)).filter(Boolean);
+  });
+
   let deliveryMethod = $state('in-app');
   let quietFrom = $state('22:00');
   let quietTo = $state('07:00');
@@ -537,38 +569,6 @@
             </div>
           {:else}
             <div class="space-y-4">
-              <!-- Header with Add button -->
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em]">Your Devices</span>
-                <button type="button" onclick={() => showAddDevice = !showAddDevice} class="text-[11px] text-[var(--text-accent)] bg-transparent border-none cursor-pointer font-medium">
-                  {showAddDevice ? 'Cancel' : '+ Add Device'}
-                </button>
-              </div>
-
-              <!-- Add device form -->
-              {#if showAddDevice}
-                <div class="rounded-[8px] border border-[var(--border-accent)] bg-[var(--accent-subtle)] p-4 space-y-3">
-                  <div>
-                    <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Device Name</label>
-                    <input type="text" bind:value={newDeviceName} placeholder="e.g. Office Server" class="w-full h-8 px-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] text-[var(--text-primary)] outline-none" />
-                  </div>
-                  <div>
-                    <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Type</label>
-                    <div class="flex gap-2">
-                      {#each ['desktop', 'server', 'laptop', 'custom'] as t}
-                        <button type="button" onclick={() => newDeviceType = t}
-                          class="h-7 px-2.5 rounded-[5px] text-[11px] font-medium border-none cursor-pointer capitalize {newDeviceType === t ? 'bg-[var(--accent-base)] text-[#0C0C0E]' : 'bg-[var(--surface-2)] text-[var(--text-secondary)]'}">
-                          {t}
-                        </button>
-                      {/each}
-                    </div>
-                  </div>
-                  <button type="button" disabled={!newDeviceName.trim()} onclick={addDevice} class="btn-subscribe h-8 {newDeviceName.trim() ? 'opacity-100' : 'opacity-40'}">
-                    Add Device
-                  </button>
-                </div>
-              {/if}
-
               <!-- Stats row -->
               <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-lg overflow-hidden">
                 {#each [
@@ -804,6 +804,16 @@
                   <h2 class="text-[13px] font-semibold text-[var(--text-primary)] tracking-[0.01em]">Transaction History</h2>
                   <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Recent withdrawal activity for this miner.</p>
                 </div>
+                {#if minerWithdrawals.length > 0}
+                  <button
+                    type="button"
+                    onclick={handleExportCsv}
+                    class="btn-secondary flex items-center gap-1.5 text-[11px] h-7 px-2.5"
+                  >
+                    <Download size={12} strokeWidth={1.5} />
+                    Export CSV
+                  </button>
+                {/if}
               </div>
 
               {#if !minerId}
@@ -843,7 +853,7 @@
                 </div>
                 {#if minerWithdrawals.length > 5}
                   <p class="text-[11px] text-[var(--text-tertiary)] mt-2 text-center">
-                    Showing 5 of {minerWithdrawals.length} transactions.
+                    Showing 5 of {minerWithdrawals.length} transactions. Export CSV for the full list.
                   </p>
                 {/if}
               {/if}
@@ -852,7 +862,7 @@
             <!-- Withdrawal addresses -->
             <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
               <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Withdrawal Address Book</h2>
-              <p class="text-[12px] text-[var(--text-secondary)] mb-4">Manage saved payout addresses.</p>
+              <p class="text-[12px] text-[var(--text-secondary)] mb-4">Manage saved payout addresses. Earnings uses this list to keep withdrawals simple.</p>
 
               {#if !minerId}
                 <div class="text-[13px] text-[var(--text-secondary)]">Connect a wallet to manage saved addresses.</div>
@@ -896,7 +906,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-[13px] font-semibold text-[var(--text-primary)] tracking-[0.01em]">Additional Wallets</h2>
-                  <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Link another wallet for multi-chain payouts.</p>
+                  <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Link another wallet to your miner account for multi-chain payouts.</p>
                 </div>
                 <button
                   type="button"
@@ -904,7 +914,7 @@
                   onclick={() => $showConnectModal = true}
                 >
                   <Plus size={14} strokeWidth={1.5} />
-                  Connect Another
+                  Connect Another Wallet
                 </button>
               </div>
             </div>
@@ -933,6 +943,36 @@
                   </div>
                 {/each}
               </div>
+            </div>
+
+            <!-- Per-Project Notifications -->
+            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Per-Project Notifications</h2>
+              <p class="text-[12px] text-[var(--text-secondary)] mb-4">Toggle notifications for each subscribed project.</p>
+              {#if subscribedApps.length === 0}
+                <p class="text-[12px] text-[var(--text-tertiary)]">
+                  {minerId ? 'No subscribed projects yet. Subscribe to a project to configure per-project notifications.' : 'Connect a wallet to see your subscribed projects.'}
+                </p>
+              {:else}
+                <div class="space-y-3">
+                  {#each subscribedApps as app (app.id)}
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={app.icon || appIconDataUri({ id: app.id, name: app.name, category: app.category })}
+                          alt=""
+                          class="w-7 h-7 rounded-[5px] flex-shrink-0"
+                        />
+                        <span class="text-[13px] text-[var(--text-primary)] truncate">{app.name}</span>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked class="sr-only peer" />
+                        <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                      </label>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
             </div>
 
             <!-- Delivery Method -->
@@ -1035,6 +1075,10 @@
                     {#each filteredEarned as b (b.id)}
                       {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
                       <div class="badge-card">
+                        <svg class="badge-honeycomb-bg" viewBox="0 0 60 60" fill="currentColor">
+                          <polygon points="30,2 52,16 52,44 30,58 8,44 8,16" fill="none" stroke="currentColor" stroke-width="1" />
+                          <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
+                        </svg>
                         <div class="badge-icon w-16 h-16 relative">
                           <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" />
                         </div>
@@ -1071,6 +1115,10 @@
                     {#each filteredNotEarned as b (b.name)}
                       {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
                       <div class="badge-card locked">
+                        <svg class="badge-honeycomb-bg" viewBox="0 0 60 60" fill="currentColor">
+                          <polygon points="30,2 52,16 52,44 30,58 8,44 8,16" fill="none" stroke="currentColor" stroke-width="1" />
+                          <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
+                        </svg>
                         <div class="badge-icon w-16 h-16 relative">
                           <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" />
                           <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--surface-2)] border-2 border-[var(--surface-1)] flex items-center justify-center">
@@ -1114,6 +1162,25 @@
     transition: transform 200ms ease-out, border-color 200ms ease-out, box-shadow 200ms ease-out;
     cursor: default;
     overflow: hidden;
+  }
+  .badge-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(255,191,0,0.04) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+    pointer-events: none;
+  }
+  .badge-card:hover::before { opacity: 1; }
+  .badge-honeycomb-bg {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 60px;
+    height: 60px;
+    opacity: 0.04;
+    pointer-events: none;
   }
   .badge-card:hover {
     transform: translateY(-4px) scale(1.02);

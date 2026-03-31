@@ -752,31 +752,5 @@
       </div>
     {/if}
 
-    <!-- Preferences -->
-    <details class="mt-8">
-      <summary class="text-[12px] font-medium text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors">
-        Event preferences
-      </summary>
-      <div class="rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)] overflow-hidden mt-3">
-        <div class="px-5 py-4 border-b border-[var(--border)]">
-          <h3 class="text-[13px] font-semibold text-[var(--text-primary)]">Event Preferences</h3>
-          <p class="text-[11px] text-[var(--text-tertiary)] mt-0.5">Choose which events show up in your feed</p>
-        </div>
-        <div class="divide-y divide-[var(--border-default)]">
-          {#each settings as setting}
-            <div class="flex items-center justify-between gap-4 px-5 py-3.5">
-              <div>
-                <h4 class="text-[13px] font-medium text-[var(--text-primary)]">{setting.label}</h4>
-                <p class="text-[11px] text-[var(--text-tertiary)] mt-0.5">{setting.desc}</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={setting.enabled} onchange={() => toggleSetting(setting.id)} class="sr-only peer" />
-                <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] peer-checked:after:translate-x-full after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-              </label>
-            </div>
-          {/each}
-        </div>
-      </div>
-    </details>
   </div>
 {/if}
