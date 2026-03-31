@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Compass, LayoutDashboard, Trophy, Vote, Package, ChevronDown, Search } from 'lucide-svelte';
+	import { Compass, LayoutDashboard, Trophy, Vote, Package, ChevronDown, Search, Bell, BookOpen } from 'lucide-svelte';
 	import { wallet, actor, showConnectModal } from '$lib/stores/wallet';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
@@ -193,6 +193,28 @@
 				<span>{item.name}</span>
 			</a>
 		{/each}
+
+		<!-- Activity -->
+		<a
+			href="/notifications"
+			class="flex items-center gap-2.5 px-3 h-[32px] rounded-[5px] text-[13px] transition-colors duration-100 no-underline {pathname === '/notifications'
+				? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium'
+				: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
+		>
+			<Bell class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+			<span>Activity</span>
+		</a>
+
+		<!-- Help -->
+		<a
+			href="/learn"
+			class="flex items-center gap-2.5 px-3 h-[32px] rounded-[5px] text-[13px] transition-colors duration-100 no-underline {pathname.startsWith('/learn')
+				? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium'
+				: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
+		>
+			<BookOpen class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+			<span>Help</span>
+		</a>
 
 		<!-- Developer Portal -->
 		<a
