@@ -1,27 +1,40 @@
 <script lang="ts">
-	import { X, Check } from 'lucide-svelte';
+	import { X, Check, ChevronRight, Package, FileText, Shield, Rocket } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 	import { wallet } from '$lib/stores/wallet';
 	import { backend } from '$lib/stores/backend';
-	import { showToast } from '$lib/stores/toast';
 
 	let { open = $bindable(false) }: { open: boolean } = $props();
 
-	let step = $state<1 | 2 | 3 | 4>(1);
+	type Step = 1 | 2 | 3 | 4;
+
+	const stepInfo = [
+		{ num: 1, label: 'Account', icon: Package, desc: 'Your developer identity' },
+		{ num: 2, label: 'Agreement', icon: FileText, desc: 'Accept program terms' },
+		{ num: 3, label: 'Verify', icon: Shield, desc: 'Identity verification' },
+		{ num: 4, label: 'Launch', icon: Rocket, desc: 'Start building' },
+	];
+
+	let step = $state<Step>(1);
+	let devType = $state<'individual' | 'organization'>('individual');
 	let devName = $state('');
 	let devEmail = $state('');
 	let devWebsite = $state('');
-	let devType = $state<'individual' | 'organization'>('individual');
+	let devReason = $state('');
 	let agreed = $state(false);
 	let verifying = $state(false);
 	let verified = $state(false);
 	let submitting = $state(false);
 
-	const canStep1 = $derived(devName.trim().length > 0 && devEmail.trim().length > 0);
+	const canProceedStep1 = $derived(devName.trim().length > 0 && devEmail.trim().length > 0);
+	const canProceedStep2 = $derived(agreed);
 
 	function handleVerify() {
 		verifying = true;
-		setTimeout(() => { verifying = false; verified = true; }, 2000);
+		setTimeout(() => {
+			verifying = false;
+			verified = true;
+		}, 2000);
 	}
 
 	function handleSubmit() {
@@ -51,122 +64,259 @@
 		open = false;
 	}
 
-	const inp = 'w-full h-9 px-3 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] outline-none';
+	const currentStep = $derived(stepInfo[step - 1]);
+
+	const inp =
+		'w-full h-[36px] px-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--accent-glow)]';
 </script>
 
 {#if open}
 	<div class="fixed inset-0 z-50 flex items-center justify-center">
 		<div class="absolute inset-0 bg-black/60" onclick={handleClose} role="presentation"></div>
-		<div class="relative bg-[var(--surface-1)] border border-[var(--border-default)] rounded-xl w-[460px] overflow-hidden">
-			<!-- Header -->
-			<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border-default)]">
-				<div>
-					<p class="text-[14px] font-semibold text-[var(--text-primary)] m-0">Developer Setup</p>
-					<p class="text-[11px] text-[var(--text-tertiary)] m-0 mt-0.5">Step {step} of 4</p>
-				</div>
-				<button onclick={handleClose} class="bg-transparent border-none cursor-pointer text-[var(--text-tertiary)] p-1 leading-none">
-					<X size={14} strokeWidth={2} />
-				</button>
-			</div>
-
-			<!-- Progress -->
-			<div class="flex gap-[3px] px-5 pt-3">
-				{#each [1,2,3,4] as s}
-					<div class="flex-1 h-[2px] rounded-[1px]" style="background: {s <= step ? 'var(--accent-base)' : 'var(--surface-3)'}; transition: background 300ms;"></div>
-				{/each}
-			</div>
-
-			<div class="p-5 min-h-[280px]">
-				{#if step === 1}
-					<h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Your Identity</h3>
-					<p class="text-[12px] text-[var(--text-tertiary)] mb-5">Tell us about yourself or your organization.</p>
-
-					<div class="flex gap-2 mb-4">
-						{#each ['individual', 'organization'] as t}
-							<button
-								onclick={() => devType = t}
-								class="flex-1 h-9 rounded-[6px] text-[12px] font-medium border-none cursor-pointer transition-colors"
-								style="background: {devType === t ? 'var(--accent-subtle)' : 'var(--surface-2)'}; color: {devType === t ? 'var(--text-accent)' : 'var(--text-secondary)'};"
-							>
-								{t === 'individual' ? 'Individual' : 'Organization'}
-							</button>
-						{/each}
-					</div>
-
-					<div class="space-y-3">
-						<div>
-							<label class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Name *</label>
-							<input class={inp} bind:value={devName} placeholder="Your name or org name" />
-						</div>
-						<div>
-							<label class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Email *</label>
-							<input class={inp} type="email" bind:value={devEmail} placeholder="you@example.com" />
-						</div>
-						<div>
-							<label class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Website</label>
-							<input class={inp} bind:value={devWebsite} placeholder="https://" />
-						</div>
-					</div>
-
-					<button onclick={() => step = 2} disabled={!canStep1} class="btn-subscribe w-full h-10 justify-center mt-5" style="opacity: {canStep1 ? 1 : 0.4};">
-						Continue
+		<div
+			class="relative bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[12px] w-[480px] overflow-hidden animate-scaleIn"
+			style="box-shadow: 0 16px 70px rgba(0,0,0,0.50);"
+		>
+			<!-- Header with step indicator -->
+			<div
+				class="px-6 pt-5 pb-4 border-b border-[var(--border-default)]"
+				style="background: radial-gradient(ellipse at 50% 0%, rgba(217,170,60,0.04) 0%, transparent 70%);"
+			>
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-[16px] font-semibold text-[var(--text-primary)] m-0">Developer Account</h2>
+					<button
+						type="button"
+						onclick={handleClose}
+						class="h-6 w-6 flex items-center justify-center rounded-[3px] bg-transparent border-none cursor-pointer hover:bg-[var(--surface-3)] transition-colors"
+					>
+						<X size={14} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
 					</button>
+				</div>
 
+				<!-- Step progress bar -->
+				<div class="flex items-center gap-1">
+					{#each stepInfo as s}
+						<div class="flex items-center flex-1">
+							<div
+								class="h-1 flex-1 rounded-full transition-colors duration-300"
+								style="background: {step >= s.num ? 'var(--accent-base)' : 'var(--surface-3)'};"
+							></div>
+						</div>
+					{/each}
+				</div>
+
+				<!-- Current step label -->
+				<div class="flex items-center gap-2 mt-3">
+					<svelte:component this={currentStep.icon} size={16} strokeWidth={1.5} class="text-[var(--text-accent)]" />
+					<span class="text-[12px] font-medium text-[var(--text-accent)]">{currentStep.label}</span>
+					<span class="text-[12px] text-[var(--text-tertiary)]">· {currentStep.desc}</span>
+					<span class="ml-auto text-[11px] text-[var(--text-tertiary)]">{step}/4</span>
+				</div>
+			</div>
+
+			<!-- Step content -->
+			<div class="p-6">
+				{#if step === 1}
+					<div class="space-y-4">
+						<div>
+							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
+								>Display Name *</label
+							>
+							<input class={inp} type="text" bind:value={devName} placeholder="Your name or org name" />
+						</div>
+						<div>
+							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
+								>Email *</label
+							>
+							<input class={inp} type="email" bind:value={devEmail} placeholder="dev@example.com" />
+						</div>
+						<div>
+							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
+								>Website</label
+							>
+							<input class={inp} type="url" bind:value={devWebsite} placeholder="https://yourproject.com" />
+						</div>
+						<div>
+							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
+								>What are you building?</label
+							>
+							<textarea
+								bind:value={devReason}
+								rows={3}
+								placeholder="Describe your mining project..."
+								class="w-full px-3 py-2 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--accent-glow)] resize-none"
+							></textarea>
+						</div>
+					</div>
 				{:else if step === 2}
-					<h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Program Agreement</h3>
-					<p class="text-[12px] text-[var(--text-tertiary)] mb-5">Review and accept the Necter Developer Program terms.</p>
-
-					<div class="p-4 rounded-[8px] bg-[var(--surface-2)] text-[12px] text-[var(--text-secondary)] leading-5 max-h-[160px] overflow-y-auto mb-4">
-						By joining the Necter Developer Program, you agree to: publish accurate network descriptions, maintain minimum uptime SLAs, not distribute malicious mining packages, comply with governance decisions, and maintain escrow balances sufficient to cover miner rewards.
-					</div>
-
-					<label class="flex items-center gap-2.5 cursor-pointer">
-						<input type="checkbox" bind:checked={agreed} class="w-4 h-4 accent-[var(--accent-base)]" />
-						<span class="text-[13px] text-[var(--text-primary)]">I accept the Developer Program terms</span>
-					</label>
-
-					<div class="flex gap-2 mt-5">
-						<button onclick={() => step = 1} class="btn-secondary h-10 px-4">Back</button>
-						<button onclick={() => step = 3} disabled={!agreed} class="btn-subscribe flex-1 h-10 justify-center" style="opacity: {agreed ? 1 : 0.4};">Continue</button>
-					</div>
-
-				{:else if step === 3}
-					<h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Identity Verification</h3>
-					<p class="text-[12px] text-[var(--text-tertiary)] mb-5">Verify your wallet ownership to complete enrollment.</p>
-
-					<div class="p-4 rounded-[8px] bg-[var(--surface-2)] mb-4">
-						<p class="text-[12px] text-[var(--text-secondary)] mb-2">Wallet: <span class="font-mono text-[var(--text-primary)]">{$wallet?.address?.slice(0, 10)}...</span></p>
-						{#if verified}
-							<div class="flex items-center gap-2 text-[var(--success)] text-[13px] font-medium">
-								<Check size={16} /> Verified
+					<div class="space-y-4">
+						<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-2)] p-4">
+							<h3 class="text-[13px] font-medium text-[var(--text-primary)] mb-2 m-0">
+								Necter Developer Program License
+							</h3>
+							<div class="text-[12px] text-[var(--text-secondary)] leading-relaxed space-y-2">
+								<p class="m-0">By enrolling in the Necter Developer Program, you agree to:</p>
+								<ul class="list-disc pl-4 space-y-1 m-0">
+									<li>Comply with all applicable laws and regulations</li>
+									<li>Submit accurate information about your mining project</li>
+									<li>Maintain the security and uptime of your published networks</li>
+									<li>Accept the DAO governance process for app listing and delisting</li>
+									<li>Pay applicable platform fees as defined in the fee schedule</li>
+								</ul>
 							</div>
-						{:else}
-							<button onclick={handleVerify} disabled={verifying} class="btn-subscribe h-9" style="opacity: {verifying ? 0.5 : 1};">
-								{verifying ? 'Verifying...' : 'Verify Wallet'}
-							</button>
+						</div>
+						<button
+							type="button"
+							class="flex items-start gap-3 cursor-pointer bg-transparent border-none p-0 text-left w-full"
+							onclick={() => (agreed = !agreed)}
+						>
+							<div
+								class="h-5 w-5 rounded-[3px] border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors"
+								style="background: {agreed
+									? 'var(--accent-base)'
+									: 'var(--surface-0)'}; border-color: {agreed ? 'var(--accent-base)' : 'var(--border-default)'};"
+							>
+								{#if agreed}<Check size={12} strokeWidth={2.5} class="text-[#0C0C0E]" />{/if}
+							</div>
+							<span class="text-[13px] text-[var(--text-primary)] leading-relaxed">
+								I have read and agree to the Developer Program License Agreement and understand that my
+								networks are subject to DAO governance review.
+							</span>
+						</button>
+					</div>
+				{:else if step === 3}
+					<div class="space-y-4">
+						<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-2)] p-4">
+							<h3 class="text-[13px] font-medium text-[var(--text-primary)] mb-1 m-0">
+								Identity Verification
+							</h3>
+							<p class="text-[12px] text-[var(--text-secondary)] m-0">
+								Verified developers get priority listing and a trust badge. This is optional but
+								recommended.
+							</p>
+						</div>
+
+						<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-0)] p-4">
+							<div class="flex items-center justify-between">
+								<div>
+									<p class="text-[13px] font-medium text-[var(--text-primary)] m-0">Wallet</p>
+									<p class="text-[12px] font-mono text-[var(--text-tertiary)] mt-0.5 m-0">
+										{$wallet?.address?.slice(0, 12)}...{$wallet?.address?.slice(-8)}
+									</p>
+								</div>
+								{#if verified}
+									<div class="flex items-center gap-1.5 text-[12px] font-medium text-[var(--success)]">
+										<Check size={16} strokeWidth={2} />
+										Verified
+									</div>
+								{:else}
+									<button
+										type="button"
+										onclick={handleVerify}
+										disabled={verifying}
+										class="h-[28px] px-3 rounded-[5px] text-[12px] font-medium bg-[var(--surface-3)] text-[var(--text-primary)] border-none cursor-pointer hover:bg-[var(--accent-base)] hover:text-[#0C0C0E] transition-colors disabled:opacity-50"
+									>
+										{verifying ? 'Verifying...' : 'Verify Now'}
+									</button>
+								{/if}
+							</div>
+						</div>
+
+						{#if !verified}
+							<p class="text-[11px] text-[var(--text-tertiary)] m-0">
+								You can skip verification for now and complete it later from your developer settings.
+							</p>
 						{/if}
 					</div>
-
-					<div class="flex gap-2 mt-5">
-						<button onclick={() => step = 2} class="btn-secondary h-10 px-4">Back</button>
-						<button onclick={handleSubmit} disabled={!verified || submitting} class="btn-subscribe flex-1 h-10 justify-center" style="opacity: {verified && !submitting ? 1 : 0.4};">
-							{submitting ? 'Submitting...' : 'Complete Setup'}
-						</button>
-					</div>
-
 				{:else}
-					<div class="text-center py-8">
-						<div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background: rgba(76,183,130,0.12);">
-							<Check size={24} style="color: var(--success);" />
+					<!-- Step 4: Launch -->
+					<div class="text-center py-6 bg-honeycomb rounded-[8px]">
+						<div class="h-14 w-14 mx-auto mb-4 flex items-center justify-center">
+							<svg viewBox="0 0 56 56" fill="none" class="h-14 w-14">
+								<polygon
+									points="28,2 52,15 52,41 28,54 4,41 4,15"
+									fill="rgba(76,183,130,0.12)"
+									stroke="var(--success)"
+									stroke-width="1"
+								/>
+								<polygon
+									points="28,14 40,20.5 40,35.5 28,42 16,35.5 16,20.5"
+									fill="none"
+									stroke="var(--success)"
+									stroke-width="0.7"
+									opacity="0.4"
+								/>
+								<circle cx="28" cy="28" r="3.5" fill="var(--success)" />
+							</svg>
 						</div>
-						<h3 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">You're in!</h3>
-						<p class="text-[13px] text-[var(--text-secondary)] mb-6">Your developer account is active. Start building your first mining network.</p>
-						<button onclick={() => { handleClose(); goto('/develop/create'); }} class="btn-subscribe h-10 px-6">
-							Create Your First Network
-						</button>
+						<h3 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2 m-0">You're all set!</h3>
+						<p class="text-[13px] text-[var(--text-secondary)] mb-6 max-w-[320px] mx-auto m-0">
+							Your developer account is active. Start building your first mining project.
+						</p>
+						<div class="space-y-2">
+							<button
+								type="button"
+								onclick={() => {
+									handleClose();
+									goto('/develop/create');
+								}}
+								class="w-full h-[36px] rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer hover:brightness-110 transition-all"
+							>
+								Create Your First Network
+							</button>
+							<button
+								type="button"
+								onclick={() => {
+									handleClose();
+									goto('/develop');
+								}}
+								class="w-full h-[36px] rounded-[6px] text-[13px] font-medium text-[var(--text-secondary)] bg-[var(--surface-2)] border border-[var(--border-default)] cursor-pointer hover:border-[var(--border-hover)] hover:text-[var(--text-primary)] transition-colors"
+							>
+								Go to Dashboard
+							</button>
+						</div>
 					</div>
 				{/if}
 			</div>
+
+			<!-- Footer with navigation -->
+			{#if step < 4}
+				<div class="px-6 py-4 border-t border-[var(--border-default)] flex items-center justify-between">
+					{#if step > 1}
+						<button
+							type="button"
+							onclick={() => (step = (step - 1) as Step)}
+							class="text-[13px] text-[var(--text-secondary)] bg-transparent border-none cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+						>
+							Back
+						</button>
+					{:else}
+						<div></div>
+					{/if}
+
+					{#if step === 3}
+						<button
+							type="button"
+							onclick={handleSubmit}
+							disabled={submitting}
+							class="h-[32px] px-4 rounded-[5px] text-[13px] font-medium bg-[var(--surface-3)] text-[var(--text-primary)] border-none cursor-pointer hover:bg-[var(--accent-base)] hover:text-[#0C0C0E] transition-colors flex items-center gap-1.5 disabled:opacity-50"
+						>
+							{submitting ? 'Creating...' : 'Create Account'}
+							<ChevronRight size={14} strokeWidth={1.5} />
+						</button>
+					{:else}
+						<button
+							type="button"
+							onclick={() => (step = (step + 1) as Step)}
+							disabled={(step === 1 && !canProceedStep1) || (step === 2 && !canProceedStep2)}
+							class="h-[32px] px-4 rounded-[5px] text-[13px] font-medium bg-[var(--surface-3)] text-[var(--text-primary)] border-none cursor-pointer hover:bg-[var(--accent-base)] hover:text-[#0C0C0E] transition-colors flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+						>
+							Continue
+							<ChevronRight size={14} strokeWidth={1.5} />
+						</button>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
