@@ -251,7 +251,7 @@
 	</div>
 
 	<!-- Create Proposal — mobile, under stats -->
-	<button type="button" class="btn-subscribe w-full md:hidden mt-4 mb-4" onclick={openCreateModal}>
+	<button type="button" class="btn-subscribe w-full md:hidden mt-2 mb-4" onclick={openCreateModal}>
 		Create Proposal
 	</button>
 
