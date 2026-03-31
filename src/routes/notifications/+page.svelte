@@ -11,6 +11,9 @@
     Download,
     CreditCard,
     Shield,
+    Lock,
+    ChevronDown,
+    ChevronRight,
   } from 'lucide-svelte';
 
   // ─── Settings ────────────────────────────────────────────────────────────────
@@ -21,19 +24,24 @@
     { id: 'proofs', label: 'Proofs', desc: 'Proof submitted/verified/disputed', enabled: true },
     { id: 'governance', label: 'Governance', desc: 'Listing approvals/rejections and attestations', enabled: true },
     { id: 'security', label: 'Security', desc: 'Slashing and risk events', enabled: true },
+    { id: 'staking', label: 'Staking', desc: 'Governance stake lock and return events', enabled: true },
   ];
 
   let settings = $state(defaultSettings.map((s) => ({ ...s })));
   let activeFilter = $state('all');
   let readIds = $state([]);
   let deletedIds = $state([]);
+  let expandedGroups = $state(new Set());
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  // ─── Constants ─────────────────────────────────────────────────────────────
+  const COLLAPSE_THRESHOLD = 5;
+
   const MINING_PAGE_TYPES = new Set([
     'job_queued', 'job_started', 'job_completed', 'job_failed',
     'proof_submitted', 'proof_verified', 'proof_disputed', 'proof_dispute_resolved',
   ]);
 
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
   function mapEventToUiType(type) {
     if (type.startsWith('withdrawal_') || type === 'payout_distributed') return 'earnings';
     if (type.startsWith('subscription_')) return 'subscription';
@@ -62,6 +70,23 @@
     return titles[e.type] ?? String(e.type).replaceAll('_', ' ');
   }
 
+  function extractAmount(e) {
+    const m = e.metadata;
+    if (!m) return undefined;
+    if (e.type === 'payout_distributed') return typeof m.minerAmount === 'number' ? m.minerAmount : typeof m.gross === 'number' ? m.gross : undefined;
+    if (e.type === 'withdrawal_requested' || e.type === 'withdrawal_completed') return typeof m.amount === 'number' ? m.amount : undefined;
+    if (e.type === 'slash_applied') return typeof m.amount === 'number' ? m.amount : undefined;
+    if (typeof m.reward === 'number') return m.reward;
+    return undefined;
+  }
+
+  function linkForEvent(n) {
+    if (n.eventType === 'payout_distributed' || n.eventType === 'proof_verified' || n.eventType === 'proof_submitted') return '/mining';
+    if (n.eventType.startsWith('subscription_') && n.appId) return `/apps/${n.appId}`;
+    if (n.appId) return `/apps/${n.appId}`;
+    return null;
+  }
+
   function formatTime(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
@@ -72,6 +97,70 @@
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
     return date.toLocaleDateString();
+  }
+
+  function dayEarningsSummary(items) {
+    const payouts = items.filter((n) => n.eventType === 'payout_distributed' && typeof n.amount === 'number');
+    if (payouts.length === 0) return null;
+    const total = payouts.reduce((s, n) => s + (n.amount ?? 0), 0);
+    const projectIds = new Set(payouts.map((n) => n.appId).filter(Boolean));
+    return { total: total.toFixed(2), projects: projectIds.size };
+  }
+
+  function aggregateEvents(items, dateKey) {
+    const typeCounts = new Map();
+    for (const n of items) {
+      const key = n.eventType;
+      if (!typeCounts.has(key)) typeCounts.set(key, []);
+      typeCounts.get(key).push(n);
+    }
+
+    const result = [];
+    const collapsedTypes = new Set();
+
+    for (const [eventType, group] of typeCounts) {
+      if (group.length >= COLLAPSE_THRESHOLD) {
+        collapsedTypes.add(eventType);
+        const projectIds = new Set(group.map((n) => n.appId).filter(Boolean));
+        const totalAmount = group.filter((n) => typeof n.amount === 'number').reduce((s, n) => s + (n.amount ?? 0), 0);
+        let summary = '';
+        if (eventType === 'payout_distributed') {
+          summary = `${group.length} payouts totaling ${totalAmount.toFixed(2)} NECTA across ${projectIds.size} project${projectIds.size !== 1 ? 's' : ''}`;
+        } else if (eventType === 'proof_verified') {
+          summary = `${group.length} proofs verified across ${projectIds.size} project${projectIds.size !== 1 ? 's' : ''}`;
+        } else if (eventType === 'proof_submitted') {
+          summary = `${group.length} proofs submitted across ${projectIds.size} project${projectIds.size !== 1 ? 's' : ''}`;
+        } else {
+          const label = eventType.replaceAll('_', ' ');
+          summary = `${group.length} ${label} events`;
+        }
+        result.push({ kind: 'collapsed', eventType, items: group, summary });
+      }
+    }
+
+    for (const n of items) {
+      if (!collapsedTypes.has(n.eventType)) {
+        result.push({ kind: 'single', item: n });
+      }
+    }
+
+    result.sort((a, b) => {
+      if (a.kind === 'collapsed' && b.kind === 'single') return -1;
+      if (a.kind === 'single' && b.kind === 'collapsed') return 1;
+      if (a.kind === 'single' && b.kind === 'single') {
+        return new Date(b.item.timestamp).getTime() - new Date(a.item.timestamp).getTime();
+      }
+      return 0;
+    });
+
+    return result;
+  }
+
+  function toggleExpandGroup(key) {
+    const next = new Set(expandedGroups);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    expandedGroups = next;
   }
 
   // ─── Persist read/deleted state ──────────────────────────────────────────────
@@ -88,7 +177,6 @@
     } catch { /* ignore */ }
   });
 
-  // Save whenever readIds/deletedIds change
   $effect(() => {
     if (!storageKey) return;
     try {
@@ -132,6 +220,7 @@
       if (t === 'subscription') return enabled.has('subscriptions');
       if (t === 'proof') return enabled.has('proofs');
       if (t === 'governance') return enabled.has('governance');
+      if (t === 'staking') return enabled.has('staking');
       if (t === 'slashing' || t === 'alert') return enabled.has('security');
       return true;
     };
@@ -149,18 +238,48 @@
         appId: e.appId,
         timestamp: e.createdAt,
         read: readSet.has(e.id),
+        amount: extractAmount(e),
+        eventType: e.type,
       }));
   });
 
   const unreadCount = $derived(notifications.filter((n) => !n.read).length);
 
+  // ─── Summary stats ──────────────────────────────────────────────────────────
+  const summaryStats = $derived.by(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    const todayEvents = notifications.filter((n) => new Date(n.timestamp).getTime() >= todayStart);
+    const earningsToday = todayEvents
+      .filter((n) => n.eventType === 'payout_distributed' && typeof n.amount === 'number')
+      .reduce((sum, n) => sum + (n.amount ?? 0), 0);
+
+    const devices = minerId ? backend.listDevices(minerId) : [];
+    const activeDevices = devices.filter((d) => d.status === 'online').length;
+
+    const subs = minerId
+      ? $backendState.subscriptions.filter((s) => s.minerId === minerId && s.status === 'active')
+      : [];
+
+    return {
+      earningsToday: earningsToday.toFixed(2),
+      eventsToday: todayEvents.length,
+      activeDevices,
+      activeProjects: subs.length,
+    };
+  });
+
+  // ─── Filtering ──────────────────────────────────────────────────────────────
   const filteredNotifications = $derived.by(() => {
     if (activeFilter === 'all') return notifications;
     if (activeFilter === 'alerts') return notifications.filter((n) => n.type === 'slashing' || n.type === 'alert');
     if (activeFilter === 'updates') return notifications.filter((n) => n.type === 'update');
+    if (activeFilter === 'staking') return notifications.filter((n) => n.type === 'staking' || n.type === 'governance');
     return notifications.filter((n) => n.type === activeFilter);
   });
 
+  // ─── Group by day ───────────────────────────────────────────────────────────
   const filteredGrouped = $derived.by(() => {
     const now = new Date();
     const todayKey = now.toDateString();
@@ -174,7 +293,7 @@
     const groups = [];
     for (const [key, items] of buckets) {
       const label = key === todayKey ? 'Today' : key === yesterdayKey ? 'Yesterday' : new Date(key).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-      groups.push({ label, items });
+      groups.push({ label, dateKey: key, items });
     }
     return groups;
   });
@@ -200,14 +319,22 @@
     { id: 'earnings', label: 'Earnings' },
     { id: 'subscription', label: 'Subscriptions' },
     { id: 'governance', label: 'Governance' },
+    { id: 'staking', label: 'Staking' },
     { id: 'alerts', label: 'Alerts' },
     { id: 'updates', label: 'Updates' },
   ];
+
+  const summaryItems = $derived([
+    { label: 'Earnings today', value: summaryStats.earningsToday, unit: 'NECTA' },
+    { label: 'Events today', value: String(summaryStats.eventsToday), unit: undefined },
+    { label: 'Active devices', value: String(summaryStats.activeDevices), unit: undefined },
+    { label: 'Active projects', value: String(summaryStats.activeProjects), unit: undefined },
+  ]);
 </script>
 
 {#if !$actor}
   <!-- Not connected -->
-  <div class="animate-fadeIn px-6 pt-6 pb-12">
+  <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
     <div class="p-12 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] text-center">
       <Bell class="h-10 w-10 mx-auto text-[var(--text-tertiary)] mb-4" />
       <h3 class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Connect a wallet</h3>
@@ -218,30 +345,49 @@
     </div>
   </div>
 {:else}
-  <div class="animate-fadeIn px-6 pt-8 pb-12" style="max-width:720px;margin:0 auto">
+  <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-8 pb-12" style="max-width:720px;margin:0 auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-5">
       <div>
         <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">Activity</h1>
-        <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Your mining, earning, and governance events</p>
+        <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 hidden md:block">Your mining, earning, and governance events</p>
       </div>
       {#if unreadCount > 0}
-        <button type="button" class="btn-secondary" style="height:28px;font-size:12px;padding:0 10px" onclick={markAllRead}>
+        <button
+          type="button"
+          class="inline-flex items-center h-[32px] px-3 rounded-[5px] text-[12px] font-medium border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)] cursor-pointer transition-colors"
+          onclick={markAllRead}
+        >
           Mark all read
         </button>
       {/if}
     </div>
 
+    <!-- Summary stats bar -->
+    <div class="rounded-[8px] border border-[var(--border)] overflow-hidden mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-4" style="gap:1px;background:var(--border-default)">
+        {#each summaryItems as stat}
+          <div class="bg-[var(--surface-1)] px-3 md:px-4 py-3">
+            <div class="text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{stat.label}</div>
+            <div class="text-[16px] md:text-[18px] font-semibold font-mono tracking-[-0.01em] mt-1 text-[var(--text-primary)]">
+              {stat.value}{#if stat.unit}<span class="text-[10px] font-normal text-[var(--text-tertiary)] ml-1">{stat.unit}</span>{/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+
     <!-- Filters -->
-    <div class="flex items-center gap-1 mb-6 flex-wrap">
+    <div class="flex items-center gap-1 mb-5 overflow-x-auto mobile-tabs-scroll">
       {#each filters as f}
-        {@const count = f.id === 'all' ? notifications.length : notifications.filter((n) => f.id === 'alerts' ? (n.type === 'slashing' || n.type === 'alert') : n.type === f.id || (f.id === 'updates' && n.type === 'update')).length}
         <button
           type="button"
           onclick={() => (activeFilter = f.id)}
-          style="height:28px;padding:0 10px;border-radius:5px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:{activeFilter === f.id ? 'var(--accent-subtle)' : 'var(--surface-1)'};color:{activeFilter === f.id ? 'var(--text-accent)' : 'var(--text-secondary)'};transition:all 100ms ease-out"
+          class="inline-flex items-center h-[32px] px-3 rounded-[5px] text-[12px] font-medium border-none cursor-pointer transition-colors whitespace-nowrap flex-shrink-0 {activeFilter === f.id
+            ? 'bg-[var(--accent-subtle)] text-[var(--text-accent)]'
+            : 'bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'}"
         >
-          {f.label}{count > 0 && activeFilter !== f.id ? ` (${count})` : ''}
+          {f.label}
         </button>
       {/each}
     </div>
@@ -256,50 +402,349 @@
           {activeFilter === 'all' ? 'Start mining to see your events here.' : 'Try a different filter.'}
         </p>
         {#if activeFilter === 'all'}
-          <a href="/discover" class="btn-subscribe">Discover networks</a>
+          <a href="/discover" class="btn-subscribe">Discover projects</a>
         {/if}
       </div>
     {:else}
       <div class="space-y-6">
         {#each filteredGrouped as group (group.label)}
+          {@const earnings = dayEarningsSummary(group.items)}
+          {@const aggregated = aggregateEvents(group.items, group.dateKey)}
           <div>
+            <!-- Day header -->
             <div class="flex items-center gap-3 mb-2">
               <span class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em]">{group.label}</span>
               <div class="flex-1 h-px bg-[var(--border-default)]"></div>
               <span class="text-[10px] text-[var(--text-tertiary)] font-mono">{group.items.length}</span>
             </div>
+
+            <!-- Daily earnings summary -->
+            {#if earnings}
+              <div class="flex items-center gap-2 mb-2 px-1">
+                <TrendingUp class="h-3 w-3 text-[var(--success)]" />
+                <span class="text-[11px] text-[var(--text-secondary)]">
+                  Earned <span class="font-mono font-semibold text-[var(--success)]">{earnings.total} NECTA</span> from {earnings.projects} project{earnings.projects !== 1 ? 's' : ''}
+                </span>
+              </div>
+            {/if}
+
+            <!-- Event cards -->
             <div class="rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)] overflow-hidden divide-y divide-[var(--border-default)]">
-              {#each group.items as n (n.id)}
-                {@const app = n.appId ? $backendState.apps.find((a) => a.id === n.appId) : null}
-                {@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : null}
-                <button
-                  type="button"
-                  class="w-full text-left flex items-start gap-3 py-3 px-3 rounded-[6px] cursor-pointer transition-colors {!n.read ? 'bg-[var(--accent-subtle)]' : 'hover:bg-[var(--surface-2)]'}"
-                  onclick={() => markAsRead(n.id)}
-                >
-                  <!-- Timeline dot -->
-                  <div class="flex flex-col items-center pt-1 flex-shrink-0" style="width:20px">
-                    <div
-                      style="width:8px;height:8px;border-radius:50%;background:{!n.read ? 'var(--accent-base)' : 'var(--surface-3)'};{n.read ? 'border:2px solid var(--border-default)' : ''};flex-shrink:0"
-                    ></div>
-                  </div>
-                  <!-- Content -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline justify-between gap-2">
-                      <h3 class="text-[13px] {!n.read ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-secondary)]'}">
-                        {n.title}
-                      </h3>
-                      <span class="text-[10px] text-[var(--text-tertiary)] font-mono whitespace-nowrap flex-shrink-0">{formatTime(n.timestamp)}</span>
-                    </div>
-                    <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 leading-[17px]">{n.message}</p>
-                    {#if app && iconSrc}
-                      <a href="/apps/{app.id}" class="inline-flex items-center gap-1.5 mt-1.5 no-underline group">
-                        <img src={iconSrc} alt={app.name} width="14" height="14" class="rounded-[2px]" />
-                        <span class="text-[11px] text-[var(--text-tertiary)] group-hover:text-[var(--text-accent)] transition-colors">{app.name}</span>
-                      </a>
+              {#each aggregated as entry}
+                {#if entry.kind === 'collapsed'}
+                  <!-- Collapsed group -->
+                  {@const groupKey = `${group.dateKey}::${entry.eventType}`}
+                  {@const isExpanded = expandedGroups.has(groupKey)}
+                  {@const uiType = mapEventToUiType(entry.eventType)}
+                  <div>
+                    <button
+                      type="button"
+                      class="w-full flex items-center gap-3 py-3 px-3.5 hover:bg-[var(--surface-2)] transition-colors text-left"
+                      onclick={() => toggleExpandGroup(groupKey)}
+                    >
+                      <div class="flex-shrink-0" style="width:28px">
+                        <div class="h-6 w-6 rounded-[4px] bg-[var(--surface-3)] flex items-center justify-center">
+                          {#if uiType === 'update'}
+                            <Download class="h-4 w-4 text-[var(--text-accent)]" />
+                          {:else if uiType === 'earnings'}
+                            <TrendingUp class="h-4 w-4 text-[var(--success)]" />
+                          {:else if uiType === 'subscription'}
+                            <CreditCard class="h-4 w-4 text-[var(--text-accent)]" />
+                          {:else if uiType === 'alert'}
+                            <AlertTriangle class="h-4 w-4 text-[var(--warning)]" />
+                          {:else if uiType === 'proof'}
+                            <CheckCircle2 class="h-4 w-4 text-[var(--success)]" />
+                          {:else if uiType === 'slashing'}
+                            <AlertTriangle class="h-4 w-4 text-[var(--error)]" />
+                          {:else if uiType === 'governance'}
+                            <Shield class="h-4 w-4 text-[var(--text-accent)]" />
+                          {:else if uiType === 'staking'}
+                            <Lock class="h-4 w-4 text-[var(--text-accent)]" />
+                          {:else}
+                            <Bell class="h-4 w-4 text-[var(--text-tertiary)]" />
+                          {/if}
+                        </div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="text-[13px] font-medium text-[var(--text-secondary)]">{entry.summary}</span>
+                          <span class="text-[10px] font-mono font-medium text-[var(--text-accent)] bg-[var(--accent-subtle)] rounded-[4px] px-1.5 py-0.5">{entry.items.length}</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="text-[11px] text-[var(--text-tertiary)]">{isExpanded ? 'Hide' : 'Show all'}</span>
+                        {#if isExpanded}
+                          <ChevronDown class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                        {:else}
+                          <ChevronRight class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                        {/if}
+                      </div>
+                    </button>
+                    {#if isExpanded}
+                      <div class="border-t border-[var(--border-default)]">
+                        {#each entry.items as n (n.id)}
+                          {@const app = n.appId ? $backendState.apps.find((a) => a.id === n.appId) : null}
+                          {@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : null}
+                          {@const link = linkForEvent(n)}
+                          {@const isEarning = n.eventType === 'payout_distributed'}
+                          {@const isWithdrawal = n.eventType === 'withdrawal_requested' || n.eventType === 'withdrawal_completed'}
+                          {@const isSlash = n.eventType === 'slash_applied'}
+                          {#if link}
+                            <a href={link} class="block no-underline" onclick={() => markAsRead(n.id)}>
+                              <div
+                                class="flex items-start gap-3 py-3 px-3.5 transition-colors cursor-pointer {!n.read ? 'bg-[var(--accent-subtle)]' : 'hover:bg-[var(--surface-2)]'}"
+                              >
+                                <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                                  {#if iconSrc}
+                                    <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
+                                  {:else}
+                                    <div class="h-6 w-6 rounded-[4px] bg-[var(--surface-3)] flex items-center justify-center">
+                                      {#if n.type === 'update'}
+                                        <Download class="h-4 w-4 text-[var(--text-accent)]" />
+                                      {:else if n.type === 'earnings'}
+                                        <TrendingUp class="h-4 w-4 text-[var(--success)]" />
+                                      {:else if n.type === 'subscription'}
+                                        <CreditCard class="h-4 w-4 text-[var(--text-accent)]" />
+                                      {:else if n.type === 'alert'}
+                                        <AlertTriangle class="h-4 w-4 text-[var(--warning)]" />
+                                      {:else if n.type === 'proof'}
+                                        <CheckCircle2 class="h-4 w-4 text-[var(--success)]" />
+                                      {:else if n.type === 'slashing'}
+                                        <AlertTriangle class="h-4 w-4 text-[var(--error)]" />
+                                      {:else if n.type === 'governance'}
+                                        <Shield class="h-4 w-4 text-[var(--text-accent)]" />
+                                      {:else if n.type === 'staking'}
+                                        <Lock class="h-4 w-4 text-[var(--text-accent)]" />
+                                      {:else}
+                                        <Bell class="h-4 w-4 text-[var(--text-tertiary)]" />
+                                      {/if}
+                                    </div>
+                                  {/if}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                  <div class="flex items-baseline justify-between gap-2">
+                                    <div class="flex items-baseline gap-2 min-w-0">
+                                      <h3 class="text-[13px] truncate {!n.read ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-secondary)]'}">{n.title}</h3>
+                                      {#if app}
+                                        <span class="text-[11px] text-[var(--text-tertiary)] truncate flex-shrink-0">{app.name}</span>
+                                      {/if}
+                                    </div>
+                                    <div class="flex items-baseline gap-2.5 flex-shrink-0">
+                                      {#if n.amount != null && (isEarning || isWithdrawal)}
+                                        <span class="text-[12px] font-semibold font-mono text-[var(--success)]">+{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                                      {/if}
+                                      {#if n.amount != null && isSlash}
+                                        <span class="text-[12px] font-semibold font-mono text-[var(--error)]">-{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                                      {/if}
+                                      <span class="text-[10px] text-[var(--text-tertiary)] font-mono whitespace-nowrap">{formatTime(n.timestamp)}</span>
+                                    </div>
+                                  </div>
+                                  <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 leading-[17px] line-clamp-2">{n.message}</p>
+                                </div>
+                                {#if !n.read}
+                                  <div class="flex-shrink-0 pt-1.5">
+                                    <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                                  </div>
+                                {/if}
+                              </div>
+                            </a>
+                          {:else}
+                            <div
+                              class="flex items-start gap-3 py-3 px-3.5 transition-colors {!n.read ? 'bg-[var(--accent-subtle)]' : 'hover:bg-[var(--surface-2)]'}"
+                              role="button"
+                              tabindex="0"
+                              onclick={() => markAsRead(n.id)}
+                              onkeydown={(e) => e.key === 'Enter' && markAsRead(n.id)}
+                            >
+                              <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                                {#if iconSrc}
+                                  <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
+                                {:else}
+                                  <div class="h-6 w-6 rounded-[4px] bg-[var(--surface-3)] flex items-center justify-center">
+                                    {#if n.type === 'update'}
+                                      <Download class="h-4 w-4 text-[var(--text-accent)]" />
+                                    {:else if n.type === 'earnings'}
+                                      <TrendingUp class="h-4 w-4 text-[var(--success)]" />
+                                    {:else if n.type === 'subscription'}
+                                      <CreditCard class="h-4 w-4 text-[var(--text-accent)]" />
+                                    {:else if n.type === 'alert'}
+                                      <AlertTriangle class="h-4 w-4 text-[var(--warning)]" />
+                                    {:else if n.type === 'proof'}
+                                      <CheckCircle2 class="h-4 w-4 text-[var(--success)]" />
+                                    {:else if n.type === 'slashing'}
+                                      <AlertTriangle class="h-4 w-4 text-[var(--error)]" />
+                                    {:else if n.type === 'governance'}
+                                      <Shield class="h-4 w-4 text-[var(--text-accent)]" />
+                                    {:else if n.type === 'staking'}
+                                      <Lock class="h-4 w-4 text-[var(--text-accent)]" />
+                                    {:else}
+                                      <Bell class="h-4 w-4 text-[var(--text-tertiary)]" />
+                                    {/if}
+                                  </div>
+                                {/if}
+                              </div>
+                              <div class="flex-1 min-w-0">
+                                <div class="flex items-baseline justify-between gap-2">
+                                  <div class="flex items-baseline gap-2 min-w-0">
+                                    <h3 class="text-[13px] truncate {!n.read ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-secondary)]'}">{n.title}</h3>
+                                    {#if app}
+                                      <span class="text-[11px] text-[var(--text-tertiary)] truncate flex-shrink-0">{app.name}</span>
+                                    {/if}
+                                  </div>
+                                  <div class="flex items-baseline gap-2.5 flex-shrink-0">
+                                    {#if n.amount != null && (isEarning || isWithdrawal)}
+                                      <span class="text-[12px] font-semibold font-mono text-[var(--success)]">+{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                                    {/if}
+                                    {#if n.amount != null && isSlash}
+                                      <span class="text-[12px] font-semibold font-mono text-[var(--error)]">-{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                                    {/if}
+                                    <span class="text-[10px] text-[var(--text-tertiary)] font-mono whitespace-nowrap">{formatTime(n.timestamp)}</span>
+                                  </div>
+                                </div>
+                                <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 leading-[17px] line-clamp-2">{n.message}</p>
+                              </div>
+                              {#if !n.read}
+                                <div class="flex-shrink-0 pt-1.5">
+                                  <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                                </div>
+                              {/if}
+                            </div>
+                          {/if}
+                        {/each}
+                      </div>
                     {/if}
                   </div>
-                </button>
+                {:else}
+                  <!-- Single event card -->
+                  {@const n = entry.item}
+                  {@const app = n.appId ? $backendState.apps.find((a) => a.id === n.appId) : null}
+                  {@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : null}
+                  {@const link = linkForEvent(n)}
+                  {@const isEarning = n.eventType === 'payout_distributed'}
+                  {@const isWithdrawal = n.eventType === 'withdrawal_requested' || n.eventType === 'withdrawal_completed'}
+                  {@const isSlash = n.eventType === 'slash_applied'}
+                  {#if link}
+                    <a href={link} class="block no-underline" onclick={() => markAsRead(n.id)}>
+                      <div
+                        class="flex items-start gap-3 py-3 px-3.5 transition-colors cursor-pointer {!n.read ? 'bg-[var(--accent-subtle)]' : 'hover:bg-[var(--surface-2)]'}"
+                      >
+                        <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                          {#if iconSrc}
+                            <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
+                          {:else}
+                            <div class="h-6 w-6 rounded-[4px] bg-[var(--surface-3)] flex items-center justify-center">
+                              {#if n.type === 'update'}
+                                <Download class="h-4 w-4 text-[var(--text-accent)]" />
+                              {:else if n.type === 'earnings'}
+                                <TrendingUp class="h-4 w-4 text-[var(--success)]" />
+                              {:else if n.type === 'subscription'}
+                                <CreditCard class="h-4 w-4 text-[var(--text-accent)]" />
+                              {:else if n.type === 'alert'}
+                                <AlertTriangle class="h-4 w-4 text-[var(--warning)]" />
+                              {:else if n.type === 'proof'}
+                                <CheckCircle2 class="h-4 w-4 text-[var(--success)]" />
+                              {:else if n.type === 'slashing'}
+                                <AlertTriangle class="h-4 w-4 text-[var(--error)]" />
+                              {:else if n.type === 'governance'}
+                                <Shield class="h-4 w-4 text-[var(--text-accent)]" />
+                              {:else if n.type === 'staking'}
+                                <Lock class="h-4 w-4 text-[var(--text-accent)]" />
+                              {:else}
+                                <Bell class="h-4 w-4 text-[var(--text-tertiary)]" />
+                              {/if}
+                            </div>
+                          {/if}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-baseline justify-between gap-2">
+                            <div class="flex items-baseline gap-2 min-w-0">
+                              <h3 class="text-[13px] truncate {!n.read ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-secondary)]'}">{n.title}</h3>
+                              {#if app}
+                                <span class="text-[11px] text-[var(--text-tertiary)] truncate flex-shrink-0">{app.name}</span>
+                              {/if}
+                            </div>
+                            <div class="flex items-baseline gap-2.5 flex-shrink-0">
+                              {#if n.amount != null && (isEarning || isWithdrawal)}
+                                <span class="text-[12px] font-semibold font-mono text-[var(--success)]">+{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                              {/if}
+                              {#if n.amount != null && isSlash}
+                                <span class="text-[12px] font-semibold font-mono text-[var(--error)]">-{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                              {/if}
+                              <span class="text-[10px] text-[var(--text-tertiary)] font-mono whitespace-nowrap">{formatTime(n.timestamp)}</span>
+                            </div>
+                          </div>
+                          <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 leading-[17px] line-clamp-2">{n.message}</p>
+                        </div>
+                        {#if !n.read}
+                          <div class="flex-shrink-0 pt-1.5">
+                            <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                          </div>
+                        {/if}
+                      </div>
+                    </a>
+                  {:else}
+                    <div
+                      class="flex items-start gap-3 py-3 px-3.5 transition-colors {!n.read ? 'bg-[var(--accent-subtle)]' : 'hover:bg-[var(--surface-2)]'}"
+                      role="button"
+                      tabindex="0"
+                      onclick={() => markAsRead(n.id)}
+                      onkeydown={(e) => e.key === 'Enter' && markAsRead(n.id)}
+                    >
+                      <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                        {#if iconSrc}
+                          <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
+                        {:else}
+                          <div class="h-6 w-6 rounded-[4px] bg-[var(--surface-3)] flex items-center justify-center">
+                            {#if n.type === 'update'}
+                              <Download class="h-4 w-4 text-[var(--text-accent)]" />
+                            {:else if n.type === 'earnings'}
+                              <TrendingUp class="h-4 w-4 text-[var(--success)]" />
+                            {:else if n.type === 'subscription'}
+                              <CreditCard class="h-4 w-4 text-[var(--text-accent)]" />
+                            {:else if n.type === 'alert'}
+                              <AlertTriangle class="h-4 w-4 text-[var(--warning)]" />
+                            {:else if n.type === 'proof'}
+                              <CheckCircle2 class="h-4 w-4 text-[var(--success)]" />
+                            {:else if n.type === 'slashing'}
+                              <AlertTriangle class="h-4 w-4 text-[var(--error)]" />
+                            {:else if n.type === 'governance'}
+                              <Shield class="h-4 w-4 text-[var(--text-accent)]" />
+                            {:else if n.type === 'staking'}
+                              <Lock class="h-4 w-4 text-[var(--text-accent)]" />
+                            {:else}
+                              <Bell class="h-4 w-4 text-[var(--text-tertiary)]" />
+                            {/if}
+                          </div>
+                        {/if}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-baseline justify-between gap-2">
+                          <div class="flex items-baseline gap-2 min-w-0">
+                            <h3 class="text-[13px] truncate {!n.read ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-secondary)]'}">{n.title}</h3>
+                            {#if app}
+                              <span class="text-[11px] text-[var(--text-tertiary)] truncate flex-shrink-0">{app.name}</span>
+                            {/if}
+                          </div>
+                          <div class="flex items-baseline gap-2.5 flex-shrink-0">
+                            {#if n.amount != null && (isEarning || isWithdrawal)}
+                              <span class="text-[12px] font-semibold font-mono text-[var(--success)]">+{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                            {/if}
+                            {#if n.amount != null && isSlash}
+                              <span class="text-[12px] font-semibold font-mono text-[var(--error)]">-{n.amount.toFixed(2)} <span class="text-[10px] font-normal">NECTA</span></span>
+                            {/if}
+                            <span class="text-[10px] text-[var(--text-tertiary)] font-mono whitespace-nowrap">{formatTime(n.timestamp)}</span>
+                          </div>
+                        </div>
+                        <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 leading-[17px] line-clamp-2">{n.message}</p>
+                      </div>
+                      {#if !n.read}
+                        <div class="flex-shrink-0 pt-1.5">
+                          <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+                {/if}
               {/each}
             </div>
           </div>
