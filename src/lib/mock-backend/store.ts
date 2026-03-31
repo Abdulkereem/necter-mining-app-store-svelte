@@ -164,11 +164,8 @@ function normalizeAppMedia(app: App): App {
   return { ...app, icon, screenshots: screenshots as any }
 }
 
-function defaultAttestationRequirementsForApp(app: App): Array<"TPM" | "TEE" | "SGX"> {
-  const category = String((app as any).category ?? "").toLowerCase()
-  // PRD: Attestation enforced for sensitive tasks (AI inference, data sovereignty).
-  if (category.includes("ai")) return ["TEE"]
-  if (category.includes("data sovereignty")) return ["TEE", "TPM"]
+function defaultAttestationRequirementsForApp(_app: App): Array<"TPM" | "TEE" | "SGX"> {
+  // Mock store: skip attestation requirements so subscribe always works in demo mode.
   return []
 }
 
