@@ -234,6 +234,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Discover — Necter Mining App Store</title>
+</svelte:head>
+
 <div class="min-h-screen pb-12 animate-fadeIn">
 	<!-- ═══ HERO CAROUSEL (full-width, auto-rotating) ═══ -->
 	{#if heroApps.length > 0}
@@ -357,7 +361,7 @@
 							style={bgImg ? undefined : `background: linear-gradient(160deg, ${colors.bg}, ${colors.bg}dd)`}
 						>
 							{#if bgImg}
-								<img src={bgImg} alt="" class="absolute inset-0 w-full h-full object-cover" />
+								<img src={bgImg} alt="" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
 							{:else}
 								<!-- Decorative accent circles -->
 								<div
@@ -376,6 +380,7 @@
 										width="64"
 										height="64"
 										class="rounded-[14px]"
+										loading="lazy"
 									/>
 								</div>
 							{/if}
@@ -452,6 +457,7 @@
 									width="40"
 									height="40"
 									style="border-radius: 10px; flex-shrink: 0"
+									loading="lazy"
 								/>
 								<div class="flex-1 min-w-0">
 									<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">
@@ -502,6 +508,7 @@
 									width="40"
 									height="40"
 									style="border-radius: 10px; flex-shrink: 0"
+									loading="lazy"
 								/>
 								<div class="flex-1 min-w-0">
 									<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">
@@ -562,6 +569,7 @@
 										width="40"
 										height="40"
 										style="border-radius: 10px; flex-shrink: 0"
+										loading="lazy"
 									/>
 									<div class="flex-1 min-w-0">
 										<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">
@@ -621,6 +629,7 @@
 											width="48"
 											height="48"
 											class="rounded-[10px] flex-shrink-0"
+											loading="lazy"
 										/>
 										<div class="flex-1 min-w-0">
 											<h3

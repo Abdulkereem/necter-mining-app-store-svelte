@@ -82,6 +82,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Proof Detail — Necter Mining App Store</title>
+</svelte:head>
+
 {#if !proof}
 	<div class="min-h-screen bg-[var(--surface-0)]">
 		<div class="max-w-4xl mx-auto px-4 md:px-8 py-12">

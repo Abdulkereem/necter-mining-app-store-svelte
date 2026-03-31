@@ -73,6 +73,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Withdraw — Necter Mining App Store</title>
+</svelte:head>
+
 {#if !walletAddress}
   <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
     <div style="max-width: 480px; margin: 80px auto 0; padding: 32px; background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; text-align: center;">

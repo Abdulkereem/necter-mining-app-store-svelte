@@ -211,6 +211,10 @@
 	];
 </script>
 
+<svelte:head>
+	<title>Governance — Necter Mining App Store</title>
+</svelte:head>
+
 <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
 	<!-- Header -->
 	<div class="flex items-center justify-between mb-4">

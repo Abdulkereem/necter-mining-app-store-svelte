@@ -8,6 +8,18 @@
     ArrowLeft, Send, ExternalLink, CheckCircle2, Circle, Clock,
     Shield, DollarSign, Package, BarChart3, Users, Settings, Eye, Megaphone, Save,
   } from 'lucide-svelte';
+  import AreaChart from '$lib/components/AreaChart.svelte';
+
+  // Mock revenue data (30 days)
+  const revenueChartLabels = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (29 - i));
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+  const revenueChartData = Array.from({ length: 30 }, (_, i) => +(12 + Math.sin(i * 0.35) * 6 + Math.random() * 4).toFixed(2));
+
+  // Mock miner growth data (12 weeks)
+  const minerGrowthLabels = Array.from({ length: 12 }, (_, i) => `W${i + 1}`);
+  const minerGrowthData = Array.from({ length: 12 }, (_, i) => Math.floor(8 + i * 3.5 + Math.sin(i * 0.6) * 4 + Math.random() * 3));
 
   const id = $derived($page.params.id);
   const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
@@ -328,8 +340,8 @@
           <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
             <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 4px;">Revenue (30 days)</h3>
             <p style="font-size: 11px; color: var(--text-tertiary); margin: 0 0 12px;">Daily earnings from verified proofs</p>
-            <div style="height: 208px; border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 12px; color: var(--text-tertiary);">[Revenue Chart Placeholder]</span>
+            <div style="border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); overflow: hidden;">
+              <AreaChart data={revenueChartData} labels={revenueChartLabels} color="#FFBF00" height={208} />
             </div>
           </div>
 
@@ -338,8 +350,8 @@
             <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
               <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 4px;">Miner Growth (12 weeks)</h3>
               <p style="font-size: 11px; color: var(--text-tertiary); margin: 0 0 12px;">Weekly active miner count</p>
-              <div style="height: 160px; border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); display: flex; align-items: center; justify-content: center;">
-                <span style="font-size: 12px; color: var(--text-tertiary);">[Miner Growth Chart Placeholder]</span>
+              <div style="border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); overflow: hidden;">
+                <AreaChart data={minerGrowthData} labels={minerGrowthLabels} color="#6E9FFF" height={160} />
               </div>
             </div>
 

@@ -9,8 +9,14 @@
 	import { hydrateBackend } from '$lib/stores/backend';
 	import { hydrateWallet } from '$lib/stores/wallet';
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
+	import { navigating } from '$app/stores';
 
 	let { children } = $props();
+
+	afterNavigate(() => {
+		window.scrollTo({ top: 0 });
+	});
 
 	onMount(() => {
 		hydrateBackend();
@@ -26,6 +32,10 @@
 		content="Discover mining networks, subscribe with one click, and start earning rewards from DePIN, AI, storage, and compute workloads."
 	/>
 </svelte:head>
+
+{#if $navigating}
+	<div class="fixed top-0 left-0 right-0 h-[2px] z-[100] bg-[var(--accent-base)] animate-pulse"></div>
+{/if}
 
 <div class="dark font-sans antialiased bg-[var(--surface-0)] text-[var(--text-primary)]">
 	<div class="hidden md:block">

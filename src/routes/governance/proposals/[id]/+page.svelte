@@ -51,6 +51,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Proposal — Necter Mining App Store</title>
+</svelte:head>
+
 {#if !proposal}
   <div class="animate-fadeIn px-8 pt-8 pb-12" style="max-width: 680px; margin: 0 auto;">
     <a href="/governance" class="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors mb-6">

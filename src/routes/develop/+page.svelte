@@ -86,6 +86,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Developer Portal — Necter Mining App Store</title>
+</svelte:head>
+
 {#if !devWalletAddress}
   <!-- ── Not connected ── -->
   <div class="animate-fadeIn px-6 pt-6 pb-12">

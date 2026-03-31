@@ -332,6 +332,10 @@
   ]);
 </script>
 
+<svelte:head>
+  <title>Activity — Necter Mining App Store</title>
+</svelte:head>
+
 {#if !$actor}
   <!-- Not connected -->
   <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">

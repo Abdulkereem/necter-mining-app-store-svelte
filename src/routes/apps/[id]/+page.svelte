@@ -263,6 +263,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{app ? `${app.name} — Necter Mining App Store` : 'App — Necter Mining App Store'}</title>
+</svelte:head>
+
 {#if !app}
 	<div class="min-h-screen flex items-center justify-center text-[var(--text-tertiary)] text-[13px]">App not found.</div>
 {:else}
@@ -1241,6 +1245,7 @@
 													src={minerAvatarDataUri(review.minerId)}
 													alt=""
 													class="w-[22px] h-[22px] rounded-[5px]"
+													loading="lazy"
 												/>
 												<p class="text-[13px] font-semibold text-[var(--text-primary)]">
 													{review.minerUsername}
@@ -1331,6 +1336,7 @@
 							{src}
 							alt="{app.name} screenshot {i + 1}"
 							class="shrink-0 border border-[var(--border-default)] rounded-[12px] w-[280px] md:w-[440px] h-[180px] md:h-[280px] object-cover"
+							loading="lazy"
 						/>
 					{/each}
 				</div>
@@ -1397,6 +1403,7 @@
 											width="36"
 											height="36"
 											class="rounded-[5px] shrink-0"
+											loading="lazy"
 										/>
 										<div class="min-w-0">
 											<p

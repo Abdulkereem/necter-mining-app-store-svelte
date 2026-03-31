@@ -1,7 +1,27 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState } from '$lib/stores/backend';
   import { ArrowLeft } from 'lucide-svelte';
+  import AreaChart from '$lib/components/AreaChart.svelte';
+
+  // Generate mock metric chart data based on range and metric
+  function makeMetricData(rangeStr: string, metricKey: string) {
+    const days = rangeStr === '7d' ? 7 : rangeStr === '30d' ? 30 : 90;
+    const labels = [];
+    const data = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      if (metricKey === 'revenue') {
+        data.push(+(10 + Math.sin(i * 0.3) * 5 + Math.random() * 3).toFixed(2));
+      } else if (metricKey === 'activeMiners') {
+        data.push(Math.floor(15 + i * 0.4 + Math.sin(i * 0.5) * 5 + Math.random() * 3));
+      } else {
+        data.push(Math.floor(20 + Math.sin(i * 0.4) * 8 + Math.random() * 5));
+      }
+    }
+    return { labels, data };
+  }
 
   const id = $derived($page.params.id);
   const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
@@ -43,6 +63,8 @@
 
   const slashingCount = $derived($backendState.slashingEvents.filter((s) => s.appId === id).length);
   const totalRewardsCredited = $derived(verifiedProofs.reduce((sum, p) => sum + p.reward, 0));
+
+  let analyticsChartData = $derived(makeMetricData(range, metric));
 </script>
 
 <div class="animate-fadeIn" style="padding: 24px 24px 48px;">
@@ -151,9 +173,9 @@
         </div>
       </div>
 
-      <!-- Chart placeholder -->
-      <div style="height: 288px; border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); display: flex; align-items: center; justify-content: center;">
-        <span style="font-size: 12px; color: var(--text-tertiary);">[{metricLabel} Chart Placeholder — {range}]</span>
+      <!-- Performance chart -->
+      <div style="border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); overflow: hidden;">
+        <AreaChart data={analyticsChartData.data} labels={analyticsChartData.labels} color={metric === 'revenue' ? '#FFBF00' : metric === 'activeMiners' ? '#6E9FFF' : '#4CB782'} height={288} />
       </div>
 
       <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 12px;">

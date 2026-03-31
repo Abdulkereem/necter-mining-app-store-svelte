@@ -302,6 +302,10 @@
   ];
 </script>
 
+<svelte:head>
+  <title>Settings — Necter Mining App Store</title>
+</svelte:head>
+
 <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
   <div class="max-w-[960px] mx-auto">
     <!-- Page header -->
@@ -962,6 +966,7 @@
                           src={app.icon || appIconDataUri({ id: app.id, name: app.name, category: app.category })}
                           alt=""
                           class="w-7 h-7 rounded-[5px] flex-shrink-0"
+                          loading="lazy"
                         />
                         <span class="text-[13px] text-[var(--text-primary)] truncate">{app.name}</span>
                       </div>
@@ -1080,7 +1085,7 @@
                           <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
                         </svg>
                         <div class="badge-icon w-16 h-16 relative">
-                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" />
+                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" loading="lazy" />
                         </div>
                         <p class="text-[13px] font-semibold m-0 leading-[18px] text-[var(--text-primary)]">{b.name}</p>
                         <p class="text-[11px] leading-[16px] m-0 text-[var(--text-secondary)]">{b.description}</p>
@@ -1120,7 +1125,7 @@
                           <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
                         </svg>
                         <div class="badge-icon w-16 h-16 relative">
-                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" />
+                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" loading="lazy" />
                           <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--surface-2)] border-2 border-[var(--surface-1)] flex items-center justify-center">
                             <Lock size={10} strokeWidth={2} class="text-[var(--text-tertiary)]" />
                           </div>

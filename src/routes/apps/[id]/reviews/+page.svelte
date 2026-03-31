@@ -74,6 +74,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{app ? `${app.name} Reviews — Necter Mining App Store` : 'Reviews — Necter Mining App Store'}</title>
+</svelte:head>
+
 {#if app}
 	<div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12" style="max-width:760px;margin:0 auto">
 		<!-- Back -->

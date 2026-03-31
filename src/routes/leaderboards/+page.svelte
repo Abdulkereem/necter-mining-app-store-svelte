@@ -83,6 +83,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Leaderboards — Necter Mining App Store</title>
+</svelte:head>
+
 <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
 	<div class="mb-5">
 		<h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">Leaderboards</h1>
@@ -147,7 +151,7 @@
 					style="grid-template-columns:{isMobile ? '1fr 55px 75px 55px 40px' : '1fr 70px 90px 75px 65px 50px'}; gap:0 20px">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={app.icon || appIconDataUri({ id: app.id, name: app.name, category: app.category })} alt="" class="w-7 h-7 rounded-[5px] shrink-0" />
+						<img src={app.icon || appIconDataUri({ id: app.id, name: app.name, category: app.category })} alt="" class="w-7 h-7 rounded-[5px] shrink-0" loading="lazy" />
 						<div class="min-w-0"><span class="text-[13px] font-medium text-[var(--text-primary)] truncate block">{app.name}</span><span class="text-[10px] text-[var(--text-tertiary)] truncate block">{app.category}</span></div>
 					</div>
 					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{app.totalMiners}</span>
@@ -176,7 +180,7 @@
 				<a href="/miners/{miner.minerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--surface-2)] transition-colors no-underline" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px; {miner.minerId === currentMinerId ? 'background:var(--accent-subtle)' : ''}">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" />
+						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-primary)] font-mono truncate">{miner.minerId}</span>
 					</div>
 					<span class="text-right text-[13px] font-medium font-mono" style="color:{color}">${miner.periodEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -199,7 +203,7 @@
 				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px; background:var(--accent-subtle)">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)]" style="font-feature-settings:'tnum'">{currentMinerEarnerRank}</span>
-						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" />
+						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
 					</div>
 					<span class="text-right text-[13px] font-medium font-mono text-[var(--text-accent)]" style="font-feature-settings:'tnum'">${(currentMinerEarner.totalEarned * periodMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -227,7 +231,7 @@
 				<a href="/miners/{miner.minerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--surface-2)] transition-colors no-underline" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px; {miner.minerId === currentMinerId ? 'background:var(--accent-subtle)' : ''}">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" />
+						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-primary)] font-mono truncate">{miner.minerId}</span>
 					</div>
 					<span class="text-right text-[14px] font-semibold font-mono" style="color:{color}">{miner.avgUptime.toFixed(1)}%</span>
@@ -250,7 +254,7 @@
 				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px; background:var(--accent-subtle)">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)]" style="font-feature-settings:'tnum'">{currentMinerUptimeRank}</span>
-						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" />
+						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
 					</div>
 					<span class="text-right text-[14px] font-semibold font-mono text-[var(--text-accent)]">{currentMinerUptime.avgUptime.toFixed(1)}%</span>

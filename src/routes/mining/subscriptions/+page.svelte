@@ -55,6 +55,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Subscriptions — Necter Mining App Store</title>
+</svelte:head>
+
 {#if !$actor}
 	<div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12" style="max-width:960px;margin:0 auto">
 		<div class="p-12 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] text-center">

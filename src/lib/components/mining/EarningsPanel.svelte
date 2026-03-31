@@ -96,6 +96,9 @@
 		failed: { color: 'var(--error)', bg: 'rgba(239,68,68,0.12)' }
 	};
 
+	// Tooltip state for earnings bar chart
+	let earningsTooltip = $state<{ index: number; x: number } | null>(null);
+
 	// Earnings chart data
 	let chartData = $derived.by(() => {
 		const payouts = (($backendState as any).payouts ?? []) as Array<{
@@ -131,8 +134,13 @@
 			'en-US',
 			{ month: 'short', day: 'numeric' }
 		);
+		const barLabels = Array.from({ length: barCount }, (_, i) => {
+			const daysAgo = (barCount - 1 - i) * bucketSize;
+			const d = new Date(now.getTime() - daysAgo * 86400000);
+			return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+		});
 
-		return { bars, maxVal, periodTotal, barCount, startLabel };
+		return { bars, maxVal, periodTotal, barCount, startLabel, barLabels };
 	});
 
 	function handleWithdraw() {
@@ -271,17 +279,32 @@
 						>NECTA</span
 					>
 				</div>
-				<div style="display: flex; align-items: flex-end; gap: 2px; height: 150px;">
-					{#each chartData.bars as val, i}
-						{@const h = val > 0 ? Math.max(4, (val / chartData.maxVal) * 140) : 2}
+				<div style="position: relative; height: 150px;">
+					{#if earningsTooltip !== null}
+						{@const tVal = chartData.bars[earningsTooltip.index]}
+						{@const tLabel = chartData.barLabels[earningsTooltip.index]}
 						<div
-							title="{val.toFixed(2)} NECTA"
-							style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {i ===
-							chartData.bars.length - 1
-								? 'var(--accent-base)'
-								: 'var(--accent-subtle)'}; transition: height 200ms ease-out; cursor: default;"
-						></div>
-					{/each}
+							class="bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px]"
+							style="position: absolute; z-index: 10; pointer-events: none; bottom: 100%; left: {earningsTooltip.x}px; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap; color: var(--text-primary); font-family: var(--font-mono);"
+						>
+							<span style="color: var(--text-tertiary);">{tLabel}</span>: {tVal.toFixed(2)} NECTA
+						</div>
+					{/if}
+					<div style="display: flex; align-items: flex-end; gap: 2px; height: 100%;">
+						{#each chartData.bars as val, i}
+							{@const h = val > 0 ? Math.max(4, (val / chartData.maxVal) * 140) : 2}
+							<div
+								role="img"
+								aria-label="{chartData.barLabels[i]}: {val.toFixed(2)} NECTA"
+								style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {earningsTooltip?.index === i ? 'var(--accent-base)' : i ===
+								chartData.bars.length - 1
+									? 'var(--accent-base)'
+									: 'var(--accent-subtle)'}; transition: height 200ms ease-out, background 80ms; cursor: default;"
+								onmouseenter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); earningsTooltip = { index: i, x: rect.left - parent.left + rect.width / 2 }; }}
+								onmouseleave={() => { earningsTooltip = null; }}
+							></div>
+						{/each}
+					</div>
 				</div>
 				<div style="display: flex; justify-content: space-between; margin-top: 6px;">
 					<span

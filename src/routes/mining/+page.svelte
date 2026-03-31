@@ -195,6 +195,10 @@
 	// Chart helper: max value for bar chart scaling
 	let chartMax = $derived(Math.max(...earningsSeries.map((d) => d.value), 0.001));
 
+	// Tooltip state for HTML bar charts
+	let mobileTooltip = $state<{ index: number; x: number } | null>(null);
+	let desktopTooltip = $state<{ index: number; x: number } | null>(null);
+
 	// Proofs data
 	let proofs = $derived(
 		minerId ? $backendState.proofs.filter((p) => p.minerId === minerId) : []
@@ -329,6 +333,10 @@
 		toastTimeout = setTimeout(() => { toastMessage = null; }, 3000);
 	}
 </script>
+
+<svelte:head>
+	<title>My Mining — Necter Mining App Store</title>
+</svelte:head>
 
 {#if !$actor}
 	<!-- Not connected state -->
@@ -503,6 +511,7 @@
 											width="28"
 											height="28"
 											class="rounded-[5px] shrink-0"
+											loading="lazy"
 										/>
 									{/if}
 									<div class="min-w-0 flex-1">
@@ -555,6 +564,7 @@
 												width="22"
 												height="22"
 												class="rounded-[4px] shrink-0"
+												loading="lazy"
 											/>
 										{/if}
 										<span class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
@@ -609,14 +619,28 @@
 						<span class="text-[10px] font-semibold uppercase tracking-wide" style="color: var(--text-tertiary);">30-day earnings</span>
 					</div>
 					<div class="px-2 py-2">
-						<div class="flex items-end gap-[2px]" style="height: 180px;">
-							{#each earningsSeries as d, i}
-								{@const h = d.value > 0 ? Math.max(3, (d.value / chartMax) * 170) : 2}
+						<div class="relative" style="height: 180px;">
+							{#if mobileTooltip !== null}
+								{@const d = earningsSeries[mobileTooltip.index]}
 								<div
-									title="{d.date}: {d.value.toFixed(4)} NECTA"
-									style="flex: 1; height: {h}px; border-radius: 1.5px 1.5px 0 0; background: {i === earningsSeries.length - 1 ? 'var(--accent-base)' : 'var(--accent-subtle)'}; cursor: default;"
-								></div>
-							{/each}
+									class="absolute z-10 pointer-events-none bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px]"
+									style="bottom: 100%; left: {mobileTooltip.x}px; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap; color: var(--text-primary); font-family: var(--font-mono);"
+								>
+									<span style="color: var(--text-tertiary);">{d.date}</span>: {d.value.toFixed(4)} NECTA
+								</div>
+							{/if}
+							<div class="flex items-end gap-[2px] h-full">
+								{#each earningsSeries as d, i}
+									{@const h = d.value > 0 ? Math.max(3, (d.value / chartMax) * 170) : 2}
+									<div
+										role="img"
+										aria-label="{d.date}: {d.value.toFixed(4)} NECTA"
+										style="flex: 1; height: {h}px; border-radius: 1.5px 1.5px 0 0; background: {mobileTooltip?.index === i ? 'var(--accent-base)' : i === earningsSeries.length - 1 ? 'var(--accent-base)' : 'var(--accent-subtle)'}; cursor: default; transition: background 80ms;"
+										onmouseenter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); mobileTooltip = { index: i, x: rect.left - parent.left + rect.width / 2 }; }}
+										onmouseleave={() => { mobileTooltip = null; }}
+									></div>
+								{/each}
+							</div>
 						</div>
 						<div class="flex justify-between mt-1">
 							<span class="text-[9px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">
@@ -639,7 +663,7 @@
 					{#if subs.length === 0}
 						<div class="text-center overflow-hidden">
 							<div class="w-full h-[140px] overflow-hidden">
-								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" />
+								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-4 pt-4 pb-6">
 								<p class="text-[13px] mb-3" style="color: var(--text-secondary);">You are not mining any projects yet.</p>
@@ -656,7 +680,7 @@
 								style="{idx !== 0 ? 'border-top: 1px solid var(--border-default);' : ''}"
 							>
 								{#if app}
-									<img src={iconSrc} alt={app.name} width="28" height="28" class="rounded-[5px] shrink-0" />
+									<img src={iconSrc} alt={app.name} width="28" height="28" class="rounded-[5px] shrink-0" loading="lazy" />
 								{/if}
 								<div class="min-w-0 flex-1">
 									<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
@@ -711,14 +735,28 @@
 							<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">30-day earnings</span>
 						</div>
 						<div class="px-4 py-3">
-							<div class="flex items-end gap-[2px]" style="height: 340px;">
-								{#each earningsSeries as d, i}
-									{@const h = d.value > 0 ? Math.max(4, (d.value / chartMax) * 330) : 2}
+							<div class="relative" style="height: 340px;">
+								{#if desktopTooltip !== null}
+									{@const td = earningsSeries[desktopTooltip.index]}
 									<div
-										title="{d.date}: {d.value.toFixed(4)} NECTA"
-										style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {i === earningsSeries.length - 1 ? 'var(--accent-base)' : 'var(--accent-subtle)'}; transition: height 200ms ease-out; cursor: default;"
-									></div>
-								{/each}
+										class="absolute z-10 pointer-events-none bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px]"
+										style="bottom: 100%; left: {desktopTooltip.x}px; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap; color: var(--text-primary); font-family: var(--font-mono);"
+									>
+										<span style="color: var(--text-tertiary);">{td.date}</span>: {td.value.toFixed(4)} NECTA
+									</div>
+								{/if}
+								<div class="flex items-end gap-[2px] h-full">
+									{#each earningsSeries as d, i}
+										{@const h = d.value > 0 ? Math.max(4, (d.value / chartMax) * 330) : 2}
+										<div
+											role="img"
+											aria-label="{d.date}: {d.value.toFixed(4)} NECTA"
+											style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {desktopTooltip?.index === i ? 'var(--accent-base)' : i === earningsSeries.length - 1 ? 'var(--accent-base)' : 'var(--accent-subtle)'}; transition: height 200ms ease-out, background 80ms; cursor: default;"
+											onmouseenter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); desktopTooltip = { index: i, x: rect.left - parent.left + rect.width / 2 }; }}
+											onmouseleave={() => { desktopTooltip = null; }}
+										></div>
+									{/each}
+								</div>
 							</div>
 							<div class="flex justify-between mt-1.5">
 								<span class="text-[10px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">
@@ -808,7 +846,7 @@
 					{#if subs.length === 0}
 						<div class="text-center overflow-hidden">
 							<div class="w-full h-[140px] overflow-hidden">
-								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" />
+								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-6 pt-5 pb-7">
 								<p class="text-[13px] mb-4" style="color: var(--text-secondary);">You are not mining any projects yet.</p>
@@ -842,7 +880,7 @@
 								<!-- App name + icon -->
 								<div class="flex items-center gap-2.5 min-w-0">
 									{#if app}
-										<img src={iconSrc} alt={app.name} width="28" height="28" class="rounded-[5px] shrink-0" />
+										<img src={iconSrc} alt={app.name} width="28" height="28" class="rounded-[5px] shrink-0" loading="lazy" />
 									{/if}
 									<div class="min-w-0">
 										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">{app?.name ?? s.appId}</div>
@@ -902,7 +940,7 @@
 									class="flex items-center gap-2.5 p-3 no-underline transition-colors hover:bg-[var(--surface-2)]"
 									style="background: var(--surface-1);"
 								>
-									<img src={appIcon(app)} alt={app.name} width="32" height="32" class="rounded-[5px] shrink-0" />
+									<img src={appIcon(app)} alt={app.name} width="32" height="32" class="rounded-[5px] shrink-0" loading="lazy" />
 									<div class="min-w-0 flex-1">
 										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
 											{app.name}

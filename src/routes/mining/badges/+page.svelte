@@ -135,6 +135,10 @@
   }
 </style>
 
+<svelte:head>
+  <title>Badges — Necter Mining App Store</title>
+</svelte:head>
+
 {#if !$actor}
   <div class="min-h-screen animate-fadeIn px-6 pt-6 pb-12">
     <div style="max-width: 1152px; margin: 0 auto; text-align: center; padding-top: 120px;">
