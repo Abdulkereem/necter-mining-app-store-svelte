@@ -28,7 +28,6 @@
 	const navItems = [
 		{ name: 'My Mining', href: '/mining', icon: LayoutDashboard },
 		{ name: 'Leaderboards', href: '/leaderboards', icon: Trophy },
-		{ name: 'Governance', href: '/governance', icon: Vote }
 	];
 
 	function isActive(href: string) {
@@ -194,6 +193,28 @@
 			</a>
 		{/each}
 
+		<!-- Developer Portal -->
+		<a
+			href="/develop"
+			class="flex items-center gap-2.5 px-3 h-[32px] rounded-[5px] text-[13px] transition-colors duration-100 no-underline {pathname.startsWith('/develop')
+				? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium'
+				: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
+		>
+			<Package class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+			<span>Developer Portal</span>
+		</a>
+
+		<!-- Governance -->
+		<a
+			href="/governance"
+			class="flex items-center gap-2.5 px-3 h-[32px] rounded-[5px] text-[13px] transition-colors duration-100 no-underline {pathname === '/governance' || pathname.startsWith('/governance/')
+				? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium'
+				: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
+		>
+			<Vote class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+			<span>Governance</span>
+		</a>
+
 		<!-- Activity -->
 		<a
 			href="/notifications"
@@ -214,17 +235,6 @@
 		>
 			<BookOpen class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
 			<span>Help</span>
-		</a>
-
-		<!-- Developer Portal -->
-		<a
-			href="/develop"
-			class="flex items-center gap-2.5 px-3 h-[32px] rounded-[5px] text-[13px] transition-colors duration-100 no-underline {pathname.startsWith('/develop')
-				? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium'
-				: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
-		>
-			<Package class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-			<span>Developer Portal</span>
 		</a>
 	</nav>
 

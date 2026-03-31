@@ -42,13 +42,13 @@
 	<!-- Backdrop -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center"
+		class="fixed inset-0 z-[60] bg-black/60 flex items-end md:items-center justify-center"
 		onkeydown={(e) => e.key === 'Escape' && handleClose()}
 		onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
 	>
 		<!-- Modal -->
 		<div
-			class="bg-[var(--surface-1)] border border-[var(--border)] rounded-[12px] w-full max-w-md mx-4 p-6"
+			class="bg-[var(--surface-1)] border border-[var(--border)] rounded-t-[12px] md:rounded-[12px] w-full md:max-w-md md:mx-4 p-6"
 			role="dialog"
 			aria-modal="true"
 		>

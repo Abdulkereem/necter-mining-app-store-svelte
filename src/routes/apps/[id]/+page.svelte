@@ -1499,11 +1499,11 @@
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50"
+				class="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/50"
 				onclick={() => (shareOpen = false)}
 			>
 				<div
-					class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[12px] p-6 w-[420px] max-w-[90vw] shadow-xl"
+					class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-t-[12px] md:rounded-[12px] p-6 w-full md:w-[420px] md:max-w-[90vw] shadow-xl"
 					onclick={(e) => e.stopPropagation()}
 				>
 					<h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Share {app.name}</h3>
@@ -1551,7 +1551,7 @@
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50"
+				class="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/50"
 				onclick={() => {
 					reportOpen = false;
 					reportReason = '';

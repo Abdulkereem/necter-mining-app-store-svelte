@@ -71,10 +71,10 @@
 </script>
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center">
+	<div class="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
 		<div class="absolute inset-0 bg-black/60" onclick={handleClose} role="presentation"></div>
 		<div
-			class="relative bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[12px] w-[480px] overflow-hidden animate-scaleIn"
+			class="relative bg-[var(--surface-1)] border border-[var(--border-default)] rounded-t-[12px] md:rounded-[12px] w-full md:w-[480px] overflow-hidden"
 			style="box-shadow: 0 16px 70px rgba(0,0,0,0.50);"
 		>
 			<!-- Header with step indicator -->
