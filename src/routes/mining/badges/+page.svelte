@@ -124,6 +124,15 @@
   .badge-card.locked .badge-icon {
     filter: grayscale(1) brightness(0.7);
   }
+  .badge-honeycomb-bg {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 60px;
+    height: 60px;
+    opacity: 0.04;
+    pointer-events: none;
+  }
 </style>
 
 {#if !$actor}
@@ -192,6 +201,11 @@
             {#each filteredEarned as b}
               {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
               <div class="badge-card">
+                <!-- Subtle honeycomb watermark -->
+                <svg class="badge-honeycomb-bg" viewBox="0 0 60 60" fill="currentColor">
+                  <polygon points="30,2 52,16 52,44 30,58 8,44 8,16" fill="none" stroke="currentColor" stroke-width="1" />
+                  <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
+                </svg>
                 <div class="badge-icon" style="width: 64px; height: 64px; position: relative;">
                   <img src={badgeIconDataUri(b.name, b.kind)} alt="" style="width: 64px; height: 64px;" />
                 </div>
@@ -228,6 +242,11 @@
             {#each filteredNotEarned as b}
               {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
               <div class="badge-card locked">
+                <!-- Subtle honeycomb watermark -->
+                <svg class="badge-honeycomb-bg" viewBox="0 0 60 60" fill="currentColor">
+                  <polygon points="30,2 52,16 52,44 30,58 8,44 8,16" fill="none" stroke="currentColor" stroke-width="1" />
+                  <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
+                </svg>
                 <div class="badge-icon" style="width: 64px; height: 64px; position: relative;">
                   <img src={badgeIconDataUri(b.name, b.kind)} alt="" style="width: 64px; height: 64px;" />
                   <div style="position: absolute; bottom: -2px; right: -2px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--surface-1); display: flex; align-items: center; justify-content: center;">

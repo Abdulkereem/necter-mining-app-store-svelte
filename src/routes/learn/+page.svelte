@@ -126,7 +126,7 @@
 		<!-- Header -->
 		<div class="mb-6">
 			<h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight mb-1">Help</h1>
-			<p class="text-[13px] text-[var(--text-secondary)]">Learn about the Necter ecosystem, tools, and how mining works.</p>
+			<p class="text-[13px] text-[var(--text-secondary)] hidden md:block">Guides, tools, and resources for the Necter ecosystem.</p>
 		</div>
 
 		<!-- Getting Started Hero with Bee -->
