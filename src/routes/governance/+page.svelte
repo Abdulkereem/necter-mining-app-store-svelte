@@ -227,7 +227,7 @@
 
 	<!-- Stats Grid -->
 	<div
-		class="mobile-grid-2 grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden mb-6"
+		class="mobile-grid-2 grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden mb-3 md:mb-6"
 	>
 		{#each [
 			{ label: 'Active Proposals', value: activeProposalCount.toString(), accent: false },
@@ -251,7 +251,7 @@
 	</div>
 
 	<!-- Create Proposal — mobile, under stats -->
-	<button type="button" class="btn-subscribe w-full md:hidden mt-2 mb-4" onclick={openCreateModal}>
+	<button type="button" class="btn-subscribe w-full md:hidden mb-4" onclick={openCreateModal}>
 		Create Proposal
 	</button>
 

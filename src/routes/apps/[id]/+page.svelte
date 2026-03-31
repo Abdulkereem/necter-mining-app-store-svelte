@@ -308,18 +308,19 @@
 						>
 							{app.developer}
 						</a>
-						<div class="flex items-center gap-[3px] mt-1">
+						<div class="flex items-center gap-[3px] mt-1 overflow-hidden">
 							{#each Array(5) as _, i}
 								<Star
 									size={10}
 									strokeWidth={0}
 									fill={i < Math.round(app.averageRating || 4.5) ? 'var(--accent-base)' : 'var(--surface-3)'}
+									class="shrink-0"
 								/>
 							{/each}
-							<span class="text-[11px] text-[var(--text-tertiary)] font-mono ml-1"
+							<span class="text-[11px] text-[var(--text-tertiary)] font-mono ml-1 shrink-0"
 								>{(app.averageRating || 4.5).toFixed(1)}</span
 							>
-							<span class="text-[11px] text-[var(--text-tertiary)] ml-1">· {app.category}</span>
+							<span class="text-[11px] text-[var(--text-tertiary)] ml-1 truncate">· {app.category}</span>
 						</div>
 					</div>
 
