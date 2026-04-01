@@ -138,54 +138,54 @@
     announcementText = '';
   }
 
-  const inp = 'width: 100%; height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border-default); background: var(--surface-0); color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none;';
+  const inp = 'n-input';
 </script>
 
 {#if !app}
   <div class="min-h-screen animate-fadeIn">
-    <div style="padding: 24px;">
-      <p style="font-size: 13px; color: var(--text-secondary);">Network not found.</p>
-      <a href="/develop" style="font-size: 13px; color: var(--text-accent); text-decoration: none;">Back to Dashboard</a>
+    <div class="p-6">
+      <p class="text-[13px] text-[var(--text-secondary)]">Network not found.</p>
+      <a href="/develop" class="text-[13px] text-[var(--text-accent)] no-underline">Back to Dashboard</a>
     </div>
   </div>
 {:else}
   <div class="min-h-screen animate-fadeIn">
-    <div style="max-width: 960px; margin: 0 auto; padding: 24px;">
+    <div class="max-w-[960px] mx-auto p-6">
 
       <!-- Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <a href="/develop" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 5px; text-decoration: none;">
-            <ArrowLeft style="width: 16px; height: 16px; color: var(--text-tertiary);" strokeWidth={1.5} />
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-3">
+          <a href="/develop" class="w-7 h-7 flex items-center justify-center rounded-[5px] no-underline">
+            <ArrowLeft class="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
           </a>
-          <img src={iconSrc} alt={app.name} width="44" height="44" style="border-radius: 12px;" />
+          <img src={iconSrc} alt={app.name} width="44" height="44" class="rounded-[12px]" />
           <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h1 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0;">{app.name}</h1>
-              <span style="font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 3px; background: {isLive ? 'rgba(76,183,130,0.12)' : isReview ? 'rgba(242,153,74,0.12)' : 'var(--surface-3)'}; color: {isLive ? 'var(--success)' : isReview ? 'var(--warning)' : 'var(--text-secondary)'};">
+            <div class="flex items-center gap-2">
+              <h1 class="text-[18px] font-semibold text-[var(--text-primary)]">{app.name}</h1>
+              <span class="text-[11px] font-medium px-2 py-0.5 rounded-[3px]" style="background: {isLive ? 'rgba(76,183,130,0.12)' : isReview ? 'rgba(242,153,74,0.12)' : 'var(--surface-3)'}; color: {isLive ? 'var(--success)' : isReview ? 'var(--warning)' : 'var(--text-secondary)'};">
                 {isLive ? 'Live' : isReview ? 'In Review' : 'Draft'}
               </span>
             </div>
-            <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">{app.category}</p>
+            <p class="text-[12px] text-[var(--text-tertiary)]">{app.category}</p>
           </div>
         </div>
         {#if isLive}
-          <a href="/apps/{id}" style="display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 5px; font-size: 12px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--border-default); color: var(--text-secondary); text-decoration: none;">
+          <a href="/apps/{id}" class="inline-flex items-center gap-1 h-7 px-2.5 rounded-[5px] text-[12px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] no-underline">
             <Eye size={12} strokeWidth={1.5} /> View on Store
           </a>
         {/if}
         {#if isDraft}
-          <a href="/develop/apps/{id}/preview" style="display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 5px; font-size: 12px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--border-default); color: var(--text-secondary); text-decoration: none;">
+          <a href="/develop/apps/{id}/preview" class="inline-flex items-center gap-1 h-7 px-2.5 rounded-[5px] text-[12px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] no-underline">
             <Eye size={12} strokeWidth={1.5} /> Preview
           </a>
         {/if}
       </div>
 
       <!-- Tab bar -->
-      <div style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border-default); padding-bottom: 0;">
+      <div class="flex gap-1 mb-5 border-b border-[var(--border-default)]">
         {#each tabs as t}
           <button type="button" onclick={() => activeTab = t.id}
-            style="height: 34px; padding: 0 14px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; border-bottom: {activeTab === t.id ? '2px solid var(--accent-base)' : '2px solid transparent'}; background: transparent; color: {activeTab === t.id ? 'var(--text-primary)' : 'var(--text-tertiary)'}; transition: all 100ms; margin-bottom: -1px;">
+            class="h-[34px] px-3.5 text-[13px] font-medium cursor-pointer border-none bg-transparent transition-all -mb-px" style="border-bottom: {activeTab === t.id ? '2px solid var(--accent-base)' : '2px solid transparent'}; color: {activeTab === t.id ? 'var(--text-primary)' : 'var(--text-tertiary)'}">
             {t.label}
           </button>
         {/each}
@@ -193,21 +193,21 @@
 
       <!-- OVERVIEW TAB -->
       {#if activeTab === 'overview'}
-        <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="flex flex-col gap-4">
 
           <!-- DRAFT: Checklist + Submit -->
           {#if isDraft}
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 20px;">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <h3 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0;">Launch Checklist</h3>
-                <span style="font-size: 12px; font-family: var(--font-mono); color: {readyCount === checklist.length ? 'var(--success)' : 'var(--text-secondary)'};">{readyCount}/{checklist.length}</span>
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-[14px] font-semibold text-[var(--text-primary)]">Launch Checklist</h3>
+                <span class="text-[12px] font-mono" style="color: {readyCount === checklist.length ? 'var(--success)' : 'var(--text-secondary)'};">{readyCount}/{checklist.length}</span>
               </div>
-              <div style="height: 3px; border-radius: 2px; background: var(--surface-3); margin-bottom: 14px;">
-                <div style="height: 3px; border-radius: 2px; background: {readyCount === checklist.length ? 'var(--success)' : 'var(--accent-base)'}; width: {(readyCount / checklist.length) * 100}%; transition: width 300ms;"></div>
+              <div class="h-[3px] rounded-sm bg-[var(--surface-3)] mb-3.5">
+                <div class="h-[3px] rounded-sm transition-all" style="background: {readyCount === checklist.length ? 'var(--success)' : 'var(--accent-base)'}; width: {(readyCount / checklist.length) * 100}%; transition: width 300ms;"></div>
               </div>
-              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <div class="flex flex-wrap gap-1.5">
                 {#each checklist as item}
-                  <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 4px; font-size: 12px; background: {item.done ? 'rgba(76,183,130,0.08)' : 'var(--surface-2)'}; color: {item.done ? 'var(--success)' : 'var(--text-tertiary)'};">
+                  <span class="inline-flex items-center gap-[5px] px-2.5 py-1 rounded text-[12px]" style="background: {item.done ? 'rgba(76,183,130,0.08)' : 'var(--surface-2)'}; color: {item.done ? 'var(--success)' : 'var(--text-tertiary)'};">
                     {#if item.done}
                       <CheckCircle2 size={12} strokeWidth={2} />
                     {:else}
@@ -219,33 +219,33 @@
               </div>
             </div>
 
-            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
+            <div class="flex items-center justify-between bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
               <div>
-                <p style="font-size: 13px; font-weight: 500; color: var(--text-primary); margin: 0;">Ready to go live?</p>
-                <p style="font-size: 12px; color: var(--text-tertiary); margin: 2px 0 0;">Submit for governance review. Auto-approves in demo mode.</p>
+                <p class="text-[13px] font-medium text-[var(--text-primary)]">Ready to go live?</p>
+                <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Submit for governance review. Auto-approves in demo mode.</p>
               </div>
-              <button type="button" onclick={handleSubmitForReview} style="height: 32px; padding: 0 16px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--accent-base); color: #0C0C0E; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <button type="button" onclick={handleSubmitForReview} class="h-8 px-4 rounded-[6px] text-[12px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5 shrink-0">
                 <Send size={12} strokeWidth={1.5} /> Submit for Review
               </button>
             </div>
 
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-              <p style="font-size: 12px; color: var(--text-secondary); line-height: 18px; margin: 0;">{app.description || 'No description yet. Add one in Settings.'}</p>
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+              <p class="text-[12px] text-[var(--text-secondary)] leading-[18px]">{app.description || 'No description yet. Add one in Settings.'}</p>
             </div>
           {/if}
 
           <!-- IN REVIEW: Waiting state -->
           {#if isReview}
-            <div style="background: var(--surface-1); border: 1px solid var(--border-accent); border-radius: 8px; padding: 32px; text-align: center;">
-              <Clock size={32} strokeWidth={1.5} style="color: var(--text-accent); margin: 0 auto 12px;" />
-              <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 6px;">Under Governance Review</h3>
-              <p style="font-size: 13px; color: var(--text-tertiary); max-width: 360px; margin: 0 auto; line-height: 20px;">
+            <div class="bg-[var(--surface-1)] border border-[var(--border-accent)] rounded-[8px] p-8 text-center">
+              <Clock size={32} strokeWidth={1.5} class="text-[var(--text-accent)] mx-auto mb-3" />
+              <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">Under Governance Review</h3>
+              <p class="text-[13px] text-[var(--text-tertiary)] max-w-[360px] mx-auto leading-5">
                 Reviewers are checking security, economics, and package integrity. This auto-approves in a few seconds in demo mode.
               </p>
-              <div style="display: flex; justify-content: center; gap: 6px; margin-top: 16px;">
+              <div class="flex justify-center gap-1.5 mt-4">
                 {#each [0, 1, 2] as i}
-                  <div style="width: 40px; height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden;">
-                    <div style="width: 100%; height: 100%; background: var(--accent-base); animation: pulse 2s {i * 0.3}s infinite;"></div>
+                  <div class="w-10 h-1 rounded-sm bg-[var(--surface-3)] overflow-hidden">
+                    <div class="w-full h-full bg-[var(--accent-base)]" style="animation: pulse 2s {i * 0.3}s infinite;"></div>
                   </div>
                 {/each}
               </div>
@@ -254,48 +254,48 @@
 
           <!-- LIVE: Stats + Activity -->
           {#if isLive}
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border-default); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;">
+            <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
               {#each [
                 { label: 'Miners', value: activeMiners.toLocaleString(), accent: false },
                 { label: 'Proofs', value: verifiedProofs.toLocaleString(), accent: false },
                 { label: 'Earned', value: `$${totalEarned.toFixed(0)}`, accent: true },
                 { label: 'Rating', value: avgRating, accent: false },
               ] as s}
-                <div style="background: var(--surface-1); padding: 14px 16px;">
-                  <span style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary);">{s.label}</span>
-                  <p style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: {s.accent ? 'var(--text-accent)' : 'var(--text-primary)'}; margin: 4px 0 0;">{s.value}</p>
+                <div class="bg-[var(--surface-1)] px-4 py-3.5">
+                  <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{s.label}</span>
+                  <p class="text-[20px] font-semibold font-mono mt-1" style="color: {s.accent ? 'var(--text-accent)' : 'var(--text-primary)'}">{s.value}</p>
                 </div>
               {/each}
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-                <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 8px;">About</h3>
-                <p style="font-size: 12px; color: var(--text-secondary); line-height: 18px; margin: 0;">{app.description}</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+                <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-2">About</h3>
+                <p class="text-[12px] text-[var(--text-secondary)] leading-[18px]">{app.description}</p>
                 {#if app.tags && app.tags.length > 0}
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 10px;">
+                  <div class="flex gap-1 flex-wrap mt-2.5">
                     {#each app.tags as t}
-                      <span style="font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 3px; background: var(--surface-3); color: var(--text-secondary);">{t}</span>
+                      <span class="text-[10px] font-medium px-2 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[var(--text-secondary)]">{t}</span>
                     {/each}
                   </div>
                 {/if}
               </div>
-              <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-                <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 10px;">Recent Activity</h3>
+              <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+                <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-2.5">Recent Activity</h3>
                 {#if subs.length === 0 && proofs.length === 0}
-                  <p style="font-size: 12px; color: var(--text-tertiary);">Waiting for miners...</p>
+                  <p class="text-[12px] text-[var(--text-tertiary)]">Waiting for miners...</p>
                 {:else}
-                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <div class="flex flex-col gap-1">
                     {#each subs.slice(0, 4) as s}
-                      <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-default); font-size: 12px;">
-                        <span style="color: var(--text-secondary);">Miner subscribed</span>
-                        <span style="color: var(--text-tertiary); font-family: var(--font-mono);">{new Date(s.subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <div class="flex justify-between py-1 border-b border-[var(--border-default)] text-[12px]">
+                        <span class="text-[var(--text-secondary)]">Miner subscribed</span>
+                        <span class="text-[var(--text-tertiary)] font-mono">{new Date(s.subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
                     {/each}
                     {#each proofs.slice(0, 3) as p}
-                      <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-default); font-size: 12px;">
+                      <div class="flex justify-between py-1 border-b border-[var(--border-default)] text-[12px]">
                         <span style="color: {p.status === 'verified' ? 'var(--success)' : 'var(--text-secondary)'};">Proof {p.status}</span>
-                        <span style="color: var(--text-tertiary); font-family: var(--font-mono);">${p.reward.toFixed(2)}</span>
+                        <span class="text-[var(--text-tertiary)] font-mono">${p.reward.toFixed(2)}</span>
                       </div>
                     {/each}
                   </div>
@@ -304,13 +304,13 @@
             </div>
 
             <!-- Announcements -->
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-              <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 10px;">Post an Update</h3>
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-2.5">Post an Update</h3>
               <div>
                 <textarea bind:value={announcementText} placeholder="Write an update for your miners..." rows="2"
-                  style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--surface-0); color: var(--text-primary); font-size: 13px; line-height: 20px; resize: none; outline: none; font-family: inherit; margin-bottom: 8px;"></textarea>
+                  class="w-full px-3 py-2.5 border border-[var(--border-default)] rounded-[6px] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] leading-5 resize-none outline-none font-inherit mb-2"></textarea>
                 <button type="button" onclick={handlePostAnnouncement}
-                  style="height: 28px; padding: 0 12px; border-radius: 5px; border: none; background: var(--accent-base); color: #0C0C0E; font-size: 12px; font-weight: 600; cursor: pointer;">
+                  class="h-7 px-3 rounded-[5px] border-none bg-[var(--accent-base)] text-[#0C0C0E] text-[12px] font-semibold cursor-pointer">
                   Post Update
                 </button>
               </div>
@@ -321,71 +321,71 @@
 
       <!-- ANALYTICS TAB -->
       {#if activeTab === 'analytics'}
-        <div style="display: flex; flex-direction: column; gap: 16px;">
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border-default); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;">
+        <div class="flex flex-col gap-4">
+          <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
             {#each [
               { label: 'Total Revenue', value: `$${totalEarned.toFixed(0)}`, accent: true },
               { label: 'Avg Daily', value: `$${(app.avgEarningsPerDay ?? 0).toFixed(0)}`, accent: false },
               { label: 'Proof Success', value: proofs.length > 0 ? `${Math.round((verifiedProofs / proofs.length) * 100)}%` : '—', accent: false },
               { label: 'Active Miners', value: activeMiners.toLocaleString(), accent: false },
             ] as s}
-              <div style="background: var(--surface-1); padding: 14px 16px;">
-                <span style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary);">{s.label}</span>
-                <p style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: {s.accent ? 'var(--text-accent)' : 'var(--text-primary)'}; margin: 4px 0 0;">{s.value}</p>
+              <div class="bg-[var(--surface-1)] px-4 py-3.5">
+                <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{s.label}</span>
+                <p class="text-[20px] font-semibold font-mono mt-1" style="color: {s.accent ? 'var(--text-accent)' : 'var(--text-primary)'}">{s.value}</p>
               </div>
             {/each}
           </div>
 
           <!-- Revenue chart placeholder -->
-          <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-            <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 4px;">Revenue (30 days)</h3>
-            <p style="font-size: 11px; color: var(--text-tertiary); margin: 0 0 12px;">Daily earnings from verified proofs</p>
-            <div style="border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); overflow: hidden;">
+          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-1">Revenue (30 days)</h3>
+            <p class="text-[11px] text-[var(--text-tertiary)] mb-3">Daily earnings from verified proofs</p>
+            <div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-0)] overflow-hidden">
               <AreaChart data={revenueChartData} labels={revenueChartLabels} color="#FFBF00" height={208} />
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="grid grid-cols-2 gap-3">
             <!-- Miner growth placeholder -->
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-              <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 4px;">Miner Growth (12 weeks)</h3>
-              <p style="font-size: 11px; color: var(--text-tertiary); margin: 0 0 12px;">Weekly active miner count</p>
-              <div style="border-radius: 8px; border: 1px solid var(--border-default); background: var(--surface-0); overflow: hidden;">
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-1">Miner Growth (12 weeks)</h3>
+              <p class="text-[11px] text-[var(--text-tertiary)] mb-3">Weekly active miner count</p>
+              <div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-0)] overflow-hidden">
                 <AreaChart data={minerGrowthData} labels={minerGrowthLabels} color="#6E9FFF" height={160} />
               </div>
             </div>
 
             <!-- Proof breakdown -->
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-              <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 12px;">Proof Breakdown</h3>
-              <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3">Proof Breakdown</h3>
+              <div class="flex flex-col gap-2.5">
                 {#each [
                   { label: 'Verified', count: verifiedProofs, color: 'var(--success)' },
                   { label: 'Pending', count: pendingCount, color: 'var(--text-secondary)' },
                   { label: 'Rejected', count: rejectedCount, color: 'var(--error)' },
                 ] as row}
                   <div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                      <span style="font-size: 12px; color: var(--text-secondary);">{row.label}</span>
-                      <span style="font-size: 13px; font-family: var(--font-mono); font-weight: 600; color: var(--text-primary);">{row.count}</span>
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-[12px] text-[var(--text-secondary)]">{row.label}</span>
+                      <span class="text-[13px] font-mono font-semibold text-[var(--text-primary)]">{row.count}</span>
                     </div>
-                    <div style="height: 4px; border-radius: 2px; background: var(--surface-3);">
-                      <div style="height: 4px; border-radius: 2px; background: {row.color}; width: {proofs.length > 0 ? (row.count / proofs.length) * 100 : 0}%; transition: width 300ms;"></div>
+                    <div class="h-1 rounded-sm bg-[var(--surface-3)]">
+                      <div class="h-1 rounded-sm" style="background: {row.color}; width: {proofs.length > 0 ? (row.count / proofs.length) * 100 : 0}%; transition: width 300ms;"></div>
                     </div>
                   </div>
                 {/each}
               </div>
 
-              <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin: 16px 0 8px;">Recent Payouts</h3>
-              <div style="display: flex; flex-direction: column; gap: 3px;">
+              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mt-4 mb-2">Recent Payouts</h3>
+              <div class="flex flex-col gap-0.5">
                 {#each proofs.filter((p) => p.status === 'verified').slice(0, 5) as p}
-                  <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-default); font-size: 12px;">
-                    <span style="font-family: var(--font-mono); color: var(--text-tertiary);">{p.hash.slice(0, 10)}...</span>
-                    <span style="font-family: var(--font-mono); color: var(--success); font-weight: 500;">+${p.reward.toFixed(2)}</span>
+                  <div class="flex justify-between py-1 border-b border-[var(--border-default)] text-[12px]">
+                    <span class="font-mono text-[var(--text-tertiary)]">{p.hash.slice(0, 10)}...</span>
+                    <span class="font-mono text-[var(--success)] font-medium">+${p.reward.toFixed(2)}</span>
                   </div>
                 {/each}
                 {#if verifiedProofs === 0}
-                  <p style="font-size: 12px; color: var(--text-tertiary);">No payouts yet.</p>
+                  <p class="text-[12px] text-[var(--text-tertiary)]">No payouts yet.</p>
                 {/if}
               </div>
             </div>
@@ -395,45 +395,45 @@
 
       <!-- MINERS TAB -->
       {#if activeTab === 'miners'}
-        <div style="display: flex; flex-direction: column; gap: 16px;">
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border-default); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;">
+        <div class="flex flex-col gap-4">
+          <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
             {#each [
               { label: 'Total', value: subs.length, color: null },
               { label: 'Active', value: subs.filter((s) => s.status === 'active').length, color: 'var(--success)' },
               { label: 'Paused', value: subs.filter((s) => s.status === 'paused').length, color: null },
               { label: 'Avg Uptime', value: subs.length > 0 ? `${(subs.reduce((s, sub) => s + (sub.uptime || 0), 0) / subs.length).toFixed(1)}%` : '—', color: null },
             ] as s}
-              <div style="background: var(--surface-1); padding: 14px 16px;">
-                <span style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary);">{s.label}</span>
-                <p style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: {s.color || 'var(--text-primary)'}; margin: 4px 0 0;">{s.value}</p>
+              <div class="bg-[var(--surface-1)] px-4 py-3.5">
+                <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{s.label}</span>
+                <p class="text-[20px] font-semibold font-mono mt-1" style="color: {s.color || 'var(--text-primary)'}">{s.value}</p>
               </div>
             {/each}
           </div>
           {#if subs.length > 0}
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 0; overflow: hidden;">
-              <div style="display: grid; grid-template-columns: 1fr 100px 80px 80px 80px; padding: 8px 16px; border-bottom: 1px solid var(--border-default);">
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
+              <div class="grid px-4 py-2 border-b border-[var(--border-default)]" style="grid-template-columns: 1fr 100px 80px 80px 80px;">
                 {#each ['Miner', 'Subscribed', 'Status', 'Uptime', 'Earned'] as h}
-                  <span style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary);">{h}</span>
+                  <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{h}</span>
                 {/each}
               </div>
               {#each subs as sub}
-                <div class="miner-row" style="display: grid; grid-template-columns: 1fr 100px 80px 80px 80px; padding: 10px 16px; border-bottom: 1px solid var(--border-default); font-size: 12px;">
-                  <span style="font-family: var(--font-mono); color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                    <img src={minerAvatarDataUri(sub.minerId)} alt="" style="width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0;" />{sub.minerId}
+                <div class="miner-row px-4 py-2.5 border-b border-[var(--border-default)] text-[12px] grid" style="grid-template-columns: 1fr 100px 80px 80px 80px;">
+                  <span class="font-mono text-[var(--text-primary)] flex items-center gap-2">
+                    <img src={minerAvatarDataUri(sub.minerId)} alt="" class="w-5 h-5 rounded shrink-0" />{sub.minerId}
                   </span>
-                  <span style="color: var(--text-tertiary);">{new Date(sub.subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  <span style="display: inline-flex; align-items: center; gap: 5px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'};"></span>
-                    <span style="color: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'}; text-transform: capitalize;">{sub.status}</span>
+                  <span class="text-[var(--text-tertiary)]">{new Date(sub.subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span class="inline-flex items-center gap-[5px]">
+                    <span class="w-1.5 h-1.5 rounded-full" style="background: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'};"></span>
+                    <span class="capitalize" style="color: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'};">{sub.status}</span>
                   </span>
-                  <span style="font-family: var(--font-mono); color: var(--text-secondary);">{(sub.uptime || 0).toFixed(1)}%</span>
-                  <span style="font-family: var(--font-mono); color: var(--text-accent);">${(sub.totalEarned || 0).toFixed(2)}</span>
+                  <span class="font-mono text-[var(--text-secondary)]">{(sub.uptime || 0).toFixed(1)}%</span>
+                  <span class="font-mono text-[var(--text-accent)]">${(sub.totalEarned || 0).toFixed(2)}</span>
                 </div>
               {/each}
             </div>
           {:else}
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; text-align: center; padding: 32px;">
-              <p style="font-size: 13px; color: var(--text-tertiary);">No miners have subscribed yet. Once your network is live, miners will appear here.</p>
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] text-center p-8">
+              <p class="text-[13px] text-[var(--text-tertiary)]">No miners have subscribed yet. Once your network is live, miners will appear here.</p>
             </div>
           {/if}
         </div>
@@ -441,33 +441,33 @@
 
       <!-- VERSIONS TAB -->
       {#if activeTab === 'versions'}
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="flex flex-col gap-2.5">
           {#each [
             { version: 'v1.2.0', date: 'Mar 20, 2026', current: true, notes: 'Performance improvements, new proof verification algorithm' },
             { version: 'v1.1.0', date: 'Mar 5, 2026', current: false, notes: 'Added GPU support, fixed memory leak in task runner' },
             { version: 'v1.0.0', date: 'Feb 1, 2026', current: false, notes: 'Initial release' },
           ] as v}
-            <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px; display: flex; align-items: start; gap: 12px;">
-              <div style="width: 32px; height: 32px; border-radius: 8px; background: {v.current ? 'var(--accent-subtle)' : 'var(--surface-3)'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4 flex items-start gap-3">
+              <div class="w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0" style="background: {v.current ? 'var(--accent-subtle)' : 'var(--surface-3)'}">
                 {#if v.current}
-                  <CheckCircle2 size={14} strokeWidth={2} style="color: var(--text-accent);" />
+                  <CheckCircle2 size={14} strokeWidth={2} class="text-[var(--text-accent)]" />
                 {:else}
-                  <Package size={14} strokeWidth={1.5} style="color: var(--text-tertiary);" />
+                  <Package size={14} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
                 {/if}
               </div>
-              <div style="flex: 1;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
-                  <span style="font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--text-primary);">{v.version}</span>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="text-[13px] font-semibold font-mono text-[var(--text-primary)]">{v.version}</span>
                   {#if v.current}
-                    <span style="font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; background: var(--accent-subtle); color: var(--text-accent);">Current</span>
+                    <span class="text-[10px] font-medium px-1.5 py-px rounded-[3px] bg-[var(--accent-subtle)] text-[var(--text-accent)]">Current</span>
                   {/if}
                 </div>
-                <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 2px;">{v.notes}</p>
-                <span style="font-size: 11px; color: var(--text-tertiary);">{v.date}</span>
+                <p class="text-[12px] text-[var(--text-secondary)] mb-0.5">{v.notes}</p>
+                <span class="text-[11px] text-[var(--text-tertiary)]">{v.date}</span>
               </div>
             </div>
           {/each}
-          <a href="/develop/apps/{id}/settings" style="display: flex; align-items: center; justify-content: center; height: 36px; border-radius: 6px; font-size: 12px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--border-default); color: var(--text-secondary); text-decoration: none;">
+          <a href="/develop/apps/{id}/settings" class="flex items-center justify-center h-9 rounded-[6px] text-[12px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] no-underline">
             Upload New Version &rarr;
           </a>
         </div>
@@ -475,73 +475,73 @@
 
       <!-- SETTINGS TAB -->
       {#if activeTab === 'settings'}
-        <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="flex flex-col gap-4">
           <!-- General -->
-          <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-            <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 14px;">General</h3>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3.5">General</h3>
+            <div class="flex flex-col gap-3">
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Network Name</label>
-                <input type="text" bind:value={settingsName} style={inp} />
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Network Name</label>
+                <input type="text" bind:value={settingsName} class={inp} />
               </div>
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Description</label>
-                <textarea bind:value={settingsDescription} rows="3" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-default); background: var(--surface-0); color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; line-height: 1.5; resize: vertical;"></textarea>
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Description</label>
+                <textarea bind:value={settingsDescription} rows="3" class="n-textarea"></textarea>
               </div>
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Features</label>
-                <textarea bind:value={settingsFeaturesStr} rows="3" placeholder="One feature per line" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-default); background: var(--surface-0); color: var(--text-primary); font-size: 13px; font-family: var(--font-mono); outline: none; line-height: 1.5; resize: vertical;"></textarea>
-                <p style="font-size: 11px; color: var(--text-tertiary); margin: 4px 0 0;">One per line. Shown on the app detail page.</p>
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Features</label>
+                <textarea bind:value={settingsFeaturesStr} rows="3" placeholder="One feature per line" class="n-textarea font-mono"></textarea>
+                <p class="text-[11px] text-[var(--text-tertiary)] mt-1">One per line. Shown on the app detail page.</p>
               </div>
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Tags</label>
-                <input type="text" bind:value={settingsTagsStr} placeholder="IoT, DePIN, Wireless" style={inp} />
-                <p style="font-size: 11px; color: var(--text-tertiary); margin: 4px 0 0;">Comma-separated. Used for search and filtering.</p>
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Tags</label>
+                <input type="text" bind:value={settingsTagsStr} placeholder="IoT, DePIN, Wireless" class={inp} />
+                <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Comma-separated. Used for search and filtering.</p>
               </div>
             </div>
           </div>
 
           <!-- Economics -->
-          <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-            <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 14px;">Economics</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3.5">Economics</h3>
+            <div class="grid grid-cols-3 gap-3">
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Base Reward / Task</label>
-                <input type="number" bind:value={settingsBaseReward} style={inp} />
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Base Reward / Task</label>
+                <input type="number" bind:value={settingsBaseReward} class={inp} />
               </div>
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Escrow Balance</label>
-                <input type="number" bind:value={settingsEscrowBalance} style={inp} />
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Escrow Balance</label>
+                <input type="number" bind:value={settingsEscrowBalance} class={inp} />
               </div>
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Daily Emission</label>
-                <input type="number" bind:value={settingsDailyEmission} style={inp} />
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Daily Emission</label>
+                <input type="number" bind:value={settingsDailyEmission} class={inp} />
               </div>
             </div>
           </div>
 
           <!-- Hardware -->
-          <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-            <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 14px;">Hardware Requirements</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3.5">Hardware Requirements</h3>
+            <div class="grid grid-cols-2 gap-3">
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">GPU</label>
-                <input type="text" bind:value={settingsGpuReq} placeholder="e.g. NVIDIA RTX 3080+" style={inp} />
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">GPU</label>
+                <input type="text" bind:value={settingsGpuReq} placeholder="e.g. NVIDIA RTX 3080+" class={inp} />
               </div>
               <div>
-                <label style="font-size: 11px; color: var(--text-tertiary); display: block; margin-bottom: 4px;">RAM</label>
-                <input type="text" bind:value={settingsRamReq} placeholder="e.g. 16GB" style={inp} />
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">RAM</label>
+                <input type="text" bind:value={settingsRamReq} placeholder="e.g. 16GB" class={inp} />
               </div>
             </div>
           </div>
 
           <!-- Save + Advanced -->
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <a href="/develop/apps/{id}/settings" style="font-size: 12px; color: var(--text-tertiary); text-decoration: none;">
+          <div class="flex items-center justify-between">
+            <a href="/develop/apps/{id}/settings" class="text-[12px] text-[var(--text-tertiary)] no-underline">
               Advanced settings &rarr;
             </a>
             <button type="button" onclick={handleSettingsSave}
-              style="height: 36px; padding: 0 20px; border-radius: 6px; font-size: 13px; font-weight: 600; background: var(--accent-base); color: #0C0C0E; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5">
               <Save size={14} strokeWidth={2} /> Save Changes
             </button>
           </div>

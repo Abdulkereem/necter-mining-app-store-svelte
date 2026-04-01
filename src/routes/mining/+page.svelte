@@ -342,10 +342,9 @@
 	<!-- Not connected state -->
 	<div class="flex items-center justify-center min-h-[60vh] p-6">
 		<div
-			class="bg-honeycomb"
-			style="background: var(--surface-1); background-image: var(--honeycomb-pattern); border: 1px solid var(--border-default); border-radius: 8px; padding: 48px 40px; text-align: center; max-width: 400px; width: 100%;"
+			class="bg-honeycomb bg-[var(--surface-1)] [background-image:var(--honeycomb-pattern)] border border-[var(--border-default)] rounded-lg px-10 py-12 text-center max-w-[400px] w-full"
 		>
-			<div style="width: 48px; height: 48px; margin: 0 auto 16px;">
+			<div class="w-12 h-12 mx-auto mb-4">
 				<svg viewBox="0 0 48 48" fill="none">
 					<polygon
 						points="24,2 44.8,12.5 44.8,35.5 24,46 3.2,35.5 3.2,12.5"
@@ -363,13 +362,12 @@
 					<circle cx="24" cy="24" r="3" fill="var(--accent-base)" />
 				</svg>
 			</div>
-			<p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 20px;">
+			<p class="text-[13px] text-[var(--text-secondary)] mb-4 leading-5">
 				Connect a wallet to view your mining dashboard.
 			</p>
 			<button
-				class="btn-subscribe"
+				class="btn-subscribe text-[13px] h-8 px-4"
 				onclick={() => showConnectModal.set(true)}
-				style="font-size: 13px; height: 32px; padding: 0 16px;"
 			>
 				Connect Wallet
 			</button>
@@ -381,11 +379,11 @@
 		<!-- ── Page header ── -->
 		<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 px-4 md:px-0">
 			<div>
-				<h1 class="text-[20px] font-semibold tracking-tight" style="color: var(--text-primary);">My Mining</h1>
-				<p class="text-[12px] mt-0.5 hidden md:block" style="color: var(--text-tertiary);">
-					<span style="color: var(--text-secondary);">{subs.length}</span> projects &middot;
-					<span style="color: var(--text-secondary);">{activeCount}</span> active &middot;
-					<span style="color: var(--text-secondary); font-family: var(--font-mono);">{totalEarned.toFixed(2)}</span> NECTA earned
+				<h1 class="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">My Mining</h1>
+				<p class="text-[12px] mt-0.5 hidden md:block text-[var(--text-tertiary)]">
+					<span class="text-[var(--text-secondary)]">{subs.length}</span> projects &middot;
+					<span class="text-[var(--text-secondary)]">{activeCount}</span> active &middot;
+					<span class="text-[var(--text-secondary)] font-mono">{totalEarned.toFixed(2)}</span> NECTA earned
 				</p>
 			</div>
 			<div class="flex gap-1">
@@ -418,16 +416,16 @@
 			<div class="px-4 md:px-0">
 			{#if !minerId}
 				<div class="py-8 text-center">
-					<p class="text-[13px]" style="color: var(--text-tertiary);">Connect a wallet to view proofs.</p>
+					<p class="text-[13px] text-[var(--text-tertiary)]">Connect a wallet to view proofs.</p>
 				</div>
 			{:else if proofs.length === 0}
 				<div class="py-8 text-center">
-					<p class="text-[13px]" style="color: var(--text-tertiary);">No proofs yet. Subscribe to a project and start mining to generate proofs.</p>
+					<p class="text-[13px] text-[var(--text-tertiary)]">No proofs yet. Subscribe to a project and start mining to generate proofs.</p>
 				</div>
 			{:else}
 				<div class="flex flex-col gap-4">
 					<!-- Proof stats: 5 cards -->
-					<div class="grid grid-cols-2 md:grid-cols-5 gap-[1px] rounded-lg overflow-hidden border" style="background: var(--border-default); border-color: var(--border-default);">
+					<div class="grid grid-cols-2 md:grid-cols-5 gap-[1px] rounded-lg overflow-hidden border bg-[var(--border-default)] border-[var(--border-default)]">
 						{#each [
 							{ label: 'Verified', value: String(verifiedCount), color: 'var(--success)' },
 							{ label: 'Pending', value: String(pendingCount), color: 'var(--text-secondary)' },
@@ -435,18 +433,18 @@
 							{ label: 'Success Rate', value: `${successRate}%`, color: parseFloat(successRate) >= 90 ? 'var(--success)' : parseFloat(successRate) >= 50 ? 'var(--text-primary)' : 'var(--error)' },
 							{ label: 'Avg Verify', value: avgVerifyTime, color: 'var(--text-primary)' }
 						] as stat}
-							<div class="p-3 md:p-4 flex flex-col gap-1" style="background: var(--surface-1);">
-								<span class="text-[10px] md:text-[11px] font-medium uppercase tracking-wide" style="color: var(--text-tertiary);">{stat.label}</span>
-								<span class="text-[18px] md:text-[22px] font-semibold leading-7 -tracking-wide" style="font-family: var(--font-mono); color: {stat.color}; font-feature-settings: 'tnum' 1;">{stat.value}</span>
+							<div class="p-3 md:p-4 flex flex-col gap-1 bg-[var(--surface-1)]">
+								<span class="text-[10px] md:text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">{stat.label}</span>
+								<span class="text-[18px] md:text-[22px] font-semibold leading-7 -tracking-wide font-mono tabular-nums" style="color: {stat.color};">{stat.value}</span>
 							</div>
 						{/each}
 					</div>
 
 					<!-- Daily rate chart — stacked submitted/verified -->
 					{#if proofsDailyRate.bars.length > 0}
-						<div class="rounded-lg overflow-hidden border px-4 py-3.5" style="background: var(--surface-1); border-color: var(--border-default);">
+						<div class="rounded-lg overflow-hidden border px-4 py-3.5 bg-[var(--surface-1)] border-[var(--border-default)]">
 							<div class="flex items-center justify-between mb-2.5">
-								<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Proof Rate (14d)</span>
+								<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">Proof Rate (14d)</span>
 							</div>
 							<div class="flex items-end gap-[3px]" style="height: 60px;">
 								{#each proofsDailyRate.bars as bar}
@@ -463,12 +461,12 @@
 							</div>
 							<div class="flex items-center gap-3 mt-1.5">
 								<div class="flex items-center gap-1">
-									<div class="w-2 h-2 rounded-sm" style="background: var(--surface-3);"></div>
-									<span class="text-[10px]" style="color: var(--text-tertiary);">Submitted</span>
+									<div class="w-2 h-2 rounded-sm bg-[var(--surface-3)]"></div>
+									<span class="text-[10px] text-[var(--text-tertiary)]">Submitted</span>
 								</div>
 								<div class="flex items-center gap-1">
-									<div class="w-2 h-2 rounded-sm" style="background: var(--success); opacity: 0.7;"></div>
-									<span class="text-[10px]" style="color: var(--text-tertiary);">Verified</span>
+									<div class="w-2 h-2 rounded-sm bg-[var(--success)] opacity-70"></div>
+									<span class="text-[10px] text-[var(--text-tertiary)]">Verified</span>
 								</div>
 							</div>
 						</div>
@@ -476,17 +474,17 @@
 
 					<!-- Failure Rate by Project -->
 					{#if failureByProject.length > 0}
-						<div class="rounded-lg overflow-hidden border px-4 py-3.5" style="background: var(--surface-1); border-color: var(--border-default);">
-							<span class="text-[11px] font-semibold tracking-widest uppercase block mb-2.5" style="color: var(--text-tertiary);">Failure Rate by Project</span>
+						<div class="rounded-lg overflow-hidden border px-4 py-3.5 bg-[var(--surface-1)] border-[var(--border-default)]">
+							<span class="text-[11px] font-semibold tracking-widest uppercase block mb-2.5 text-[var(--text-tertiary)]">Failure Rate by Project</span>
 							<div class="flex flex-col gap-2">
 								{#each failureByProject as p}
 									{@const failRate = p.total > 0 ? (p.failed / p.total) * 100 : 0}
 									<div class="flex items-center gap-2.5">
-										<span class="text-[12px] w-[120px] overflow-hidden text-ellipsis whitespace-nowrap shrink-0" style="color: var(--text-primary);">{p.appName}</span>
-										<div class="flex-1 h-1 rounded-sm overflow-hidden" style="background: var(--surface-3);">
-											<div class="h-1 rounded-sm" style="width: {failRate}%; background: var(--error); opacity: 0.7;"></div>
+										<span class="text-[12px] w-[120px] overflow-hidden text-ellipsis whitespace-nowrap shrink-0 text-[var(--text-primary)]">{p.appName}</span>
+										<div class="flex-1 h-1 rounded-sm overflow-hidden bg-[var(--surface-3)]">
+											<div class="h-1 rounded-sm bg-[var(--error)] opacity-70" style="width: {failRate}%;"></div>
 										</div>
-										<span class="text-[11px] w-[55px] text-right shrink-0" style="font-family: var(--font-mono); color: var(--error);">{p.failed}/{p.total}</span>
+										<span class="text-[11px] w-[55px] text-right shrink-0 font-mono text-[var(--error)]">{p.failed}/{p.total}</span>
 									</div>
 								{/each}
 							</div>
@@ -494,7 +492,7 @@
 					{/if}
 
 					<!-- Proof table -->
-					<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
+					<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
 						<!-- Mobile proof list -->
 						<div class="md:hidden">
 							{#each sortedProofs as proof, idx}
@@ -518,17 +516,17 @@
 										/>
 									{/if}
 									<div class="min-w-0 flex-1">
-										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
+										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-primary)]">
 											{proofApp?.name ?? proof.appId}
 										</div>
-										<div class="text-[11px]" style="color: var(--text-tertiary);">
+										<div class="text-[11px] text-[var(--text-tertiary)]">
 											{proof.hash.slice(0, 10)}... &middot;
 											{new Date(proof.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
 										</div>
 									</div>
 									<div class="flex flex-col items-end gap-0.5 shrink-0">
 										<span class="text-[11px] font-medium capitalize" style="color: {proofDisputeColor};">{proofStatusLabel}</span>
-										<span class="text-[12px] font-semibold" style="font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum' 1;">${proof.reward.toFixed(2)}</span>
+										<span class="text-[12px] font-semibold font-mono text-[var(--text-primary)] tabular-nums">${proof.reward.toFixed(2)}</span>
 									</div>
 								</a>
 							{/each}
@@ -537,13 +535,12 @@
 						<!-- Desktop proof table -->
 						<div class="hidden md:block">
 							<div
-								class="grid h-8 px-3 items-center border-b"
-								style="grid-template-columns: 1fr 120px 80px 80px 80px; border-color: var(--border-default);"
+								class="grid h-8 px-3 items-center border-b border-[var(--border-default)] [grid-template-columns:1fr_120px_80px_80px_80px]"
 							>
 								{#each ['Project', 'Proof Hash', 'Status', 'Reward', 'Date'] as col, i}
 									<span
-										class="text-[10px] font-semibold tracking-widest uppercase"
-										style="color: var(--text-tertiary); text-align: {i > 0 ? 'right' : 'left'};"
+										class="text-[10px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]"
+										style="text-align: {i > 0 ? 'right' : 'left'};"
 									>
 										{col}
 									</span>
@@ -556,8 +553,8 @@
 								{@const proofDisputeColor = proof.disputeFiledAt ? (proof.disputeResolvedAt ? (proof.disputeOutcome === 'accepted' ? 'var(--success)' : 'var(--error)') : 'var(--warning)') : proofStatusColor}
 								<a
 									href="/mining/proofs/{proof.id}"
-									class="grid h-10 px-3 items-center no-underline transition-colors hover:bg-[var(--surface-2)]"
-									style="grid-template-columns: 1fr 120px 80px 80px 80px; {idx !== 0 ? 'border-top: 1px solid var(--border-default);' : ''}"
+									class="grid h-10 px-3 items-center no-underline transition-colors hover:bg-[var(--surface-2)] [grid-template-columns:1fr_120px_80px_80px_80px]"
+									style="{idx !== 0 ? 'border-top: 1px solid var(--border-default);' : ''}"
 								>
 									<div class="flex items-center gap-2 min-w-0">
 										{#if proofApp}
@@ -570,20 +567,20 @@
 												loading="lazy"
 											/>
 										{/if}
-										<span class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
+										<span class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-primary)]">
 											{proofApp?.name ?? proof.appId}
 										</span>
 									</div>
-									<span class="text-[11px] text-right" style="font-family: var(--font-mono); color: var(--text-tertiary);">
+									<span class="text-[11px] text-right font-mono text-[var(--text-tertiary)]">
 										{proof.hash.slice(0, 10)}...
 									</span>
 									<span class="text-[11px] font-medium text-right capitalize" style="color: {proofDisputeColor};">
 										{proofStatusLabel}
 									</span>
-									<span class="text-[12px] font-semibold text-right" style="font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum' 1;">
+									<span class="text-[12px] font-semibold text-right font-mono text-[var(--text-primary)] tabular-nums">
 										${proof.reward.toFixed(2)}
 									</span>
-									<span class="text-[11px] text-right" style="color: var(--text-tertiary);">
+									<span class="text-[11px] text-right text-[var(--text-tertiary)]">
 										{new Date(proof.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
 									</span>
 								</a>
@@ -609,28 +606,28 @@
 						{ label: '7 Days', value: earned7d.toFixed(2) },
 						{ label: '30 Days', value: earned30d.toFixed(2) }
 					] as stat}
-						<div class="p-3 rounded-lg border" style="background: var(--surface-1); border-color: var(--border-default);">
-							<span class="text-[10px] font-medium uppercase tracking-wide block" style="color: var(--text-tertiary);">{stat.label}</span>
-							<span class="text-[18px] font-semibold block mt-1" style="font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum' 1;">{stat.value}</span>
-							<span class="text-[10px]" style="color: var(--text-tertiary);">NECTA</span>
+						<div class="p-3 rounded-lg border bg-[var(--surface-1)] border-[var(--border-default)]">
+							<span class="text-[10px] font-medium uppercase tracking-wide block text-[var(--text-tertiary)]">{stat.label}</span>
+							<span class="text-[18px] font-semibold block mt-1 font-mono text-[var(--text-primary)] tabular-nums">{stat.value}</span>
+							<span class="text-[10px] text-[var(--text-tertiary)]">NECTA</span>
 						</div>
 					{/each}
 				</div>
 
 				<!-- Chart on mobile: HTML bar chart -->
-				<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-					<div class="px-3 py-2 border-b" style="border-color: var(--border-default);">
-						<span class="text-[10px] font-semibold uppercase tracking-wide" style="color: var(--text-tertiary);">30-day earnings</span>
+				<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+					<div class="px-3 py-2 border-b border-[var(--border-default)]">
+						<span class="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">30-day earnings</span>
 					</div>
 					<div class="px-2 py-2">
 						<div class="relative" style="height: 180px;">
 							{#if mobileTooltip !== null}
 								{@const d = earningsSeries[mobileTooltip.index]}
 								<div
-									class="absolute z-10 pointer-events-none bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px]"
-									style="bottom: 100%; left: {mobileTooltip.x}px; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap; color: var(--text-primary); font-family: var(--font-mono);"
+									class="absolute z-10 pointer-events-none bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px] text-[var(--text-primary)] font-mono whitespace-nowrap mb-1"
+								style="bottom: 100%; left: {mobileTooltip.x}px; transform: translateX(-50%);"
 								>
-									<span style="color: var(--text-tertiary);">{d.date}</span>: {d.value.toFixed(4)} NECTA
+									<span class="text-[var(--text-tertiary)]">{d.date}</span>: {d.value.toFixed(4)} NECTA
 								</div>
 							{/if}
 							<div class="flex items-end gap-[2px] h-full">
@@ -647,19 +644,19 @@
 							</div>
 						</div>
 						<div class="flex justify-between mt-1">
-							<span class="text-[9px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">
+							<span class="text-[9px] text-[var(--text-tertiary)] font-mono">
 								{(() => { const d = new Date(earningsSeries[0]?.date ?? ''); return `${d.getMonth()+1}/${d.getDate()}`; })()}
 							</span>
-							<span class="text-[9px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">Today</span>
+							<span class="text-[9px] text-[var(--text-tertiary)] font-mono">Today</span>
 						</div>
 					</div>
 				</div>
 
 				<!-- Subscriptions card (mobile) -->
-				<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-					<div class="px-3 py-2.5 border-b flex items-center justify-between" style="border-color: var(--border-default);">
-						<span class="text-[13px] font-semibold" style="color: var(--text-primary);">Subscriptions</span>
-						<a href="/mining/subscriptions" class="text-[11px] font-medium no-underline" style="color: var(--text-accent);">
+				<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+					<div class="px-3 py-2.5 border-b border-[var(--border-default)] flex items-center justify-between">
+						<span class="text-[13px] font-semibold text-[var(--text-primary)]">Subscriptions</span>
+						<a href="/mining/subscriptions" class="text-[11px] font-medium no-underline text-[var(--text-accent)]">
 							View All ({subs.length})
 						</a>
 					</div>
@@ -670,7 +667,7 @@
 								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-4 pt-4 pb-6">
-								<p class="text-[13px] mb-3" style="color: var(--text-secondary);">You are not mining any projects yet.</p>
+								<p class="text-[13px] mb-3 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
 								<a href="/discover" class="btn-subscribe">Discover projects</a>
 							</div>
 						</div>
@@ -687,10 +684,10 @@
 									<img src={iconSrc} alt={app.name} width="28" height="28" class="rounded-[5px] shrink-0" loading="lazy" />
 								{/if}
 								<div class="min-w-0 flex-1">
-									<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
+									<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-primary)]">
 										{app?.name ?? s.appId}
 									</div>
-									<div class="text-[11px]" style="color: var(--text-tertiary);">
+									<div class="text-[11px] text-[var(--text-tertiary)]">
 										{s.totalEarned.toFixed(2)} NECTA &middot; {s.uptime.toFixed(0)}%
 									</div>
 								</div>
@@ -707,8 +704,7 @@
 
 				<!-- 5 stat cards -->
 				<div
-					class="grid gap-[1px] rounded-lg overflow-hidden border"
-					style="grid-template-columns: repeat(5, 1fr); background: var(--border-default); border-color: var(--border-default);"
+					class="grid gap-[1px] rounded-lg overflow-hidden border grid-cols-5 bg-[var(--border-default)] border-[var(--border-default)]"
 				>
 					{#each [
 						{ label: 'Today', value: earnedToday.toFixed(2), isReputation: false, muted: false },
@@ -717,36 +713,36 @@
 						{ label: 'Pending', value: pendingRewards.toFixed(2), isReputation: false, muted: true },
 						{ label: 'Reputation', value: reputation, isReputation: true, muted: false }
 					] as stat}
-						<div class="p-4 flex flex-col gap-0.5" style="background: var(--surface-1);">
-							<span class="text-[10px] font-medium uppercase tracking-wide" style="color: var(--text-tertiary);">{stat.label}</span>
+						<div class="p-4 flex flex-col gap-0.5 bg-[var(--surface-1)]">
+							<span class="text-[10px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">{stat.label}</span>
 							<span
-								class="text-[22px] font-semibold leading-7 -tracking-wide"
-								style="font-family: var(--font-mono); font-feature-settings: 'tnum' 1; color: {stat.isReputation ? (parseFloat(stat.value) >= 80 ? 'var(--text-accent)' : 'var(--text-primary)') : stat.muted ? 'var(--text-secondary)' : 'var(--text-primary)'};"
+								class="text-[22px] font-semibold leading-7 -tracking-wide font-mono tabular-nums"
+								style="color: {stat.isReputation ? (parseFloat(stat.value) >= 80 ? 'var(--text-accent)' : 'var(--text-primary)') : stat.muted ? 'var(--text-secondary)' : 'var(--text-primary)'};"
 							>
 								{stat.value}
 							</span>
-							<span class="text-[11px]" style="color: var(--text-tertiary);">{stat.isReputation ? 'score' : 'NECTA'}</span>
+							<span class="text-[11px] text-[var(--text-tertiary)]">{stat.isReputation ? 'score' : 'NECTA'}</span>
 						</div>
 					{/each}
 				</div>
 
 				<!-- Chart + side panels -->
-				<div class="grid gap-3 items-start" style="grid-template-columns: 1fr 300px;">
+				<div class="grid gap-3 items-start [grid-template-columns:1fr_300px]">
 
 					<!-- Earnings bar chart -->
-					<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-						<div class="px-4 py-3 border-b flex items-center justify-between" style="border-color: var(--border-default);">
-							<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">30-day earnings</span>
+					<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+						<div class="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between">
+							<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">30-day earnings</span>
 						</div>
 						<div class="px-4 py-3">
 							<div class="relative" style="height: 340px;">
 								{#if desktopTooltip !== null}
 									{@const td = earningsSeries[desktopTooltip.index]}
 									<div
-										class="absolute z-10 pointer-events-none bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px]"
-										style="bottom: 100%; left: {desktopTooltip.x}px; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap; color: var(--text-primary); font-family: var(--font-mono);"
+										class="absolute z-10 pointer-events-none bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px] text-[var(--text-primary)] font-mono whitespace-nowrap mb-1"
+										style="bottom: 100%; left: {desktopTooltip.x}px; transform: translateX(-50%);"
 									>
-										<span style="color: var(--text-tertiary);">{td.date}</span>: {td.value.toFixed(4)} NECTA
+										<span class="text-[var(--text-tertiary)]">{td.date}</span>: {td.value.toFixed(4)} NECTA
 									</div>
 								{/if}
 								<div class="flex items-end gap-[2px] h-full">
@@ -763,10 +759,10 @@
 								</div>
 							</div>
 							<div class="flex justify-between mt-1.5">
-								<span class="text-[10px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">
+								<span class="text-[10px] text-[var(--text-tertiary)] font-mono">
 									{(() => { const d = new Date(earningsSeries[0]?.date ?? ''); return `${d.getMonth()+1}/${d.getDate()}`; })()}
 								</span>
-								<span class="text-[10px]" style="color: var(--text-tertiary); font-family: var(--font-mono);">Today</span>
+								<span class="text-[10px] text-[var(--text-tertiary)] font-mono">Today</span>
 							</div>
 						</div>
 					</div>
@@ -774,13 +770,13 @@
 					<!-- Side panels -->
 					<div class="flex flex-col gap-2">
 						<!-- Latest payouts -->
-						<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-							<div class="px-3 py-2.5 border-b flex items-center gap-1.5" style="border-color: var(--border-default);">
-								<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Latest payouts</span>
+						<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+							<div class="px-3 py-2.5 border-b border-[var(--border-default)] flex items-center gap-1.5">
+								<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">Latest payouts</span>
 							</div>
 							<div class="py-1 max-h-44 overflow-y-auto">
 								{#if latestPayouts.length === 0}
-									<p class="text-xs px-3 py-2.5" style="color: var(--text-tertiary);">No payouts yet.</p>
+									<p class="text-xs px-3 py-2.5 text-[var(--text-tertiary)]">No payouts yet.</p>
 								{:else}
 									{#each latestPayouts as p}
 										{@const href = p.subscriptionId ? `/mining/${encodeURIComponent(p.subscriptionId)}` : '/mining'}
@@ -788,11 +784,11 @@
 											{href}
 											class="flex items-center justify-between gap-2 h-8 px-3 no-underline transition-colors hover:bg-[var(--surface-2)]"
 										>
-											<span class="text-[11px] shrink-0" style="color: var(--text-tertiary); font-family: var(--font-mono);">{relativeTime(p.createdAt)}</span>
-											<span class="text-[12px] overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0" style="color: var(--text-secondary);" title={p.app?.name ?? p.appId}>
+											<span class="text-[11px] shrink-0 text-[var(--text-tertiary)] font-mono">{relativeTime(p.createdAt)}</span>
+											<span class="text-[12px] overflow-hidden text-ellipsis whitespace-nowrap flex-1 min-w-0 text-[var(--text-secondary)]" title={p.app?.name ?? p.appId}>
 												{p.app?.name ?? p.appId}
 											</span>
-											<span class="text-[11px] font-semibold shrink-0" style="font-family: var(--font-mono); color: var(--success); font-feature-settings: 'tnum' 1;">
+											<span class="text-[11px] font-semibold shrink-0 font-mono text-[var(--success)] tabular-nums">
 												+{Number(p.minerAmount).toFixed(4)}
 											</span>
 										</a>
@@ -802,13 +798,13 @@
 						</div>
 
 						<!-- Top projects -->
-						<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-							<div class="px-3 py-2.5 border-b" style="border-color: var(--border-default);">
-								<span class="text-[11px] font-semibold tracking-widest uppercase" style="color: var(--text-tertiary);">Top projects</span>
+						<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+							<div class="px-3 py-2.5 border-b border-[var(--border-default)]">
+								<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">Top projects</span>
 							</div>
 							<div class="py-1">
 								{#if topNetworks.length === 0}
-									<p class="text-xs px-3 py-2.5" style="color: var(--text-tertiary);">No payouts yet.</p>
+									<p class="text-xs px-3 py-2.5 text-[var(--text-tertiary)]">No payouts yet.</p>
 								{:else}
 									{#each topNetworks as x}
 										<a
@@ -816,14 +812,14 @@
 											class="flex items-center justify-between h-9 px-3 gap-2 no-underline transition-colors hover:bg-[var(--surface-2)]"
 										>
 											<div class="min-w-0 flex-1">
-												<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
+												<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-primary)]">
 													{x.app?.name ?? x.appId}
 												</div>
-												<div class="text-[11px] overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-tertiary);">
+												<div class="text-[11px] overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-tertiary)]">
 													{x.app?.category ?? ''}
 												</div>
 											</div>
-											<span class="text-[12px] shrink-0" style="font-family: var(--font-mono); color: var(--text-secondary); font-feature-settings: 'tnum' 1;">
+											<span class="text-[12px] shrink-0 font-mono text-[var(--text-secondary)] tabular-nums">
 												{x.amount.toFixed(4)}
 											</span>
 										</a>
@@ -836,13 +832,13 @@
 				</div>
 
 				<!-- Subscriptions card (desktop) -->
-				<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-					<div class="px-4 pt-3.5 pb-3 border-b flex items-center justify-between" style="border-color: var(--border-default);">
+				<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+					<div class="px-4 pt-3.5 pb-3 border-b border-[var(--border-default)] flex items-center justify-between">
 						<div>
-							<h3 class="text-sm font-semibold m-0 -tracking-tight" style="color: var(--text-primary);">Subscriptions</h3>
-							<p class="text-[11px] mt-0.5 mb-0" style="color: var(--text-tertiary);">Click a row to open its detail page</p>
+							<h3 class="text-sm font-semibold m-0 -tracking-tight text-[var(--text-primary)]">Subscriptions</h3>
+							<p class="text-[11px] mt-0.5 mb-0 text-[var(--text-tertiary)]">Click a row to open its detail page</p>
 						</div>
-						<a href="/mining/subscriptions" class="text-xs font-medium no-underline shrink-0" style="color: var(--text-accent);">
+						<a href="/mining/subscriptions" class="text-xs font-medium no-underline shrink-0 text-[var(--text-accent)]">
 							View All ({subs.length})
 						</a>
 					</div>
@@ -853,20 +849,19 @@
 								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-6 pt-5 pb-7">
-								<p class="text-[13px] mb-4" style="color: var(--text-secondary);">You are not mining any projects yet.</p>
+								<p class="text-[13px] mb-4 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
 								<a href="/discover" class="btn-subscribe">Discover projects</a>
 							</div>
 						</div>
 					{:else}
 						<!-- Grid table header -->
 						<div
-							class="grid h-8 px-3 items-center border-b"
-							style="grid-template-columns: 1fr 80px 80px 80px 80px 80px; border-color: var(--border-default);"
+							class="grid h-8 px-3 items-center border-b border-[var(--border-default)] [grid-template-columns:1fr_80px_80px_80px_80px_80px]"
 						>
 							{#each ['Project', 'Status', 'Earned', 'Tasks', 'Uptime', ''] as col, i}
 								<span
-									class="text-[10px] font-semibold tracking-widest uppercase"
-									style="color: var(--text-tertiary); text-align: {i > 0 ? 'right' : 'left'}; {i > 0 && i < 5 ? 'padding-right: 8px;' : ''}"
+									class="text-[10px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]"
+									style="text-align: {i > 0 ? 'right' : 'left'}; {i > 0 && i < 5 ? 'padding-right: 8px;' : ''}"
 								>
 									{col}
 								</span>
@@ -878,8 +873,8 @@
 							{@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : '/placeholder.svg'}
 							<a
 								href="/mining/{encodeURIComponent(s.id)}"
-								class="grid h-11 px-3 items-center no-underline transition-colors hover:bg-[var(--surface-2)]"
-								style="grid-template-columns: 1fr 80px 80px 80px 80px 80px; {idx !== 0 ? 'border-top: 1px solid var(--border-default);' : ''}"
+								class="grid h-11 px-3 items-center no-underline transition-colors hover:bg-[var(--surface-2)] [grid-template-columns:1fr_80px_80px_80px_80px_80px]"
+								style="{idx !== 0 ? 'border-top: 1px solid var(--border-default);' : ''}"
 							>
 								<!-- App name + icon -->
 								<div class="flex items-center gap-2.5 min-w-0">
@@ -887,8 +882,8 @@
 										<img src={iconSrc} alt={app.name} width="28" height="28" class="rounded-[5px] shrink-0" loading="lazy" />
 									{/if}
 									<div class="min-w-0">
-										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">{app?.name ?? s.appId}</div>
-										<div class="text-[11px] overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-tertiary);">{app?.developer ?? ''}</div>
+										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-primary)]">{app?.name ?? s.appId}</div>
+										<div class="text-[11px] overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-tertiary)]">{app?.developer ?? ''}</div>
 									</div>
 								</div>
 
@@ -901,23 +896,23 @@
 								</div>
 
 								<!-- Earned -->
-								<span class="text-[12px] text-right pr-2" style="font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum' 1;">
+								<span class="text-[12px] text-right pr-2 font-mono text-[var(--text-primary)] tabular-nums">
 									{s.totalEarned.toFixed(2)}
 								</span>
 
 								<!-- Tasks -->
-								<span class="text-[12px] text-right pr-2" style="font-family: var(--font-mono); color: var(--text-secondary); font-feature-settings: 'tnum' 1;">
+								<span class="text-[12px] text-right pr-2 font-mono text-[var(--text-secondary)] tabular-nums">
 									{s.tasksCompleted}
 								</span>
 
 								<!-- Uptime -->
-								<span class="text-[12px] text-right pr-2" style="font-family: var(--font-mono); color: var(--text-secondary); font-feature-settings: 'tnum' 1;">
+								<span class="text-[12px] text-right pr-2 font-mono text-[var(--text-secondary)] tabular-nums">
 									{s.uptime.toFixed(1)}%
 								</span>
 
 								<!-- Arrow -->
 								<div class="flex justify-end">
-									<ArrowUpRight size={14} strokeWidth={1.5} style="color: var(--text-tertiary);" />
+									<ArrowUpRight size={14} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
 								</div>
 							</a>
 						{/each}
@@ -926,30 +921,29 @@
 
 				<!-- Recommendations -->
 				{#if recommendations.length > 0}
-					<div class="rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-						<div class="px-4 py-2.5 border-b flex items-center justify-between gap-3" style="border-color: var(--border-default);">
+					<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+						<div class="px-4 py-2.5 border-b border-[var(--border-default)] flex items-center justify-between gap-3">
 							<div>
-								<span class="text-[14px] font-semibold -tracking-tight" style="color: var(--text-primary);">Recommended for you</span>
-								<p class="text-[12px] mt-0.5" style="color: var(--text-tertiary);">Based on your hardware profile and project performance</p>
+								<span class="text-[14px] font-semibold -tracking-tight text-[var(--text-primary)]">Recommended for you</span>
+								<p class="text-[12px] mt-0.5 text-[var(--text-tertiary)]">Based on your hardware profile and project performance</p>
 							</div>
-							<a href="/discover" class="inline-flex items-center gap-1 text-[12px] no-underline shrink-0" style="color: var(--text-accent);">
+							<a href="/discover" class="inline-flex items-center gap-1 text-[12px] no-underline shrink-0 text-[var(--text-accent)]">
 								Browse all
 								<ArrowUpRight size={12} strokeWidth={1.5} />
 							</a>
 						</div>
-						<div class="grid gap-[1px]" style="grid-template-columns: repeat(3, 1fr); background: var(--border-default);">
+						<div class="grid gap-[1px] grid-cols-3 bg-[var(--border-default)]">
 							{#each recommendations as app}
 								<a
 									href="/apps/{app.id}"
-									class="flex items-center gap-2.5 p-3 no-underline transition-colors hover:bg-[var(--surface-2)]"
-									style="background: var(--surface-1);"
+									class="flex items-center gap-2.5 p-3 no-underline transition-colors hover:bg-[var(--surface-2)] bg-[var(--surface-1)]"
 								>
 									<img src={appIcon(app)} alt={app.name} width="32" height="32" class="rounded-[5px] shrink-0" loading="lazy" />
 									<div class="min-w-0 flex-1">
-										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap" style="color: var(--text-primary);">
+										<div class="text-[13px] font-medium overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-primary)]">
 											{app.name}
 										</div>
-										<div class="text-[11px]" style="color: var(--text-tertiary); font-family: var(--font-mono); font-feature-settings: 'tnum' 1;">
+										<div class="text-[11px] text-[var(--text-tertiary)] font-mono tabular-nums">
 											${app.avgEarningsPerDay.toFixed(2)}/day &middot; {app.reputationScore.toFixed(0)} rep
 										</div>
 									</div>
@@ -962,17 +956,16 @@
 
 				<!-- Recent Activity — desktop only -->
 				{#if recentEvents.length > 0}
-					<div class="hidden md:block rounded-lg overflow-hidden border" style="background: var(--surface-1); border-color: var(--border-default);">
-						<div class="px-4 py-2.5 border-b flex items-center justify-between" style="border-color: var(--border-default);">
-							<span class="text-sm font-semibold" style="color: var(--text-primary);">Recent Activity</span>
-							<span class="text-[12px] tabular-nums" style="color: var(--text-secondary);">{recentEvents.length}</span>
+					<div class="hidden md:block rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+						<div class="px-4 py-2.5 border-b border-[var(--border-default)] flex items-center justify-between">
+							<span class="text-sm font-semibold text-[var(--text-primary)]">Recent Activity</span>
+							<span class="text-[12px] tabular-nums text-[var(--text-secondary)]">{recentEvents.length}</span>
 						</div>
-						<div class="divide-y" style="--tw-divide-color: var(--border-default);">
+						<div class="divide-y divide-[var(--border-default)]">
 							{#each recentEvents.slice(0, 4) as evt}
 								<div class="flex items-center gap-3 px-4 py-2.5">
 									<span
-										class="inline-flex h-6 w-6 items-center justify-center rounded shrink-0"
-										style="background: var(--surface-2);"
+										class="inline-flex h-6 w-6 items-center justify-center rounded shrink-0 bg-[var(--surface-2)]"
 									>
 										<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
 											<circle cx="6" cy="6" r="3" fill={eventIconColor(evt.type)} />
@@ -980,11 +973,11 @@
 									</span>
 									<div class="min-w-0 flex-1">
 										<span class="text-[12px] block overflow-hidden text-ellipsis whitespace-nowrap">
-											<span class="font-medium" style="color: var(--text-primary);">{eventLabel(evt.type)}</span>
-											<span style="color: var(--text-secondary);"> &middot; {evt.message}</span>
+											<span class="font-medium text-[var(--text-primary)]">{eventLabel(evt.type)}</span>
+											<span class="text-[var(--text-secondary)]"> &middot; {evt.message}</span>
 										</span>
 									</div>
-									<span class="text-[11px] shrink-0" style="color: var(--text-secondary);">{relativeTime(evt.createdAt)}</span>
+									<span class="text-[11px] shrink-0 text-[var(--text-secondary)]">{relativeTime(evt.createdAt)}</span>
 								</div>
 							{/each}
 						</div>
@@ -997,8 +990,7 @@
 	<!-- Toast notification -->
 	{#if toastMessage}
 		<div
-			class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-[13px] font-medium shadow-lg"
-			style="background: var(--surface-3); color: var(--text-primary); border: 1px solid var(--border-default);"
+			class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-[13px] font-medium shadow-lg bg-[var(--surface-3)] text-[var(--text-primary)] border border-[var(--border-default)]"
 		>
 			{toastMessage}
 		</div>

@@ -862,34 +862,34 @@
 								class="p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]"
 							>
 								<h3
-									style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;letter-spacing:-0.006em;"
+									class="text-[14px] font-semibold text-[var(--text-primary)] mb-1 tracking-[-0.006em]"
 								>
 									Leave a Review
 								</h3>
-								<p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+								<p class="text-[13px] text-[var(--text-secondary)] mb-4">
 									Share your experience mining on this network.
 								</p>
 
 								{#if submitted}
 									<div
-										style="padding:24px 16px;text-align:center;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);"
+										class="px-4 py-6 text-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)]"
 									>
 										<p
-											style="font-size:14px;font-weight:600;color:var(--success);margin:0;"
+											class="text-[14px] font-semibold text-[var(--success)]"
 										>
 											Review submitted, thank you!
 										</p>
 									</div>
 								{:else}
-									<div style="display:flex;flex-direction:column;gap:16px;">
+									<div class="flex flex-col gap-4">
 										<!-- Star rating -->
 										<div>
 											<label
-												style="display:block;font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:8px;"
+												class="block text-[13px] font-medium text-[var(--text-primary)] mb-2"
 											>
 												Rating
 											</label>
-											<div style="display:flex;gap:4px;">
+											<div class="flex gap-1">
 												{#each [1, 2, 3, 4, 5] as star}
 													{@const filled = star <= (hoverRating || rating)}
 													<button
@@ -897,9 +897,10 @@
 														onclick={() => (rating = star)}
 														onmouseenter={() => (hoverRating = star)}
 														onmouseleave={() => (hoverRating = 0)}
-														style="background:none;border:none;cursor:pointer;padding:2px;font-size:24px;line-height:1;color:{filled
+														class="bg-transparent border-none cursor-pointer p-0.5 text-2xl leading-none transition-all duration-100"
+														style="color:{filled
 															? '#F2C94C'
-															: 'var(--text-tertiary)'};transition:color 100ms ease-out,transform 100ms ease-out;transform:{filled
+															: 'var(--text-tertiary)'};transform:{filled
 															? 'scale(1.1)'
 															: 'scale(1)'};"
 														aria-label="Rate {star} star{star > 1 ? 's' : ''}"
@@ -909,7 +910,7 @@
 												{/each}
 												{#if rating > 0}
 													<span
-														style="font-size:12px;color:var(--text-secondary);margin-left:8px;align-self:center;"
+														class="text-[12px] text-[var(--text-secondary)] ml-2 self-center"
 													>
 														{rating}/5
 													</span>
@@ -920,7 +921,7 @@
 										<!-- Comment textarea -->
 										<div>
 											<label
-												style="display:block;font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:8px;"
+												class="block text-[13px] font-medium text-[var(--text-primary)] mb-2"
 											>
 												Comment (optional)
 											</label>
@@ -928,7 +929,7 @@
 												bind:value={comment}
 												placeholder="Tell other miners about your experience..."
 												rows="3"
-												style="width:100%;padding:8px 12px;font-size:13px;border-radius:5px;border:1px solid var(--border);background:var(--surface-0);color:var(--text-primary);resize:vertical;outline:none;font-family:inherit;box-sizing:border-box;"
+												class="w-full px-3 py-2 text-[13px] rounded-[5px] border border-[var(--border)] bg-[var(--surface-0)] text-[var(--text-primary)] resize-y outline-none font-inherit box-border"
 											></textarea>
 										</div>
 
@@ -937,13 +938,14 @@
 											type="button"
 											onclick={handleSubmitReview}
 											disabled={rating === 0}
-											style="height:36px;padding:0 20px;border-radius:5px;border:none;font-size:13px;font-weight:600;cursor:{rating === 0
+											class="h-9 px-5 rounded-[5px] border-none text-[13px] font-semibold transition-colors duration-100 self-start"
+											style="cursor:{rating === 0
 												? 'not-allowed'
 												: 'pointer'};background:{rating === 0
 												? 'var(--surface-2)'
 												: 'var(--accent)'};color:{rating === 0
 												? 'var(--text-tertiary)'
-												: '#0C0C0E'};transition:background 100ms ease-out;align-self:flex-start;"
+												: '#0C0C0E'};"
 										>
 											Submit Review
 										</button>
@@ -1314,8 +1316,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:24%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[24%]"
 										></div>
 									</div>
 								</div>
@@ -1344,8 +1345,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:32%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[32%]"
 										></div>
 									</div>
 								</div>
@@ -1374,8 +1374,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:28%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[28%]"
 										></div>
 									</div>
 								</div>
@@ -1400,8 +1399,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:42%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[42%]"
 										></div>
 									</div>
 								</div>
@@ -1454,8 +1452,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:35%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[35%]"
 										></div>
 									</div>
 								</div>
@@ -1480,8 +1477,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:75%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[75%]"
 										></div>
 									</div>
 								</div>
@@ -1505,8 +1501,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:94%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[94%]"
 										></div>
 									</div>
 								</div>
@@ -1553,8 +1548,7 @@
 									</div>
 									<div class="w-full bg-[var(--surface-2)] rounded-full h-2 mt-2">
 										<div
-											class="bg-[var(--accent)] h-2 rounded-full"
-											style="width:18%"
+											class="bg-[var(--accent)] h-2 rounded-full w-[18%]"
 										></div>
 									</div>
 								</div>

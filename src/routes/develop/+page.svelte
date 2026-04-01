@@ -93,15 +93,15 @@
 {#if !devWalletAddress}
   <!-- ── Not connected ── -->
   <div class="animate-fadeIn px-6 pt-6 pb-12">
-    <div style="max-width:520px;margin:40px auto 0">
-      <div style="width:100%;height:200px;border-radius:12px 12px 0 0;overflow:hidden;position:relative">
-        <img src="/brand/hero-honeycomb.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center bottom" />
-        <div style="position:absolute;inset:0;background:linear-gradient(to top,var(--surface-1) 0%,transparent 60%)" />
+    <div class="max-w-[520px] mt-10 mx-auto">
+      <div class="w-full h-[200px] rounded-t-[12px] overflow-hidden relative">
+        <img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom" />
+        <div class="absolute inset-0" style="background:linear-gradient(to top,var(--surface-1) 0%,transparent 60%)" />
       </div>
-      <div style="background:var(--surface-1);border:1px solid var(--border-default);border-top:none;border-radius:0 0 12px 12px;padding:24px 32px 32px;text-align:center">
-        <img src="/brand/logo.svg" alt="" style="width:40px;height:40px;margin:0 auto 16px" />
-        <h2 style="font-size:18px;font-weight:600;color:var(--text-primary);margin:0 0 8px">Developer Portal</h2>
-        <p style="font-size:13px;color:var(--text-secondary);margin:0 auto 20px;line-height:20px;max-width:360px">Build mining networks on Necter. Define your workloads, set reward economics, and attract miners from the marketplace.</p>
+      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] border-t-0 rounded-b-[12px] px-8 pt-6 pb-8 text-center">
+        <img src="/brand/logo.svg" alt="" class="w-10 h-10 mx-auto mb-4" />
+        <h2 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">Developer Portal</h2>
+        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Build mining networks on Necter. Define your workloads, set reward economics, and attract miners from the marketplace.</p>
         <button type="button" onclick={() => { $showConnectModal = true; }} class="btn-primary">Connect Wallet</button>
       </div>
     </div>
@@ -110,14 +110,14 @@
 {:else if !enrollmentActive}
   <!-- ── No enrollment ── -->
   <div class="animate-fadeIn px-6 pt-6 pb-12">
-    <div style="max-width:520px;margin:40px auto 0">
-      <div style="width:100%;height:200px;border-radius:12px 12px 0 0;overflow:hidden;position:relative">
-        <img src="/brand/hero-honeycomb.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center bottom" />
-        <div style="position:absolute;inset:0;background:linear-gradient(to top,var(--surface-1) 0%,transparent 60%)" />
+    <div class="max-w-[520px] mt-10 mx-auto">
+      <div class="w-full h-[200px] rounded-t-[12px] overflow-hidden relative">
+        <img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom" />
+        <div class="absolute inset-0" style="background:linear-gradient(to top,var(--surface-1) 0%,transparent 60%)" />
       </div>
-      <div style="background:var(--surface-1);border:1px solid var(--border-default);border-top:none;border-radius:0 0 12px 12px;padding:24px 32px 32px;text-align:center">
-        <h2 style="font-size:18px;font-weight:600;color:var(--text-primary);margin:0 0 8px">Set Up Your Developer Account</h2>
-        <p style="font-size:13px;color:var(--text-secondary);margin:0 auto 20px;line-height:20px;max-width:360px">Complete your profile to start building and publishing mining networks on Necter.</p>
+      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] border-t-0 rounded-b-[12px] px-8 pt-6 pb-8 text-center">
+        <h2 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">Set Up Your Developer Account</h2>
+        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Complete your profile to start building and publishing mining networks on Necter.</p>
         <button type="button" onclick={() => { setupModalOpen = true; }} class="btn-primary">Get Started</button>
       </div>
     </div>
@@ -126,46 +126,46 @@
 {:else}
   <!-- ── Full developer dashboard ── -->
   <div class="animate-fadeIn px-6 pt-6 pb-12">
-    <div style="max-width:1152px;margin:0 auto;display:flex;flex-direction:column;gap:32px">
+    <div class="max-w-[1152px] mx-auto flex flex-col gap-8">
 
       <!-- Header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div class="flex items-center justify-between gap-4">
         <div>
-          <h1 style="font-size:20px;font-weight:600;color:var(--text-primary);letter-spacing:-0.015em;margin:0">Developer Portal</h1>
-          <p style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Build and manage mining networks on Necter</p>
+          <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-[-0.015em]">Developer Portal</h1>
+          <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Build and manage mining networks on Necter</p>
         </div>
-        <div style="display:flex;gap:8px">
-          <a href="/develop/profile" class="btn-secondary" style="gap:4px">Edit Profile</a>
-          <a href="/develop/create" class="btn-subscribe" style="gap:4px">
-            <Plus style="width:12px;height:12px" strokeWidth={2} />
+        <div class="flex gap-2">
+          <a href="/develop/profile" class="btn-secondary gap-1">Edit Profile</a>
+          <a href="/develop/create" class="btn-subscribe gap-1">
+            <Plus class="w-3 h-3" strokeWidth={2} />
             Create Network
           </a>
         </div>
       </div>
 
       <!-- Stats -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border-default);border:1px solid var(--border-default);border-radius:8px;overflow:hidden">
+      <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
         {#each [
           { label: 'Networks', value: developerApps.length.toString() },
           { label: 'Total Miners', value: totalMiners.toLocaleString() },
           { label: 'Revenue', value: `$${totalRevenue.toLocaleString()}`, accent: true },
           { label: 'Fleet Size', value: operatorMiners.length.toString() },
         ] as s}
-          <div style="background:var(--surface-1);padding:14px 16px">
-            <span style="font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.02em">{s.label}</span>
-            <span style="display:block;font-size:22px;font-weight:600;font-family:var(--font-mono);color:{s.accent ? 'var(--text-accent)' : 'var(--text-primary)'};margin-top:4px;font-feature-settings:'tnum' 1">{s.value}</span>
+          <div class="bg-[var(--surface-1)] px-4 py-3.5">
+            <span class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.02em]">{s.label}</span>
+            <span class="block text-[22px] font-semibold font-mono mt-1 tabular-nums" style="color:{s.accent ? 'var(--text-accent)' : 'var(--text-primary)'}">{s.value}</span>
           </div>
         {/each}
       </div>
 
       <!-- Your Networks -->
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <span style="font-size:14px;font-weight:600;color:var(--text-primary)">Your Networks</span>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-[14px] font-semibold text-[var(--text-primary)]">Your Networks</span>
         </div>
 
         {#if developerApps.length > 0}
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div class="grid grid-cols-3 gap-2.5">
             {#each developerApps as app (app.id)}
               {@const iconSrc = getIconSrc(app)}
               {@const listingStatus = getListingStatus(app.id)}
@@ -173,44 +173,40 @@
               {@const statusBg = listingStatus === 'listed' ? 'rgba(76,183,130,0.12)' : listingStatus === 'pending_governance' ? 'rgba(242,153,74,0.12)' : 'var(--surface-3)'}
               {@const statusColor = listingStatus === 'listed' ? 'var(--success)' : listingStatus === 'pending_governance' ? 'var(--warning)' : 'var(--text-secondary)'}
               <div
-                style="background:var(--surface-1);border:1px solid var(--border-default);border-radius:8px;transition:border-color 100ms;overflow:hidden"
-                onmouseenter={(e) => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-                onmouseleave={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
+                class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] transition-colors overflow-hidden hover:border-[var(--border-hover)]"
               >
-                <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
-                  <a href="/develop/apps/{app.id}" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none">
-                    <img src={iconSrc} alt={app.name} width="40" height="40" style="border-radius:10px;flex-shrink:0" />
-                    <div style="flex:1;min-width:0">
-                      <div style="display:flex;align-items:center;gap:6px">
-                        <span style="font-size:13px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{app.name}</span>
-                        <span style="font-size:10px;font-weight:500;padding:1px 6px;border-radius:3px;flex-shrink:0;background:{statusBg};color:{statusColor}">
+                <div class="flex items-center gap-3 px-4 py-3.5">
+                  <a href="/develop/apps/{app.id}" class="flex items-center gap-3 flex-1 min-w-0 no-underline">
+                    <img src={iconSrc} alt={app.name} width="40" height="40" class="rounded-[10px] shrink-0" />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-[13px] font-medium text-[var(--text-primary)] overflow-hidden text-ellipsis whitespace-nowrap">{app.name}</span>
+                        <span class="text-[10px] font-medium px-1.5 py-px rounded-[3px] shrink-0" style="background:{statusBg};color:{statusColor}">
                           {statusLabel}
                         </span>
                       </div>
-                      <span style="font-size:11px;color:var(--text-tertiary)">{app.category}</span>
+                      <span class="text-[11px] text-[var(--text-tertiary)]">{app.category}</span>
                     </div>
-                    <div style="text-align:right;flex-shrink:0">
-                      <span style="display:block;font-size:12px;font-family:var(--font-mono);color:var(--text-primary);font-feature-settings:'tnum' 1">{app.totalMiners.toLocaleString()} miners</span>
-                      <span style="display:block;font-size:11px;font-family:var(--font-mono);color:var(--text-tertiary);font-feature-settings:'tnum' 1">${app.avgEarningsPerDay.toFixed(0)}/d avg</span>
+                    <div class="text-right shrink-0">
+                      <span class="block text-[12px] font-mono text-[var(--text-primary)] tabular-nums">{app.totalMiners.toLocaleString()} miners</span>
+                      <span class="block text-[11px] font-mono text-[var(--text-tertiary)] tabular-nums">${app.avgEarningsPerDay.toFixed(0)}/d avg</span>
                     </div>
                   </a>
 
                   {#if listingStatus === 'draft' && devWalletAddress}
                     <button
                       type="button"
-                      class="btn-subscribe"
-                      style="flex-shrink:0"
+                      class="btn-subscribe shrink-0"
                       onclick={(e) => { e.stopPropagation(); submitForReview(app); }}
                     >
-                      <Send style="width:12px;height:12px" strokeWidth={1.5} />
+                      <Send class="w-3 h-3" strokeWidth={1.5} />
                       Submit for Review
                     </button>
                   {/if}
                   {#if listingStatus === 'listed'}
                     <a
                       href="/develop/apps/{app.id}"
-                      class="btn-secondary"
-                      style="flex-shrink:0;font-size:12px;height:28px;padding:0 12px;text-decoration:none"
+                      class="btn-secondary shrink-0 text-[12px] h-7 px-3 no-underline"
                     >
                       Manage
                     </a>
@@ -220,11 +216,11 @@
             {/each}
           </div>
         {:else}
-          <div class="bg-honeycomb" style="border:1px dashed var(--border-default);border-radius:8px;padding:48px 24px;text-align:center">
-            <p style="font-size:14px;font-weight:500;color:var(--text-secondary);margin-bottom:4px">No networks yet</p>
-            <p style="font-size:12px;color:var(--text-tertiary);margin-bottom:16px">Create your first network or start from a template below.</p>
-            <a href="/develop/create" class="btn-subscribe" style="gap:4px">
-              <Plus style="width:12px;height:12px" strokeWidth={2} />
+          <div class="bg-honeycomb border border-dashed border-[var(--border-default)] rounded-[8px] px-6 py-12 text-center">
+            <p class="text-[14px] font-medium text-[var(--text-secondary)] mb-1">No networks yet</p>
+            <p class="text-[12px] text-[var(--text-tertiary)] mb-4">Create your first network or start from a template below.</p>
+            <a href="/develop/create" class="btn-subscribe gap-1">
+              <Plus class="w-3 h-3" strokeWidth={2} />
               Create Network
             </a>
           </div>
@@ -233,30 +229,28 @@
 
       <!-- Templates -->
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="flex items-center justify-between mb-3">
           <div>
-            <span style="font-size:14px;font-weight:600;color:var(--text-primary)">Templates</span>
-            <p style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Pre-configured networks. Pick one to auto-fill the creation wizard</p>
+            <span class="text-[14px] font-semibold text-[var(--text-primary)]">Templates</span>
+            <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Pre-configured networks. Pick one to auto-fill the creation wizard</p>
           </div>
-          <a href="/develop/templates" style="font-size:12px;color:var(--text-accent);text-decoration:none">View all &rarr;</a>
+          <a href="/develop/templates" class="text-[12px] text-[var(--text-accent)] no-underline">View all &rarr;</a>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div class="grid grid-cols-3 gap-2.5">
           {#each templates as t (t.name)}
             <a
               href="/develop/create?template={encodeURIComponent(t.name)}"
-              style="display:flex;flex-direction:column;border-radius:8px;border:1px solid var(--border-default);overflow:hidden;text-decoration:none;transition:all 100ms"
-              onmouseenter={(e) => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onmouseleave={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              class="flex flex-col rounded-[8px] border border-[var(--border-default)] overflow-hidden no-underline transition-all hover:border-[var(--border-hover)] hover:-translate-y-px"
             >
-              <div style="background:{t.gradient};padding:20px 16px 16px;display:flex;align-items:center;gap:10px">
+              <div class="flex items-center gap-2.5 px-4 pt-5 pb-4" style="background:{t.gradient}">
                 <t.icon style="width:24px;height:24px;color:{t.color};opacity:0.8" strokeWidth={1.5} />
-                <span style="font-size:14px;font-weight:600;color:#fff">{t.name}</span>
+                <span class="text-[14px] font-semibold text-white">{t.name}</span>
               </div>
-              <div style="padding:12px 16px 14px;background:var(--surface-1);flex:1;display:flex;flex-direction:column">
-                <p style="font-size:11px;color:var(--text-secondary);line-height:16px;margin:0 0 10px">{t.desc}</p>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto">
-                  <span style="font-size:10px;color:var(--text-tertiary)">{t.consensus} &middot; {t.reward}</span>
-                  <span style="font-size:11px;font-weight:500;color:var(--text-accent)">Use &rarr;</span>
+              <div class="px-4 pt-3 pb-3.5 bg-[var(--surface-1)] flex-1 flex flex-col">
+                <p class="text-[11px] text-[var(--text-secondary)] leading-4 mb-2.5">{t.desc}</p>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-[10px] text-[var(--text-tertiary)]">{t.consensus} &middot; {t.reward}</span>
+                  <span class="text-[11px] font-medium text-[var(--text-accent)]">Use &rarr;</span>
                 </div>
               </div>
             </a>

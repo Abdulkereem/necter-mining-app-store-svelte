@@ -157,28 +157,29 @@
     { label: 'Collateral', value: `${Number(collateral).toLocaleString()} NCR` },
   ]);
 
-  const inp = 'width:100%;height:36px;padding:0 12px;border-radius:6px;border:1px solid var(--border-default);background:var(--surface-0);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none';
-  const inpTextarea = inp.replace('height:36px;padding:0 12px', 'height:auto;padding:10px 12px') + ';line-height:1.5;resize:vertical';
+  const inp = 'n-input';
+  const inpTextarea = 'n-textarea';
 </script>
 
 <div class="min-h-screen animate-fadeIn">
-  <div style="max-width:680px;margin:0 auto;padding:24px">
+  <div class="max-w-[680px] mx-auto p-6">
     <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+    <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 style="font-size:20px;font-weight:600;color:var(--text-primary);margin:0">Create Network</h1>
-        <p style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Step {step} of 3 &middot; {stepLabels[step - 1]}</p>
+        <h1 class="text-[20px] font-semibold text-[var(--text-primary)]">Create Network</h1>
+        <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Step {step} of 3 &middot; {stepLabels[step - 1]}</p>
       </div>
-      <a href="/develop" class="back-link" style="margin:0"><ArrowLeft size={14} strokeWidth={1.5} /> Back</a>
+      <a href="/develop" class="back-link m-0"><ArrowLeft size={14} strokeWidth={1.5} /> Back</a>
     </div>
 
     <!-- Step bar -->
-    <div style="display:flex;gap:4px;margin-bottom:24px">
+    <div class="flex gap-1 mb-6">
       {#each stepLabels as label, i}
         <button
           type="button"
           onclick={() => { if (i + 1 <= step) step = i + 1; }}
-          style="flex:1;height:34px;border-radius:6px;border:none;font-size:12px;font-weight:500;cursor:{i + 1 <= step ? 'pointer' : 'default'};background:{step === i + 1 ? 'var(--accent-subtle)' : i + 1 < step ? 'rgba(76,183,130,0.08)' : 'var(--surface-1)'};color:{step === i + 1 ? 'var(--text-accent)' : i + 1 < step ? 'var(--success)' : 'var(--text-tertiary)'}"
+          class="flex-1 h-[34px] rounded-[6px] border-none text-[12px] font-medium"
+          style="cursor:{i + 1 <= step ? 'pointer' : 'default'};background:{step === i + 1 ? 'var(--accent-subtle)' : i + 1 < step ? 'rgba(76,183,130,0.08)' : 'var(--surface-1)'};color:{step === i + 1 ? 'var(--text-accent)' : i + 1 < step ? 'var(--success)' : 'var(--text-tertiary)'}"
         >
           {i + 1}. {label}
         </button>
@@ -187,53 +188,55 @@
 
     <!-- STEP 1: Details & Domain -->
     {#if step === 1}
-      <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="flex flex-col gap-4">
         <div class="n-card">
-          <h3 class="section-title" style="margin-bottom:14px">Network Details</h3>
-          <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 class="section-title mb-3.5">Network Details</h3>
+          <div class="flex flex-col gap-3">
             <div>
-              <label class="field-label">Network Name <span style="color:var(--error)">*</span></label>
-              <input type="text" bind:value={name} placeholder="e.g. Helium Network" style={inp} />
+              <label class="field-label">Network Name <span class="text-[var(--error)]">*</span></label>
+              <input type="text" bind:value={name} placeholder="e.g. Helium Network" class={inp} />
             </div>
             <div>
-              <label class="field-label">Description <span style="color:var(--error)">*</span></label>
-              <textarea bind:value={description} placeholder="What does your network do? What problem does it solve for miners?" rows="3" style={inpTextarea}></textarea>
+              <label class="field-label">Description <span class="text-[var(--error)]">*</span></label>
+              <textarea bind:value={description} placeholder="What does your network do? What problem does it solve for miners?" rows="3" class={inpTextarea}></textarea>
             </div>
           </div>
         </div>
 
         <div class="n-card">
-          <h3 class="section-title" style="margin-bottom:4px">Task Domain</h3>
-          <p class="field-hint" style="margin-bottom:12px">What kind of work will miners do on your network?</p>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <h3 class="section-title mb-1">Task Domain</h3>
+          <p class="field-hint mb-3">What kind of work will miners do on your network?</p>
+          <div class="grid grid-cols-3 gap-2">
             {#each taskDomains as td}
               {@const sel = taskDomain === td.type}
               <button
                 type="button"
                 onclick={() => { taskDomain = td.type; }}
-                style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;cursor:pointer;text-align:left;border:{sel ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{sel ? 'var(--accent-subtle)' : 'var(--surface-2)'}"
+                class="flex flex-col gap-1 p-3 rounded-[8px] cursor-pointer text-left"
+                style="border:{sel ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{sel ? 'var(--accent-subtle)' : 'var(--surface-2)'}"
               >
-                <td.icon style="width:18px;height:18px;color:{sel ? 'var(--text-accent)' : 'var(--text-tertiary)'};margin-bottom:2px" strokeWidth={1.5} />
-                <span style="font-size:13px;font-weight:600;color:{sel ? 'var(--text-accent)' : 'var(--text-primary)'}">{td.label}</span>
-                <span style="font-size:11px;color:var(--text-tertiary);line-height:14px">{td.desc}</span>
+                <td.icon class="w-[18px] h-[18px] mb-0.5" style="color:{sel ? 'var(--text-accent)' : 'var(--text-tertiary)'}" strokeWidth={1.5} />
+                <span class="text-[13px] font-semibold" style="color:{sel ? 'var(--text-accent)' : 'var(--text-primary)'}">{td.label}</span>
+                <span class="text-[11px] text-[var(--text-tertiary)] leading-[14px]">{td.desc}</span>
               </button>
             {/each}
           </div>
         </div>
 
         <div class="n-card">
-          <h3 class="section-title" style="margin-bottom:4px">Consensus Mechanism</h3>
-          <p class="field-hint" style="margin-bottom:12px">How will miners prove their work?</p>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <h3 class="section-title mb-1">Consensus Mechanism</h3>
+          <p class="field-hint mb-3">How will miners prove their work?</p>
+          <div class="grid grid-cols-3 gap-1.5">
             {#each consensusOptions as c}
               {@const sel = consensus === c.type}
               <button
                 type="button"
                 onclick={() => { consensus = c.type; }}
-                style="padding:10px;border-radius:6px;text-align:left;cursor:pointer;border:{sel ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{sel ? 'var(--accent-subtle)' : 'var(--surface-2)'}"
+                class="p-2.5 rounded-[6px] text-left cursor-pointer"
+                style="border:{sel ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{sel ? 'var(--accent-subtle)' : 'var(--surface-2)'}"
               >
-                <span style="display:block;font-size:12px;font-weight:600;color:{sel ? 'var(--text-accent)' : 'var(--text-primary)'}">{c.label}</span>
-                <span style="display:block;font-size:10px;color:var(--text-tertiary);margin-top:2px">{c.desc}</span>
+                <span class="block text-[12px] font-semibold" style="color:{sel ? 'var(--text-accent)' : 'var(--text-primary)'}">{c.label}</span>
+                <span class="block text-[10px] text-[var(--text-tertiary)] mt-0.5">{c.desc}</span>
               </button>
             {/each}
           </div>
@@ -243,52 +246,54 @@
 
     <!-- STEP 2: Economics & Hardware -->
     {#if step === 2}
-      <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="flex flex-col gap-4">
         <div class="n-card">
-          <h3 class="section-title" style="margin-bottom:4px">Reward Model</h3>
-          <p class="field-hint" style="margin-bottom:12px">How miners get paid for their work.</p>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+          <h3 class="section-title mb-1">Reward Model</h3>
+          <p class="field-hint mb-3">How miners get paid for their work.</p>
+          <div class="flex gap-1.5 flex-wrap mb-4">
             {#each rewardModels as r}
               {@const sel = rewardModel === r.type}
               <button
                 type="button"
                 onclick={() => { rewardModel = r.type; }}
-                style="padding:6px 14px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;border:{sel ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{sel ? 'var(--accent-subtle)' : 'var(--surface-2)'};color:{sel ? 'var(--text-accent)' : 'var(--text-secondary)'}"
+                class="px-3.5 py-1.5 rounded-[5px] text-[12px] font-medium cursor-pointer"
+                style="border:{sel ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{sel ? 'var(--accent-subtle)' : 'var(--surface-2)'};color:{sel ? 'var(--text-accent)' : 'var(--text-secondary)'}"
               >
                 {r.label}
               </button>
             {/each}
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="grid grid-cols-3 gap-3">
             <div>
               <label class="field-label">Reward / Task ($)</label>
-              <input type="number" bind:value={rewardAmount} style={inp} />
+              <input type="number" bind:value={rewardAmount} class={inp} />
             </div>
             <div>
               <label class="field-label">Daily Emission</label>
-              <input type="number" bind:value={dailyEmission} style={inp} />
+              <input type="number" bind:value={dailyEmission} class={inp} />
             </div>
             <div>
               <label class="field-label">Collateral (NCR)</label>
-              <input type="number" bind:value={collateral} style={inp} />
+              <input type="number" bind:value={collateral} class={inp} />
             </div>
           </div>
         </div>
 
         <div class="n-card">
-          <h3 class="section-title" style="margin-bottom:4px">Hardware Requirements</h3>
-          <p class="field-hint" style="margin-bottom:12px">Minimum specs miners need to participate.</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <h3 class="section-title mb-1">Hardware Requirements</h3>
+          <p class="field-hint mb-3">Minimum specs miners need to participate.</p>
+          <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="field-label">Min RAM (GB)</label>
-              <input type="number" bind:value={minRam} style={inp} />
+              <input type="number" bind:value={minRam} class={inp} />
             </div>
             <div>
               <label class="field-label">GPU Required</label>
               <button
                 type="button"
                 onclick={() => { gpuRequired = !gpuRequired; }}
-                style="{inp};display:flex;align-items:center;justify-content:center;cursor:pointer;border:{gpuRequired ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{gpuRequired ? 'var(--accent-subtle)' : 'var(--surface-0)'};color:{gpuRequired ? 'var(--text-accent)' : 'var(--text-secondary)'};font-weight:500"
+                class="n-input flex items-center justify-center cursor-pointer font-medium"
+                style="border:{gpuRequired ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{gpuRequired ? 'var(--accent-subtle)' : 'var(--surface-0)'};color:{gpuRequired ? 'var(--text-accent)' : 'var(--text-secondary)'}"
               >
                 {gpuRequired ? 'Yes, GPU Required' : 'No, CPU Only'}
               </button>
@@ -300,25 +305,25 @@
 
     <!-- STEP 3: Branding -->
     {#if step === 3}
-      <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="flex flex-col gap-4">
         <div class="n-card">
-          <h3 class="section-title" style="margin-bottom:14px">Branding & Media</h3>
-          <div style="display:flex;flex-direction:column;gap:16px">
+          <h3 class="section-title mb-3.5">Branding & Media</h3>
+          <div class="flex flex-col gap-4">
             <!-- Icon -->
             <div>
               <label class="field-label">App Icon</label>
-              <div style="display:flex;align-items:center;gap:12px">
-                <div style="width:64px;height:64px;border-radius:14px;border:{iconPreview ? 'none' : '2px dashed var(--border-default)'};background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+              <div class="flex items-center gap-3">
+                <div class="w-16 h-16 rounded-[14px] bg-[var(--surface-2)] flex items-center justify-center overflow-hidden shrink-0" style="border:{iconPreview ? 'none' : '2px dashed var(--border-default)'}">
                   {#if iconPreview}
-                    <img src={iconPreview} alt="Icon" width="64" height="64" style="border-radius:14px;object-fit:cover" />
+                    <img src={iconPreview} alt="Icon" width="64" height="64" class="rounded-[14px] object-cover" />
                   {:else}
-                    <ImageIcon size={24} strokeWidth={1.5} style="color:var(--text-tertiary)" />
+                    <ImageIcon size={24} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
                   {/if}
                 </div>
                 <div>
-                  <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;background:var(--surface-2);border:1px solid var(--border-default);color:var(--text-secondary)">
+                  <label class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[5px] text-[12px] font-medium cursor-pointer bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)]">
                     <Upload size={12} strokeWidth={1.5} /> Upload Icon
-                    <input type="file" accept="image/*" onchange={handleIconUpload} style="display:none" />
+                    <input type="file" accept="image/*" onchange={handleIconUpload} class="hidden" />
                   </label>
                   <p class="field-hint">512x512 recommended. Auto-generated if empty.</p>
                 </div>
@@ -328,24 +333,24 @@
             <!-- Screenshots -->
             <div>
               <label class="field-label">Screenshots ({screenshotPreviews.length}/5)</label>
-              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+              <div class="grid grid-cols-5 gap-2">
                 {#each screenshotPreviews as src, i}
-                  <div style="position:relative;aspect-ratio:16/10;border-radius:6px;overflow:hidden;border:1px solid var(--border-default)">
-                    <img {src} alt="Screenshot {i + 1}" style="width:100%;height:100%;object-fit:cover" />
+                  <div class="relative aspect-[16/10] rounded-[6px] overflow-hidden border border-[var(--border-default)]">
+                    <img {src} alt="Screenshot {i + 1}" class="w-full h-full object-cover" />
                     <button
                       type="button"
                       onclick={() => removeScreenshot(i)}
-                      style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:4px;background:rgba(0,0,0,0.7);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center"
+                      class="absolute top-1 right-1 w-5 h-5 rounded bg-black/70 border-none cursor-pointer flex items-center justify-center"
                     >
-                      <X size={12} strokeWidth={2} style="color:#fff" />
+                      <X size={12} strokeWidth={2} class="text-white" />
                     </button>
                   </div>
                 {/each}
                 {#if screenshotPreviews.length < 5}
-                  <label style="aspect-ratio:16/10;border-radius:6px;border:1px dashed var(--border-default);background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px">
-                    <Upload size={16} strokeWidth={1.5} style="color:var(--text-tertiary)" />
-                    <span style="font-size:10px;color:var(--text-tertiary)">Add</span>
-                    <input type="file" accept="image/*" multiple onchange={handleScreenshotUpload} style="display:none" />
+                  <label class="aspect-[16/10] rounded-[6px] border border-dashed border-[var(--border-default)] bg-[var(--surface-2)] flex flex-col items-center justify-center cursor-pointer gap-1">
+                    <Upload size={16} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
+                    <span class="text-[10px] text-[var(--text-tertiary)]">Add</span>
+                    <input type="file" accept="image/*" multiple onchange={handleScreenshotUpload} class="hidden" />
                   </label>
                 {/if}
               </div>
@@ -354,14 +359,14 @@
             <!-- Features -->
             <div>
               <label class="field-label">Features</label>
-              <textarea bind:value={featuresStr} rows="3" placeholder={"Real-time coverage mapping\nAutomatic proof of coverage\nRewards tracking dashboard"} style={inpTextarea}></textarea>
+              <textarea bind:value={featuresStr} rows="3" placeholder={"Real-time coverage mapping\nAutomatic proof of coverage\nRewards tracking dashboard"} class={inpTextarea}></textarea>
               <p class="field-hint">One per line. Shown on the app detail page.</p>
             </div>
 
             <!-- Tags -->
             <div>
               <label class="field-label">Tags</label>
-              <input type="text" bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" style={inp} />
+              <input type="text" bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" class={inp} />
               <p class="field-hint">Comma-separated. Used for search and discovery.</p>
             </div>
           </div>
@@ -369,12 +374,12 @@
 
         <!-- Summary -->
         <div class="n-card">
-          <h3 class="section-title" style="margin-bottom:12px">Summary</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <h3 class="section-title mb-3">Summary</h3>
+          <div class="grid grid-cols-2">
             {#each summaryRows as row}
-              <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border-default)">
-                <span style="font-size:12px;color:var(--text-tertiary)">{row.label}</span>
-                <span style="font-size:12px;font-weight:500;color:var(--text-primary)">{row.value}</span>
+              <div class="flex justify-between py-[7px] border-b border-[var(--border-default)]">
+                <span class="text-[12px] text-[var(--text-tertiary)]">{row.label}</span>
+                <span class="text-[12px] font-medium text-[var(--text-primary)]">{row.value}</span>
               </div>
             {/each}
           </div>
@@ -383,9 +388,9 @@
     {/if}
 
     <!-- Navigation -->
-    <div style="display:flex;justify-content:space-between;margin-top:24px">
+    <div class="flex justify-between mt-6">
       {#if step > 1}
-        <button type="button" onclick={() => { step = step - 1; }} class="btn-secondary" style="gap:4px">
+        <button type="button" onclick={() => { step = step - 1; }} class="btn-secondary gap-1">
           <ArrowLeft size={12} strokeWidth={1.5} /> Back
         </button>
       {:else}
@@ -397,7 +402,8 @@
           type="button"
           disabled={!canNext}
           onclick={() => { step = step + 1; }}
-          style="height:36px;padding:0 20px;border-radius:6px;font-size:13px;font-weight:600;background:var(--accent-base);color:#0C0C0E;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;opacity:{canNext ? 1 : 0.4}"
+          class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5"
+          style="opacity:{canNext ? 1 : 0.4}"
         >
           Next <ArrowRight size={14} strokeWidth={2} />
         </button>
@@ -406,7 +412,8 @@
           type="button"
           disabled={creating || !name.trim()}
           onclick={handleCreate}
-          style="height:36px;padding:0 20px;border-radius:6px;font-size:13px;font-weight:600;background:var(--accent-base);color:#0C0C0E;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;opacity:{creating || !name.trim() ? 0.4 : 1}"
+          class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5"
+          style="opacity:{creating || !name.trim() ? 0.4 : 1}"
         >
           {creating ? 'Creating...' : 'Create Network'}
         </button>

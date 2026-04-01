@@ -190,11 +190,10 @@
 {#if !$actor || !$wallet}
 	<!-- Hidden when no wallet -->
 {:else}
-	<div style="display: flex; flex-direction: column; gap: 16px;">
+	<div class="flex flex-col gap-4">
 		<!-- Summary stats -->
 		<div
-			class="grid grid-cols-2 md:grid-cols-4"
-			style="gap: 1px; background: var(--border-default); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;"
+			class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden"
 		>
 			{#each [
 				{
@@ -218,19 +217,20 @@
 				{ label: 'This Month', value: thisMonth().toFixed(2), sub: 'NECTA', color: null }
 			] as stat}
 				<div
-					style="background: var(--surface-1); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;"
+					class="bg-[var(--surface-1)] px-4 py-3.5 flex flex-col gap-1"
 				>
 					<span
-						style="font-size: 10px; font-weight: 500; color: var(--text-tertiary); letter-spacing: 0.02em; text-transform: uppercase;"
+						class="text-[10px] font-medium text-[var(--text-tertiary)] tracking-[0.02em] uppercase"
 					>
 						{stat.label}
 					</span>
 					<span
-						style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: {stat.color ?? 'var(--text-primary)'}; letter-spacing: -0.02em; line-height: 28px; font-feature-settings: 'tnum' 1;"
+						class="text-[20px] font-semibold font-mono tracking-[-0.02em] leading-7 tabular-nums"
+						style="color: {stat.color ?? 'var(--text-primary)'};"
 					>
 						{stat.value}
 					</span>
-					<span style="font-size: 10px; color: var(--text-tertiary); letter-spacing: 0.02em;">
+					<span class="text-[10px] text-[var(--text-tertiary)] tracking-[0.02em]">
 						{stat.sub ?? 'NECTA'}
 					</span>
 				</div>
@@ -239,81 +239,83 @@
 
 		<!-- Earnings chart with time range -->
 		<div
-			style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;"
+			class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] overflow-hidden"
 		>
 			<div
-				style="padding: 12px 16px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between;"
+				class="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between"
 			>
 				<span
-					style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary);"
+					class="text-[11px] font-semibold tracking-[0.04em] uppercase text-[var(--text-tertiary)]"
 				>
 					Earnings Trend
 				</span>
-				<div style="display: flex; gap: 2px; background: var(--surface-2); border-radius: 5px; padding: 2px;">
+				<div class="flex gap-0.5 bg-[var(--surface-2)] rounded-[5px] p-0.5">
 					{#each ['7d', '30d', '90d', 'all'] as range}
 						<button
 							type="button"
 							onclick={() => (timeRange = range as TimeRange)}
-							style="height: 24px; padding: 0 8px; border-radius: 4px; font-size: 11px; font-weight: 500; border: none; cursor: pointer; background: {timeRange ===
+							class="h-6 px-2 rounded text-[11px] font-medium border-none cursor-pointer transition-all duration-100"
+							style="background: {timeRange ===
 							range
 								? 'var(--surface-1)'
 								: 'transparent'}; color: {timeRange === range
 								? 'var(--text-primary)'
 								: 'var(--text-tertiary)'}; box-shadow: {timeRange === range
 								? '0 1px 3px rgba(0,0,0,0.2)'
-								: 'none'}; transition: background 100ms ease-out, color 100ms ease-out;"
+								: 'none'};"
 						>
 							{range === 'all' ? 'All' : range}
 						</button>
 					{/each}
 				</div>
 			</div>
-			<div style="padding: 16px;">
-				<div style="margin-bottom: 12px;">
+			<div class="p-4">
+				<div class="mb-3">
 					<span
-						style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: var(--text-primary); letter-spacing: -0.02em;"
+						class="text-[20px] font-semibold font-mono text-[var(--text-primary)] tracking-[-0.02em]"
 					>
 						{chartData.periodTotal.toFixed(2)}
 					</span>
-					<span style="font-size: 12px; color: var(--text-tertiary); margin-left: 6px;"
+					<span class="text-[12px] text-[var(--text-tertiary)] ml-1.5"
 						>NECTA</span
 					>
 				</div>
-				<div style="position: relative; height: 150px;">
+				<div class="relative h-[150px]">
 					{#if earningsTooltip !== null}
 						{@const tVal = chartData.bars[earningsTooltip.index]}
 						{@const tLabel = chartData.barLabels[earningsTooltip.index]}
 						<div
-							class="bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px]"
-							style="position: absolute; z-index: 10; pointer-events: none; bottom: 100%; left: {earningsTooltip.x}px; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap; color: var(--text-primary); font-family: var(--font-mono);"
+							class="absolute z-10 pointer-events-none bottom-full -translate-x-1/2 mb-1 whitespace-nowrap bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px] text-[var(--text-primary)] font-mono"
+							style="left: {earningsTooltip.x}px;"
 						>
-							<span style="color: var(--text-tertiary);">{tLabel}</span>: {tVal.toFixed(2)} NECTA
+							<span class="text-[var(--text-tertiary)]">{tLabel}</span>: {tVal.toFixed(2)} NECTA
 						</div>
 					{/if}
-					<div style="display: flex; align-items: flex-end; gap: 2px; height: 100%;">
+					<div class="flex items-end gap-0.5 h-full">
 						{#each chartData.bars as val, i}
 							{@const h = val > 0 ? Math.max(4, (val / chartData.maxVal) * 140) : 2}
 							<div
 								role="img"
 								aria-label="{chartData.barLabels[i]}: {val.toFixed(2)} NECTA"
-								style="flex: 1; height: {h}px; border-radius: 2px 2px 0 0; background: {earningsTooltip?.index === i ? 'var(--accent-base)' : i ===
+								class="flex-1 rounded-t-sm transition-all cursor-default"
+								style="height: {h}px; background: {earningsTooltip?.index === i ? 'var(--accent-base)' : i ===
 								chartData.bars.length - 1
 									? 'var(--accent-base)'
-									: 'var(--accent-subtle)'}; transition: height 200ms ease-out, background 80ms; cursor: default;"
+									: 'var(--accent-subtle)'};"
 								onmouseenter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); earningsTooltip = { index: i, x: rect.left - parent.left + rect.width / 2 }; }}
 								onmouseleave={() => { earningsTooltip = null; }}
 							></div>
 						{/each}
 					</div>
 				</div>
-				<div style="display: flex; justify-content: space-between; margin-top: 6px;">
+				<div class="flex justify-between mt-1.5">
 					<span
-						style="font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono);"
+						class="text-[10px] text-[var(--text-tertiary)] font-mono"
 					>
 						{chartData.startLabel}
 					</span>
 					<span
-						style="font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono);"
+						class="text-[10px] text-[var(--text-tertiary)] font-mono"
 					>
 						Today
 					</span>
@@ -322,35 +324,35 @@
 		</div>
 
 		<!-- Withdraw + Withdrawals -->
-		<div class="mobile-stack" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px;">
+		<div class="mobile-stack grid gap-4" style="grid-template-columns: 1.2fr 1fr;">
 			<!-- Withdraw form -->
 			<div
-				style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 20px;"
+				class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5"
 			>
 				<h3
-					style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px;"
+					class="text-[14px] font-semibold text-[var(--text-primary)] mb-4"
 				>
 					Withdraw
 				</h3>
 
 				<!-- Amount -->
-				<div style="margin-bottom: 12px;">
+				<div class="mb-3">
 					<label
-						style="display: block; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;"
+						class="block text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5"
 					>
 						Amount
 					</label>
-					<div style="display: flex; gap: 6px;">
+					<div class="flex gap-1.5">
 						<input
 							type="number"
 							bind:value={amount}
 							placeholder="0.00"
-							style="flex: 1; height: 36px; padding: 0 10px; font-size: 13px; font-family: var(--font-mono); background: var(--surface-0); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); outline: none;"
+							class="flex-1 h-9 px-2.5 text-[13px] font-mono bg-[var(--surface-0)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-primary)] outline-none"
 						/>
 						<button
 							type="button"
 							onclick={() => (amount = availableBalance.toString())}
-							style="height: 36px; padding: 0 12px; font-size: 11px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-secondary); cursor: pointer;"
+							class="h-9 px-3 text-[11px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-secondary)] cursor-pointer"
 						>
 							Max
 						</button>
@@ -358,15 +360,15 @@
 				</div>
 
 				<!-- Destination -->
-				<div style="margin-bottom: 12px;">
+				<div class="mb-3">
 					<label
-						style="display: block; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;"
+						class="block text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5"
 					>
 						Destination
 					</label>
 					<select
 						bind:value={recipient}
-						style="appearance: none; width: 100%; height: 36px; padding: 0 10px; font-size: 12px; font-family: var(--font-mono); background: var(--surface-0); border: 1px solid var(--border-default); border-radius: 5px; color: var(--text-primary); outline: none; cursor: pointer;"
+						class="appearance-none w-full h-9 px-2.5 text-[12px] font-mono bg-[var(--surface-0)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-primary)] outline-none cursor-pointer"
 					>
 						{#each savedRecipients as addr}
 							<option value={addr}>{addr.slice(0, 10)}...{addr.slice(-6)}</option>
@@ -376,7 +378,7 @@
 
 				<!-- Fee breakdown -->
 				<div
-					style="background: var(--surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--border-default); margin-bottom: 12px;"
+					class="bg-[var(--surface-2)] p-3 rounded-[6px] border border-[var(--border-default)] mb-3"
 				>
 					{#each [
 						{ label: 'Amount', value: `${parsedAmount.toFixed(2)} NECTA` },
@@ -384,21 +386,21 @@
 						{ label: 'Gas', value: `${gasNecta.toFixed(2)} NECTA` }
 					] as row}
 						<div
-							style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px;"
+							class="flex justify-between py-0.5 text-[12px]"
 						>
-							<span style="color: var(--text-tertiary);">{row.label}</span>
+							<span class="text-[var(--text-tertiary)]">{row.label}</span>
 							<span
-								style="color: var(--text-primary); font-family: var(--font-mono);"
+								class="text-[var(--text-primary)] font-mono"
 								>{row.value}</span
 							>
 						</div>
 					{/each}
 					<div
-						style="border-top: 1px solid var(--border-default); margin-top: 6px; padding-top: 6px; display: flex; justify-content: space-between; font-size: 13px;"
+						class="border-t border-[var(--border-default)] mt-1.5 pt-1.5 flex justify-between text-[13px]"
 					>
-						<span style="font-weight: 600; color: var(--text-primary);">You Receive</span>
+						<span class="font-semibold text-[var(--text-primary)]">You Receive</span>
 						<span
-							style="font-weight: 600; color: var(--success); font-family: var(--font-mono);"
+							class="font-semibold text-[var(--success)] font-mono"
 							>{Math.max(0, parsedAmount - totalFees).toFixed(2)} NECTA</span
 						>
 					</div>
@@ -409,8 +411,8 @@
 					type="button"
 					onclick={handleWithdraw}
 					disabled={!$wallet || !canWithdraw}
-					class="btn-subscribe"
-					style="width: 100%; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; opacity: {canWithdraw ? 1 : 0.4};"
+					class="btn-subscribe w-full h-[38px] inline-flex items-center justify-center gap-1.5"
+					style="opacity: {canWithdraw ? 1 : 0.4};"
 				>
 					<ArrowUpRight size={14} strokeWidth={2} />
 					Withdraw
@@ -419,13 +421,13 @@
 
 			<!-- Recent Withdrawals -->
 			<div
-				style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 20px;"
+				class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5"
 			>
 				<div
-					style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;"
+					class="flex items-center justify-between mb-3"
 				>
 					<h3
-						style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0;"
+						class="text-[14px] font-semibold text-[var(--text-primary)]"
 					>
 						Withdrawals
 					</h3>
@@ -433,7 +435,7 @@
 						<button
 							type="button"
 							onclick={exportCsv}
-							style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-tertiary); background: transparent; border: none; cursor: pointer;"
+							class="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] bg-transparent border-none cursor-pointer"
 						>
 							<Download size={12} strokeWidth={1.5} />
 							CSV
@@ -442,31 +444,33 @@
 				</div>
 
 				{#if minerWithdrawals.length === 0}
-					<p style="font-size: 12px; color: var(--text-tertiary); text-align: center; padding: 24px 0;">
+					<p class="text-[12px] text-[var(--text-tertiary)] text-center py-6">
 						No withdrawals yet
 					</p>
 				{:else}
-					<div style="display: flex; flex-direction: column; gap: 6px;">
+					<div class="flex flex-col gap-1.5">
 						{#each minerWithdrawals.slice(0, 8) as w}
 							{@const sc = statusColors[w.status] ?? statusColors.pending}
 							<div
 								onclick={() => (selectedWithdrawalId = selectedWithdrawalId === w.id ? null : w.id)}
-								style="padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-default); cursor: pointer; transition: background 100ms; background: {selectedWithdrawalId === w.id ? 'var(--surface-2)' : 'transparent'};"
+								class="px-3 py-2.5 rounded-[6px] border border-[var(--border-default)] cursor-pointer transition-colors"
+								style="background: {selectedWithdrawalId === w.id ? 'var(--surface-2)' : 'transparent'};"
 								role="button"
 								tabindex="0"
 								onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectedWithdrawalId = selectedWithdrawalId === w.id ? null : w.id; }}
 							>
-								<div style="display: flex; align-items: center; justify-content: space-between;">
+								<div class="flex items-center justify-between">
 									<span
-										style="font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum' 1;"
+										class="text-[13px] font-semibold font-mono text-[var(--text-primary)] tabular-nums"
 										>{w.amount.toFixed(2)} NECTA</span
 									>
 									<span
-										style="font-size: 10px; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; background: {sc.bg}; color: {sc.color};"
+										class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-[3px]"
+										style="background: {sc.bg}; color: {sc.color};"
 										>{w.status}</span
 									>
 								</div>
-								<span style="font-size: 10px; color: var(--text-tertiary);">
+								<span class="text-[10px] text-[var(--text-tertiary)]">
 									{new Date(w.requestedAt).toLocaleDateString('en-US', {
 										month: 'short',
 										day: 'numeric',
@@ -476,16 +480,16 @@
 
 								<!-- Expanded detail -->
 								{#if selectedWithdrawalId === w.id}
-									<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-default); display: flex; flex-direction: column; gap: 4px;">
+									<div class="mt-2.5 pt-2.5 border-t border-[var(--border-default)] flex flex-col gap-1">
 										{#each [
 											{ label: 'Fee', value: `${w.fee.toFixed(4)} NECTA` },
 											{ label: 'To', value: `${w.walletAddress.slice(0, 10)}...${w.walletAddress.slice(-6)}` },
 											...(w.completedAt ? [{ label: 'Completed', value: new Date(w.completedAt).toLocaleDateString() }] : []),
 											...(w.txHash ? [{ label: 'Tx', value: w.txHash.slice(0, 16) + '...' }] : [])
 										] as row}
-											<div style="display: flex; justify-content: space-between; font-size: 11px;">
-												<span style="color: var(--text-tertiary);">{row.label}</span>
-												<span style="color: var(--text-secondary); font-family: var(--font-mono);">{row.value}</span>
+											<div class="flex justify-between text-[11px]">
+												<span class="text-[var(--text-tertiary)]">{row.label}</span>
+												<span class="text-[var(--text-secondary)] font-mono">{row.value}</span>
 											</div>
 										{/each}
 									</div>

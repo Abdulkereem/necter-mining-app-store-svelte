@@ -344,8 +344,7 @@
 		<div class="relative group/scroll">
 			<div
 				bind:this={storyScrollRef}
-				class="flex gap-4 md:gap-6 overflow-x-auto pb-1"
-				style="scrollbar-width: none"
+				class="flex gap-4 md:gap-6 overflow-x-auto pb-1 [scrollbar-width:none]"
 			>
 				{#each storyApps as app, i (app.id)}
 					{@const colors = storyColors[i % storyColors.length]}
@@ -427,22 +426,21 @@
 		{#if bestNew.length > 0}
 			<section>
 				<div
-					style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
+					class="border-t border-[var(--border-default)] pt-5 mb-3"
 				>
 					<div
-						style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
+						class="flex items-baseline justify-between mb-3"
 					>
 						<h2
-							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
-							style="letter-spacing: -0.006em"
+							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0 tracking-[-0.006em]"
 						>
 							Best New Projects
 						</h2>
 						<a
 							href="/category"
-							style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
+							class="text-[12px] text-[var(--text-accent)] no-underline flex items-center gap-[2px]"
 						>
-							See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
+							See All <ChevronRight class="w-3 h-3" strokeWidth={1.5} />
 						</a>
 					</div>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -456,7 +454,7 @@
 									alt={app.name}
 									width="40"
 									height="40"
-									style="border-radius: 10px; flex-shrink: 0"
+									class="rounded-[10px] shrink-0"
 									loading="lazy"
 								/>
 								<div class="flex-1 min-w-0">
@@ -478,22 +476,21 @@
 		{#if trending.length > 0}
 			<section>
 				<div
-					style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
+					class="border-t border-[var(--border-default)] pt-5 mb-3"
 				>
 					<div
-						style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
+						class="flex items-baseline justify-between mb-3"
 					>
 						<h2
-							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
-							style="letter-spacing: -0.006em"
+							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0 tracking-[-0.006em]"
 						>
 							Trending Now
 						</h2>
 						<a
 							href="/leaderboards"
-							style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
+							class="text-[12px] text-[var(--text-accent)] no-underline flex items-center gap-[2px]"
 						>
-							See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
+							See All <ChevronRight class="w-3 h-3" strokeWidth={1.5} />
 						</a>
 					</div>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -507,7 +504,7 @@
 									alt={app.name}
 									width="40"
 									height="40"
-									style="border-radius: 10px; flex-shrink: 0"
+									class="rounded-[10px] shrink-0"
 									loading="lazy"
 								/>
 								<div class="flex-1 min-w-0">
@@ -532,27 +529,27 @@
 			{#if colApps.length > 0}
 				<section>
 					<div
-						style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
+						class="border-t border-[var(--border-default)] pt-5 mb-3"
 					>
 						<div
-							style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: {col.description ? '4px' : '12px'}"
+							class="flex items-baseline justify-between"
+							style="margin-bottom: {col.description ? '4px' : '12px'}"
 						>
 							<h2
-								class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
-								style="letter-spacing: -0.006em"
+								class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0 tracking-[-0.006em]"
 							>
 								{col.title}
 							</h2>
 							<a
 								href="/category"
-								style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
+								class="text-[12px] text-[var(--text-accent)] no-underline flex items-center gap-[2px]"
 							>
-								See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
+								See All <ChevronRight class="w-3 h-3" strokeWidth={1.5} />
 							</a>
 						</div>
 						{#if col.description}
 							<p
-								style="font-size: 12px; color: var(--text-tertiary); margin: 0 0 12px; line-height: 16px"
+								class="text-[12px] text-[var(--text-tertiary)] m-0 mb-3 leading-4"
 							>
 								{col.description}
 							</p>
@@ -568,7 +565,7 @@
 										alt={app.name}
 										width="40"
 										height="40"
-										style="border-radius: 10px; flex-shrink: 0"
+										class="rounded-[10px] shrink-0"
 										loading="lazy"
 									/>
 									<div class="flex-1 min-w-0">
@@ -591,29 +588,27 @@
 		{#if topEarning.length > 0}
 			<section>
 				<div
-					style="border-top: 1px solid var(--border-default); padding-top: 20px; margin-bottom: 12px"
+					class="border-t border-[var(--border-default)] pt-5 mb-3"
 				>
 					<div
-						style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"
+						class="flex items-baseline justify-between mb-3"
 					>
 						<h2
-							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0"
-							style="letter-spacing: -0.006em"
+							class="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] m-0 tracking-[-0.006em]"
 						>
 							Top Earning
 						</h2>
 						<a
 							href="/leaderboards"
-							style="font-size: 12px; color: var(--text-accent); text-decoration: none; display: flex; align-items: center; gap: 2px"
+							class="text-[12px] text-[var(--text-accent)] no-underline flex items-center gap-[2px]"
 						>
-							See All <ChevronRight style="width: 12px; height: 12px" strokeWidth={1.5} />
+							See All <ChevronRight class="w-3 h-3" strokeWidth={1.5} />
 						</a>
 					</div>
 					<div class="relative group/scroll">
 						<div
 							bind:this={topEarningScrollRef}
-							class="flex gap-4 md:gap-6 overflow-x-auto pb-1"
-							style="scrollbar-width: none"
+							class="flex gap-4 md:gap-6 overflow-x-auto pb-1 [scrollbar-width:none]"
 						>
 							{#each topEarning as app, i (app.id)}
 								<a href="/apps/{app.id}" class="group flex-shrink-0 no-underline">

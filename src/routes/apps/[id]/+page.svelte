@@ -591,8 +591,7 @@
 			     TABS -- horizontally scrollable on mobile
 			════════════════════════════════════════════════════════ -->
 			<div
-				class="flex gap-0 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-[3px] mb-6 w-full md:w-fit max-w-full overflow-x-auto"
-				style="-webkit-overflow-scrolling: touch;"
+				class="flex gap-0 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-[3px] mb-6 w-full md:w-fit max-w-full overflow-x-auto [-webkit-overflow-scrolling:touch]"
 			>
 				{#each tabLabels as tab}
 					<button

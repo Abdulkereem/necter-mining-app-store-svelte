@@ -55,7 +55,7 @@
 
 {#if !$actor}
 	<div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
-		<div class="text-center" style="padding-top:120px">
+		<div class="text-center pt-[120px]">
 			<p class="text-[13px] text-[var(--text-secondary)] mb-4">
 				Connect your wallet to view your devices.
 			</p>
@@ -85,8 +85,7 @@
 
 		<!-- Stats grid: 4-col desktop, 2-col mobile -->
 		<div
-			class="grid grid-cols-2 md:grid-cols-4 overflow-hidden rounded-[8px] border border-[var(--border-default)] mb-6"
-			style="gap:1px;background:var(--border-default)"
+			class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)] overflow-hidden rounded-[8px] border border-[var(--border-default)] mb-6"
 		>
 			{#each [
 				{ label: 'Devices', value: devices.length.toString() },
@@ -94,13 +93,13 @@
 				{ label: 'Total Earned', value: `$${totalEarned.toFixed(0)}` },
 				{ label: 'Avg Uptime', value: `${avgUptime.toFixed(1)}%` }
 			] as s (s.label)}
-				<div style="background:var(--surface-1);padding:12px 14px">
+				<div class="bg-[var(--surface-1)] p-3">
 					<span
-						style="font-size:10px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.02em"
+						class="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-[0.02em]"
 						>{s.label}</span
 					>
 					<p
-						style="font-size:18px;font-weight:600;font-family:var(--font-mono);color:var(--text-primary);margin:4px 0 0"
+						class="text-[18px] font-semibold font-mono text-[var(--text-primary)] mt-1"
 					>
 						{s.value}
 					</p>

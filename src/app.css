@@ -695,6 +695,33 @@
     border-color: var(--border-hover);
   }
 
+  /* ── Form inputs ── */
+  .n-input {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  .n-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
   /* ═══════════════════════════════════════════════════════
      STAT CARD — metric display
   ════════════════════════════════════════════════════════ */
