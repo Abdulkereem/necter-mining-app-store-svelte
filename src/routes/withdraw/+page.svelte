@@ -2,6 +2,7 @@
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { ArrowLeft, ArrowDownToLine } from 'lucide-svelte';
+  import { StatCard, Card, Input, Button } from '$lib/components/ui';
 
   let amount = $state('');
   let destination = $state('');
@@ -79,7 +80,7 @@
 
 {#if !walletAddress}
   <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
-    <div class="max-w-[480px] mt-20 mx-auto p-8 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg text-center">
+    <Card class="max-w-[480px] mt-20 mx-auto text-center" padding="p-8">
       <h2 class="text-[16px] font-semibold text-[var(--text-primary)] mb-2">
         Earnings & Withdrawals
       </h2>
@@ -89,7 +90,7 @@
       <button type="button" onclick={() => $showConnectModal = true} class="btn-pill-primary">
         Connect Wallet
       </button>
-    </div>
+    </Card>
   </div>
 {:else}
   <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
@@ -117,20 +118,13 @@
         { label: 'Total Withdrawn', value: fmtCurrency(totalWithdrawn), accent: false },
         { label: 'Pending', value: fmtCurrency(pendingAmount), accent: false },
       ] as stat}
-        <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg p-4">
-          <p class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] font-medium mb-1">
-            {stat.label}
-          </p>
-          <p class="text-[20px] font-semibold font-mono tabular-nums {stat.accent ? 'text-[var(--text-accent)]' : 'text-[var(--text-primary)]'}">
-            {stat.value}
-          </p>
-        </div>
+        <StatCard label={stat.label} value={stat.value} accent={stat.accent} />
       {/each}
     </div>
 
     <div class="grid grid-cols-2 gap-4">
       <!-- Withdrawal form -->
-      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg p-5">
+      <Card>
         <h2 class="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.006em] mb-4">
           Withdraw Funds
         </h2>
@@ -143,11 +137,11 @@
             </label>
             <div class="relative">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--text-tertiary)]">$</span>
-                <input
+                <Input
                   type="number"
                   bind:value={amount}
                   placeholder="0.00"
-                  class="w-full h-9 pl-7 pr-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] font-mono text-[var(--text-primary)] outline-none tabular-nums"
+                  class="pl-7 font-mono tabular-nums"
                 />
             </div>
             <p class="text-[11px] text-[var(--text-tertiary)] mt-1">
@@ -160,11 +154,11 @@
             <label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1.5">
               Destination Address
             </label>
-            <input
+            <Input
               type="text"
               bind:value={destination}
               placeholder={walletAddress}
-              class="w-full h-9 px-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[12px] font-mono text-[var(--text-primary)] outline-none"
+              class="font-mono text-[12px]"
             />
             <p class="text-[11px] text-[var(--text-tertiary)] mt-1">
               Leave blank to withdraw to connected wallet
@@ -181,21 +175,21 @@
             </div>
           </div>
 
-          <button
-            type="button"
+          <Button
             onclick={handleWithdraw}
             disabled={!canWithdraw}
-            class="btn-subscribe mt-1 {canWithdraw ? 'opacity-100 cursor-pointer' : 'opacity-40 cursor-not-allowed'}"
+            size="lg"
+            class="mt-1 w-full"
           >
             <ArrowDownToLine class="h-3.5 w-3.5" strokeWidth={1.5} />
             {submitting ? 'Processing...' : 'Withdraw'}
-          </button>
+          </Button>
         </div>
 
-      </div>
+      </Card>
 
       <!-- Recent withdrawals -->
-      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg overflow-hidden">
+      <Card padding="p-0" class="overflow-hidden">
         <div class="px-5 py-4 border-b border-[var(--border-default)]">
           <h2 class="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.006em] m-0">
             Recent Withdrawals
@@ -235,7 +229,7 @@
             {/each}
           </div>
         {/if}
-      </div>
+      </Card>
     </div>
   </div>
 {/if}

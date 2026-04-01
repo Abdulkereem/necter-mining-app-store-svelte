@@ -14,6 +14,7 @@
 		Clock,
 		AlertTriangle,
 	} from 'lucide-svelte';
+	import { Button, Badge, Modal, Input, Textarea } from '$lib/components/ui';
 
 	const PROPOSAL_STAKES: Record<string, number> = {
 		'parameter-update': 10,
@@ -224,9 +225,9 @@
 				Vote on proposals, review listings, and moderate flagged projects.
 			</p>
 		</div>
-		<button type="button" class="btn-subscribe hidden md:inline-flex" onclick={openCreateModal}>
+		<Button class="hidden md:inline-flex" onclick={openCreateModal}>
 			Create Proposal
-		</button>
+		</Button>
 	</div>
 
 	<!-- Stats Grid -->
@@ -255,9 +256,9 @@
 	</div>
 
 	<!-- Create Proposal — mobile, under stats -->
-	<button type="button" class="btn-subscribe w-full md:hidden mb-4" onclick={openCreateModal}>
+	<Button class="w-full md:hidden mb-4" onclick={openCreateModal}>
 		Create Proposal
-	</button>
+	</Button>
 
 	<!-- ═══════════════════════════════════════════
        SECTION: VOTING (proposals, listings, moderation)
@@ -294,10 +295,7 @@
 							>
 								<!-- Title + urgency -->
 								<div class="flex items-center gap-2 mb-1.5">
-									<span
-										class="inline-flex items-center px-1.5 py-0.5 rounded-[3px] bg-[var(--accent-subtle)] text-[9px] font-semibold text-[var(--text-accent)] uppercase flex-shrink-0"
-										>Proposal</span
-									>
+									<Badge variant="accent" class="flex-shrink-0 text-[9px] font-semibold uppercase">Proposal</Badge>
 									{#if urgency}
 										<span
 											class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold uppercase flex-shrink-0 {urgency.pulsing
@@ -374,10 +372,7 @@
 											>{g.yesVotes + g.noVotes} of {g.requiredAttestations} votes</span
 										>
 									</div>
-									<span
-										class="inline-flex items-center px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[9px] font-semibold text-[var(--text-secondary)] uppercase flex-shrink-0"
-										>Listing</span
-									>
+									<Badge variant="neutral" class="flex-shrink-0 text-[9px] font-semibold uppercase">Listing</Badge>
 								</div>
 								<!-- Progress -->
 								<div class="h-1.5 rounded-full w-full bg-[var(--surface-3)] overflow-hidden mb-1">
@@ -399,9 +394,8 @@
 									onclick={(e) => e.stopPropagation()}
 									onkeydown={(e) => e.stopPropagation()}
 								>
-									<button
-										type="button"
-										class="btn-subscribe flex-1 h-[34px] text-[12px]"
+									<Button
+										class="flex-1 h-[34px] text-[12px]"
 										onclick={(e) => {
 											e.stopPropagation();
 											if (!$actor) { $showConnectModal = true; return; }
@@ -410,10 +404,10 @@
 										}}
 									>
 										Approve
-									</button>
-									<button
-										type="button"
-										class="btn-secondary flex-1 h-[34px] text-[12px]"
+									</Button>
+									<Button
+										variant="secondary"
+										class="flex-1 h-[34px] text-[12px]"
 										onclick={(e) => {
 											e.stopPropagation();
 											if (!$actor) { $showConnectModal = true; return; }
@@ -422,7 +416,7 @@
 										}}
 									>
 										Reject
-									</button>
+									</Button>
 								</div>
 							</div>
 						{:else if item.kind === 'moderation'}
@@ -445,30 +439,22 @@
 											{c.reportCount} reports
 										</div>
 									</div>
-									<span
-										class="inline-flex items-center px-1.5 py-0.5 rounded-[3px] bg-[rgba(235,87,87,0.12)] text-[9px] font-semibold text-[var(--error)] uppercase flex-shrink-0"
-										>Flagged</span
-									>
+									<Badge variant="error" class="flex-shrink-0 text-[9px] font-semibold uppercase">Flagged</Badge>
 								</div>
 								<div class="flex gap-2">
-									<button
-										type="button"
-										class="btn-subscribe"
+									<Button
 										onclick={() => {
 											if (!$actor) { $showConnectModal = true; return; }
 											if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
 											safe(() => backend.castModerationVote({ appId: c.appId, voterId: $actor!.walletAddress, direction: 'keep' }));
-										}}>Keep</button
-									>
-									<button
-										type="button"
-										class="btn-secondary"
+										}}>Keep</Button>
+									<Button
+										variant="secondary"
 										onclick={() => {
 											if (!$actor) { $showConnectModal = true; return; }
 											if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
 											safe(() => backend.castModerationVote({ appId: c.appId, voterId: $actor!.walletAddress, direction: 'delist' }));
-										}}>Delist</button
-									>
+										}}>Delist</Button>
 								</div>
 							</div>
 						{/if}
@@ -495,9 +481,7 @@
 								<div class="text-[11px] text-[var(--text-tertiary)]">Identity verification</div>
 							</div>
 							<div class="flex gap-2 flex-shrink-0">
-								<button
-									type="button"
-									class="btn-subscribe"
+								<Button
 									onclick={() =>
 										safe(() =>
 											backend.reviewDeveloperVerification({
@@ -505,11 +489,9 @@
 												status: 'verified',
 												notes: 'Approved.',
 											})
-										)}>Approve</button
-								>
-								<button
-									type="button"
-									class="btn-secondary"
+										)}>Approve</Button>
+								<Button
+									variant="secondary"
 									onclick={() =>
 										safe(() =>
 											backend.reviewDeveloperVerification({
@@ -517,8 +499,7 @@
 												status: 'rejected',
 												notes: 'Rejected.',
 											})
-										)}>Reject</button
-								>
+										)}>Reject</Button>
 							</div>
 						</div>
 					{/each}
@@ -535,9 +516,7 @@
 								</div>
 							</div>
 							<div class="flex gap-2 flex-shrink-0">
-								<button
-									type="button"
-									class="btn-subscribe"
+								<Button
 									onclick={() =>
 										safe(() =>
 											backend.reviewDeveloperEnrollment({
@@ -545,11 +524,9 @@
 												status: 'active',
 												notes: 'Approved.',
 											})
-										)}>Approve</button
-								>
-								<button
-									type="button"
-									class="btn-secondary"
+										)}>Approve</Button>
+								<Button
+									variant="secondary"
 									onclick={() =>
 										safe(() =>
 											backend.reviewDeveloperEnrollment({
@@ -557,8 +534,7 @@
 												status: 'rejected',
 												notes: 'Rejected.',
 											})
-										)}>Reject</button
-								>
+										)}>Reject</Button>
 							</div>
 						</div>
 					{/each}
@@ -607,19 +583,7 @@
 	<!-- ══════════════════════════════════════════
        CREATE PROPOSAL MODAL
       ══════════════════════════════════════════ -->
-	{#if showCreateModal}
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
-			<div
-				class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-				onclick={() => (showCreateModal = false)}
-				onkeydown={(e) => { if (e.key === 'Escape') showCreateModal = false; }}
-				role="button"
-				tabindex="-1"
-			></div>
-			<div
-				class="relative w-full md:w-[520px] max-h-[100vh] md:max-h-[85vh] overflow-y-auto bg-[var(--surface-1)] border-t md:border border-[var(--border-default)] rounded-t-xl md:rounded-xl"
-			>
+	<Modal bind:open={showCreateModal} maxWidth="520px" class="max-h-[100vh] md:max-h-[85vh] overflow-y-auto">
 				<!-- Modal header -->
 				<div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
 					<div>
@@ -687,11 +651,9 @@
 									class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5"
 									>Title *</label
 								>
-								<input
-									type="text"
+								<Input
 									bind:value={propTitle}
 									placeholder="e.g. Increase dispute window for proofs"
-									class="w-full h-9 px-3 text-[13px] rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--text-accent)] transition-colors"
 								/>
 							</div>
 							<div>
@@ -713,15 +675,14 @@
 									{/each}
 								</div>
 							</div>
-							<button
-								type="button"
+							<Button
 								disabled={propTitle.trim().length < 6}
 								onclick={() => (createStep = 2)}
-								class="btn-subscribe w-full h-10 justify-center"
-								style="opacity: {propTitle.trim().length >= 6 ? 1 : 0.4}"
+								size="lg"
+								class="w-full justify-center"
 							>
 								Continue <ArrowRight size={14} strokeWidth={2} />
-							</button>
+							</Button>
 						</div>
 
 						<!-- Step 2: Description + optional params + impact -->
@@ -732,12 +693,12 @@
 									class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5"
 									>Description *</label
 								>
-								<textarea
+								<Textarea
 									bind:value={propDesc}
 									placeholder="Explain what changes, why it matters, and what the expected impact is."
-									rows="5"
-									class="w-full px-3 py-2 text-[13px] rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] resize-none outline-none focus:border-[var(--text-accent)] transition-colors"
-								></textarea>
+									rows={5}
+									class="resize-none"
+								/>
 								<div class="text-[10px] text-[var(--text-tertiary)] font-mono mt-1">
 									{propDesc.trim().length}/2000
 								</div>
@@ -749,11 +710,10 @@
 											class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5"
 											>Parameter to change</label
 										>
-										<input
-											type="text"
+										<Input
 											bind:value={propParam}
 											placeholder="e.g. minStake, proofTimeout"
-											class="w-full h-9 px-3 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] outline-none focus:border-[var(--text-accent)] transition-colors"
+											class="font-mono"
 										/>
 									</div>
 									<div class="grid grid-cols-2 gap-3">
@@ -762,11 +722,10 @@
 												class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5"
 												>Current Value</label
 											>
-											<input
-												type="text"
+											<Input
 												bind:value={propCurrentValue}
 												placeholder="e.g. 100"
-												class="w-full h-9 px-3 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] outline-none focus:border-[var(--text-accent)] transition-colors"
+												class="font-mono"
 											/>
 										</div>
 										<div>
@@ -774,11 +733,10 @@
 												class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5"
 												>Proposed Value</label
 											>
-											<input
-												type="text"
+											<Input
 												bind:value={propNewValue}
 												placeholder="e.g. 200"
-												class="w-full h-9 px-3 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] outline-none focus:border-[var(--text-accent)] transition-colors"
+												class="font-mono"
 											/>
 										</div>
 									</div>
@@ -789,28 +747,27 @@
 									class="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5"
 									>Impact Analysis</label
 								>
-								<textarea
+								<Textarea
 									bind:value={propImpact}
 									placeholder="How will this change affect miners, developers, and the ecosystem?"
-									rows="3"
-									class="w-full px-3 py-2 text-[13px] rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] resize-none outline-none focus:border-[var(--text-accent)] transition-colors"
-								></textarea>
+									rows={3}
+									class="resize-none"
+								/>
 							</div>
 							<div class="flex gap-2">
-								<button
-									type="button"
+								<Button
+									variant="secondary"
 									onclick={() => (createStep = 1)}
-									class="btn-secondary h-10 px-4">Back</button
-								>
-								<button
-									type="button"
+									size="lg"
+									class="px-4">Back</Button>
+								<Button
 									disabled={propDesc.trim().length < 20}
 									onclick={() => (createStep = 3)}
-									class="btn-subscribe flex-1 h-10 justify-center"
-									style="opacity: {propDesc.trim().length >= 20 ? 1 : 0.4}"
+									size="lg"
+									class="flex-1 justify-center"
 								>
 									Review & Stake <ArrowRight size={14} strokeWidth={2} />
-								</button>
+								</Button>
 							</div>
 						</div>
 
@@ -876,16 +833,15 @@
 								{/if}
 							</div>
 							<div class="flex gap-2">
-								<button
-									type="button"
+								<Button
+									variant="secondary"
 									onclick={() => (createStep = 2)}
-									class="btn-secondary h-10 px-4">Back</button
-								>
-								<button
-									type="button"
+									size="lg"
+									class="px-4">Back</Button>
+								<Button
 									disabled={!canSubmitProp || !canAffordStake}
-									class="btn-subscribe flex-1 h-10 justify-center"
-									style="opacity: {canSubmitProp && canAffordStake ? 1 : 0.4}"
+									size="lg"
+									class="flex-1 justify-center"
 									onclick={() => {
 										if (!$actor?.walletAddress) { $showConnectModal = true; return; }
 										if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
@@ -898,12 +854,10 @@
 									}}
 								>
 									<Lock class="h-3.5 w-3.5" /> Stake {stakeRequired} NECTA & Submit
-								</button>
+								</Button>
 							</div>
 						</div>
 					{/if}
 				</div>
-			</div>
-		</div>
-	{/if}
+	</Modal>
 </div>

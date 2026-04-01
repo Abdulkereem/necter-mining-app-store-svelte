@@ -15,6 +15,7 @@
     ChevronDown,
     ChevronRight,
   } from 'lucide-svelte';
+  import { Button, Card, StatCard } from '$lib/components/ui';
 
   // ─── Settings ────────────────────────────────────────────────────────────────
   const defaultSettings = [
@@ -339,14 +340,14 @@
 {#if !$actor}
   <!-- Not connected -->
   <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
-    <div class="p-12 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] text-center">
+    <Card class="p-12 text-center">
       <Bell class="h-10 w-10 mx-auto text-[var(--text-tertiary)] mb-4" />
       <h3 class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Connect a wallet</h3>
       <p class="text-[13px] text-[var(--text-secondary)]">Notifications are derived from your mining, developer, and governance activity.</p>
       <div class="mt-4">
-        <button type="button" class="btn-pill" onclick={() => showConnectModal.set(true)}>Connect wallet</button>
+        <Button onclick={() => showConnectModal.set(true)}>Connect wallet</Button>
       </div>
-    </div>
+    </Card>
   </div>
 {:else}
   <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-8 pb-12 max-w-[720px] mx-auto">
@@ -357,48 +358,40 @@
         <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 hidden md:block">Your mining, earning, and governance events</p>
       </div>
       {#if unreadCount > 0}
-        <button
-          type="button"
-          class="inline-flex items-center h-[32px] px-3 rounded-[5px] text-[12px] font-medium border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)] cursor-pointer transition-colors"
-          onclick={markAllRead}
-        >
+        <Button variant="secondary" size="sm" onclick={markAllRead}>
           Mark all read
-        </button>
+        </Button>
       {/if}
     </div>
 
     <!-- Summary stats bar -->
-    <div class="rounded-[8px] border border-[var(--border)] overflow-hidden mb-6">
+    <Card padding="p-0" class="overflow-hidden mb-6">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)]">
         {#each summaryItems as stat}
-          <div class="bg-[var(--surface-1)] px-3 md:px-4 py-3">
-            <div class="text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{stat.label}</div>
-            <div class="text-[16px] md:text-[18px] font-semibold font-mono tracking-[-0.01em] mt-1 text-[var(--text-primary)]">
-              {stat.value}{#if stat.unit}<span class="text-[10px] font-normal text-[var(--text-tertiary)] ml-1">{stat.unit}</span>{/if}
-            </div>
-          </div>
+          <StatCard label={stat.label} value={stat.unit ? `${stat.value}` : stat.value} class="!rounded-none !border-0 px-3 md:px-4 py-3" />
         {/each}
       </div>
-    </div>
+    </Card>
 
     <!-- Filters -->
     <div class="flex items-center gap-1 mb-5 overflow-x-auto mobile-tabs-scroll">
       {#each filters as f}
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
           onclick={() => (activeFilter = f.id)}
-          class="inline-flex items-center h-[32px] px-3 rounded-[5px] text-[12px] font-medium border-none cursor-pointer transition-colors whitespace-nowrap flex-shrink-0 {activeFilter === f.id
-            ? 'bg-[var(--accent-subtle)] text-[var(--text-accent)]'
-            : 'bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'}"
+          class="whitespace-nowrap flex-shrink-0 text-[12px] {activeFilter === f.id
+            ? '!bg-[var(--accent-subtle)] !text-[var(--text-accent)]'
+            : ''}"
         >
           {f.label}
-        </button>
+        </Button>
       {/each}
     </div>
 
     <!-- Timeline -->
     {#if filteredNotifications.length === 0}
-      <div class="p-16 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] text-center">
+      <Card class="p-16 text-center">
         <p class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">
           {activeFilter === 'all' ? 'No activity yet' : `No ${activeFilter} events`}
         </p>
@@ -406,9 +399,9 @@
           {activeFilter === 'all' ? 'Start mining to see your events here.' : 'Try a different filter.'}
         </p>
         {#if activeFilter === 'all'}
-          <a href="/discover" class="btn-subscribe">Discover projects</a>
+          <a href="/discover"><Button>Discover projects</Button></a>
         {/if}
-      </div>
+      </Card>
     {:else}
       <div class="space-y-6">
         {#each filteredGrouped as group (group.label)}
@@ -433,7 +426,7 @@
             {/if}
 
             <!-- Event cards -->
-            <div class="rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)] overflow-hidden divide-y divide-[var(--border-default)]">
+            <Card padding="p-0" class="overflow-hidden divide-y divide-[var(--border-default)]">
               {#each aggregated as entry}
                 {#if entry.kind === 'collapsed'}
                   <!-- Collapsed group -->
@@ -750,7 +743,7 @@
                   {/if}
                 {/if}
               {/each}
-            </div>
+            </Card>
           </div>
         {/each}
       </div>

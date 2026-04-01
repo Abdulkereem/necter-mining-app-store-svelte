@@ -6,6 +6,7 @@
 	import EarningsPanel from '$lib/components/mining/EarningsPanel.svelte';
 	import { ArrowUpRight } from 'lucide-svelte';
 	import type { App } from '$lib/types';
+	import { Button, Card, StatCard } from '$lib/components/ui';
 
 	type TabId = 'networks' | 'earnings' | 'proofs';
 
@@ -365,12 +366,9 @@
 			<p class="text-[13px] text-[var(--text-secondary)] mb-4 leading-5">
 				Connect a wallet to view your mining dashboard.
 			</p>
-			<button
-				class="btn-subscribe text-[13px] h-8 px-4"
-				onclick={() => showConnectModal.set(true)}
-			>
+			<Button size="sm" class="text-[13px] px-4" onclick={() => showConnectModal.set(true)}>
 				Connect Wallet
-			</button>
+			</Button>
 		</div>
 	</div>
 {:else}
@@ -392,14 +390,14 @@
 					{ id: 'earnings' as TabId, label: 'Earnings' },
 					{ id: 'proofs' as TabId, label: 'Proofs' }
 				] as btn}
-					<button
-						type="button"
+					<Button
+						variant="ghost"
+						size="md"
 						onclick={() => (tab = btn.id)}
-						class="inline-flex items-center h-[32px] px-3 rounded-[5px] text-[13px] font-medium border-none cursor-pointer transition-colors"
-						style="background: {tab === btn.id ? 'var(--accent-subtle)' : 'var(--surface-1)'}; color: {tab === btn.id ? 'var(--text-accent)' : 'var(--text-secondary)'};"
+						class="text-[13px] {tab === btn.id ? '!bg-[var(--accent-subtle)] !text-[var(--text-accent)]' : ''}"
 					>
 						{btn.label}
-					</button>
+					</Button>
 				{/each}
 			</div>
 		</div>
@@ -442,7 +440,7 @@
 
 					<!-- Daily rate chart — stacked submitted/verified -->
 					{#if proofsDailyRate.bars.length > 0}
-						<div class="rounded-lg overflow-hidden border px-4 py-3.5 bg-[var(--surface-1)] border-[var(--border-default)]">
+						<Card padding="px-4 py-3.5" class="overflow-hidden">
 							<div class="flex items-center justify-between mb-2.5">
 								<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">Proof Rate (14d)</span>
 							</div>
@@ -469,12 +467,12 @@
 									<span class="text-[10px] text-[var(--text-tertiary)]">Verified</span>
 								</div>
 							</div>
-						</div>
+						</Card>
 					{/if}
 
 					<!-- Failure Rate by Project -->
 					{#if failureByProject.length > 0}
-						<div class="rounded-lg overflow-hidden border px-4 py-3.5 bg-[var(--surface-1)] border-[var(--border-default)]">
+						<Card padding="px-4 py-3.5" class="overflow-hidden">
 							<span class="text-[11px] font-semibold tracking-widest uppercase block mb-2.5 text-[var(--text-tertiary)]">Failure Rate by Project</span>
 							<div class="flex flex-col gap-2">
 								{#each failureByProject as p}
@@ -488,11 +486,11 @@
 									</div>
 								{/each}
 							</div>
-						</div>
+						</Card>
 					{/if}
 
 					<!-- Proof table -->
-					<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+					<Card padding="p-0" class="overflow-hidden">
 						<!-- Mobile proof list -->
 						<div class="md:hidden">
 							{#each sortedProofs as proof, idx}
@@ -586,7 +584,7 @@
 								</a>
 							{/each}
 						</div>
-					</div>
+					</Card>
 				</div>
 			{/if}
 			</div>
@@ -601,21 +599,13 @@
 			<div class="md:hidden flex flex-col gap-3 px-4">
 				<!-- 3 key stats -->
 				<div class="grid grid-cols-3 gap-2">
-					{#each [
-						{ label: 'Today', value: earnedToday.toFixed(2) },
-						{ label: '7 Days', value: earned7d.toFixed(2) },
-						{ label: '30 Days', value: earned30d.toFixed(2) }
-					] as stat}
-						<div class="p-3 rounded-lg border bg-[var(--surface-1)] border-[var(--border-default)]">
-							<span class="text-[10px] font-medium uppercase tracking-wide block text-[var(--text-tertiary)]">{stat.label}</span>
-							<span class="text-[18px] font-semibold block mt-1 font-mono text-[var(--text-primary)] tabular-nums">{stat.value}</span>
-							<span class="text-[10px] text-[var(--text-tertiary)]">NECTA</span>
-						</div>
-					{/each}
+					<StatCard label="Today" value={earnedToday.toFixed(2)} />
+					<StatCard label="7 Days" value={earned7d.toFixed(2)} />
+					<StatCard label="30 Days" value={earned30d.toFixed(2)} />
 				</div>
 
 				<!-- Chart on mobile: HTML bar chart -->
-				<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+				<Card padding="p-0" class="overflow-hidden">
 					<div class="px-3 py-2 border-b border-[var(--border-default)]">
 						<span class="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">30-day earnings</span>
 					</div>
@@ -650,10 +640,10 @@
 							<span class="text-[9px] text-[var(--text-tertiary)] font-mono">Today</span>
 						</div>
 					</div>
-				</div>
+				</Card>
 
 				<!-- Subscriptions card (mobile) -->
-				<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+				<Card padding="p-0" class="overflow-hidden">
 					<div class="px-3 py-2.5 border-b border-[var(--border-default)] flex items-center justify-between">
 						<span class="text-[13px] font-semibold text-[var(--text-primary)]">Subscriptions</span>
 						<a href="/mining/subscriptions" class="text-[11px] font-medium no-underline text-[var(--text-accent)]">
@@ -668,7 +658,7 @@
 							</div>
 							<div class="px-4 pt-4 pb-6">
 								<p class="text-[13px] mb-3 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
-								<a href="/discover" class="btn-subscribe">Discover projects</a>
+								<a href="/discover"><Button>Discover projects</Button></a>
 							</div>
 						</div>
 					{:else}
@@ -694,7 +684,7 @@
 							</a>
 						{/each}
 					{/if}
-				</div>
+				</Card>
 			</div>
 
 			<!-- ════════════════════════════════════
@@ -730,7 +720,7 @@
 				<div class="grid gap-3 items-start [grid-template-columns:1fr_300px]">
 
 					<!-- Earnings bar chart -->
-					<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+					<Card padding="p-0" class="overflow-hidden">
 						<div class="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between">
 							<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">30-day earnings</span>
 						</div>
@@ -765,12 +755,12 @@
 								<span class="text-[10px] text-[var(--text-tertiary)] font-mono">Today</span>
 							</div>
 						</div>
-					</div>
+					</Card>
 
 					<!-- Side panels -->
 					<div class="flex flex-col gap-2">
 						<!-- Latest payouts -->
-						<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+						<Card padding="p-0" class="overflow-hidden">
 							<div class="px-3 py-2.5 border-b border-[var(--border-default)] flex items-center gap-1.5">
 								<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">Latest payouts</span>
 							</div>
@@ -795,10 +785,10 @@
 									{/each}
 								{/if}
 							</div>
-						</div>
+						</Card>
 
 						<!-- Top projects -->
-						<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+						<Card padding="p-0" class="overflow-hidden">
 							<div class="px-3 py-2.5 border-b border-[var(--border-default)]">
 								<span class="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">Top projects</span>
 							</div>
@@ -826,13 +816,13 @@
 									{/each}
 								{/if}
 							</div>
-						</div>
+						</Card>
 
 					</div>
 				</div>
 
 				<!-- Subscriptions card (desktop) -->
-				<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+				<Card padding="p-0" class="overflow-hidden">
 					<div class="px-4 pt-3.5 pb-3 border-b border-[var(--border-default)] flex items-center justify-between">
 						<div>
 							<h3 class="text-sm font-semibold m-0 -tracking-tight text-[var(--text-primary)]">Subscriptions</h3>
@@ -850,7 +840,7 @@
 							</div>
 							<div class="px-6 pt-5 pb-7">
 								<p class="text-[13px] mb-4 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
-								<a href="/discover" class="btn-subscribe">Discover projects</a>
+								<a href="/discover"><Button>Discover projects</Button></a>
 							</div>
 						</div>
 					{:else}
@@ -917,11 +907,11 @@
 							</a>
 						{/each}
 					{/if}
-				</div>
+				</Card>
 
 				<!-- Recommendations -->
 				{#if recommendations.length > 0}
-					<div class="rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+					<Card padding="p-0" class="overflow-hidden">
 						<div class="px-4 py-2.5 border-b border-[var(--border-default)] flex items-center justify-between gap-3">
 							<div>
 								<span class="text-[14px] font-semibold -tracking-tight text-[var(--text-primary)]">Recommended for you</span>
@@ -947,16 +937,16 @@
 											${app.avgEarningsPerDay.toFixed(2)}/day &middot; {app.reputationScore.toFixed(0)} rep
 										</div>
 									</div>
-									<button type="button" class="btn-subscribe shrink-0" onclick={(e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); if (!$actor) { showConnectModal.set(true); return; } if (minerId) { try { backend.subscribeToApp({ appId: app.id, minerId }); showToast(`Subscribed to ${app.name}`); } catch {} } }}>Subscribe</button>
+									<Button size="sm" class="shrink-0" onclick={(e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); if (!$actor) { showConnectModal.set(true); return; } if (minerId) { try { backend.subscribeToApp({ appId: app.id, minerId }); showToast(`Subscribed to ${app.name}`); } catch {} } }}>Subscribe</Button>
 								</a>
 							{/each}
 						</div>
-					</div>
+					</Card>
 				{/if}
 
 				<!-- Recent Activity — desktop only -->
 				{#if recentEvents.length > 0}
-					<div class="hidden md:block rounded-lg overflow-hidden border bg-[var(--surface-1)] border-[var(--border-default)]">
+					<Card padding="p-0" class="hidden md:block overflow-hidden">
 						<div class="px-4 py-2.5 border-b border-[var(--border-default)] flex items-center justify-between">
 							<span class="text-sm font-semibold text-[var(--text-primary)]">Recent Activity</span>
 							<span class="text-[12px] tabular-nums text-[var(--text-secondary)]">{recentEvents.length}</span>
@@ -981,7 +971,7 @@
 								</div>
 							{/each}
 						</div>
-					</div>
+					</Card>
 				{/if}
 			</div>
 		{/if}

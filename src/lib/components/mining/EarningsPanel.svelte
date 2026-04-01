@@ -2,6 +2,7 @@
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
 	import { ArrowUpRight, Download } from 'lucide-svelte';
+	import { Button, Card, Input, StatCard } from '$lib/components/ui';
 
 	type TimeRange = '7d' | '30d' | '90d' | 'all';
 
@@ -192,55 +193,21 @@
 {:else}
 	<div class="flex flex-col gap-4">
 		<!-- Summary stats -->
-		<div
-			class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden"
-		>
-			{#each [
-				{
-					label: 'Available',
-					value: availableBalance.toFixed(2),
-					sub: `≈ $${(availableBalance * NECTA_USD).toFixed(2)}`,
-					color: 'var(--success)'
-				},
-				{
-					label: 'Total Earned',
-					value: totalEarned.toFixed(2),
-					sub: `≈ $${(totalEarned * NECTA_USD).toFixed(2)}`,
-					color: null
-				},
-				{
-					label: 'Pending',
-					value: pendingRewards.toFixed(2),
-					sub: `≈ $${(pendingRewards * NECTA_USD).toFixed(2)}`,
-					color: null
-				},
-				{ label: 'This Month', value: thisMonth().toFixed(2), sub: 'NECTA', color: null }
-			] as stat}
-				<div
-					class="bg-[var(--surface-1)] px-4 py-3.5 flex flex-col gap-1"
-				>
-					<span
-						class="text-[10px] font-medium text-[var(--text-tertiary)] tracking-[0.02em] uppercase"
-					>
-						{stat.label}
-					</span>
-					<span
-						class="text-[20px] font-semibold font-mono tracking-[-0.02em] leading-7 tabular-nums"
-						style="color: {stat.color ?? 'var(--text-primary)'};"
-					>
-						{stat.value}
-					</span>
-					<span class="text-[10px] text-[var(--text-tertiary)] tracking-[0.02em]">
-						{stat.sub ?? 'NECTA'}
-					</span>
-				</div>
-			{/each}
-		</div>
+		<Card padding="p-0" class="overflow-hidden">
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)]">
+				{#each [
+					{ label: 'Available', value: availableBalance.toFixed(2), color: 'var(--success)' },
+					{ label: 'Total Earned', value: totalEarned.toFixed(2), color: undefined },
+					{ label: 'Pending', value: pendingRewards.toFixed(2), color: undefined },
+					{ label: 'This Month', value: thisMonth().toFixed(2), color: undefined }
+				] as stat}
+					<StatCard label={stat.label} value={stat.value} color={stat.color} class="!rounded-none !border-0 px-4 py-3.5" />
+				{/each}
+			</div>
+		</Card>
 
 		<!-- Earnings chart with time range -->
-		<div
-			class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] overflow-hidden"
-		>
+		<Card padding="p-0" class="overflow-hidden">
 			<div
 				class="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between"
 			>
@@ -251,21 +218,15 @@
 				</span>
 				<div class="flex gap-0.5 bg-[var(--surface-2)] rounded-[5px] p-0.5">
 					{#each ['7d', '30d', '90d', 'all'] as range}
-						<button
-							type="button"
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={() => (timeRange = range as TimeRange)}
-							class="h-6 px-2 rounded text-[11px] font-medium border-none cursor-pointer transition-all duration-100"
-							style="background: {timeRange ===
-							range
-								? 'var(--surface-1)'
-								: 'transparent'}; color: {timeRange === range
-								? 'var(--text-primary)'
-								: 'var(--text-tertiary)'}; box-shadow: {timeRange === range
-								? '0 1px 3px rgba(0,0,0,0.2)'
-								: 'none'};"
+							class="!h-6 !px-2 !rounded text-[11px] {timeRange === range ? '!bg-[var(--surface-1)] !text-[var(--text-primary)]' : '!text-[var(--text-tertiary)]'}"
+							style={timeRange === range ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2)' : ''}
 						>
 							{range === 'all' ? 'All' : range}
-						</button>
+						</Button>
 					{/each}
 				</div>
 			</div>
@@ -321,14 +282,12 @@
 					</span>
 				</div>
 			</div>
-		</div>
+		</Card>
 
 		<!-- Withdraw + Withdrawals -->
 		<div class="mobile-stack grid gap-4" style="grid-template-columns: 1.2fr 1fr;">
 			<!-- Withdraw form -->
-			<div
-				class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5"
-			>
+			<Card>
 				<h3
 					class="text-[14px] font-semibold text-[var(--text-primary)] mb-4"
 				>
@@ -343,19 +302,20 @@
 						Amount
 					</label>
 					<div class="flex gap-1.5">
-						<input
+						<Input
 							type="number"
 							bind:value={amount}
 							placeholder="0.00"
-							class="flex-1 h-9 px-2.5 text-[13px] font-mono bg-[var(--surface-0)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-primary)] outline-none"
+							class="flex-1 !h-9 font-mono"
 						/>
-						<button
-							type="button"
+						<Button
+							variant="secondary"
+							size="sm"
 							onclick={() => (amount = availableBalance.toString())}
-							class="h-9 px-3 text-[11px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-secondary)] cursor-pointer"
+							class="!h-9 px-3 text-[11px]"
 						>
 							Max
-						</button>
+						</Button>
 					</div>
 				</div>
 
@@ -407,22 +367,18 @@
 				</div>
 
 				<!-- Withdraw button -->
-				<button
-					type="button"
+				<Button
 					onclick={handleWithdraw}
 					disabled={!$wallet || !canWithdraw}
-					class="btn-subscribe w-full h-[38px] inline-flex items-center justify-center gap-1.5"
-					style="opacity: {canWithdraw ? 1 : 0.4};"
+					class="w-full !h-[38px]"
 				>
 					<ArrowUpRight size={14} strokeWidth={2} />
 					Withdraw
-				</button>
-			</div>
+				</Button>
+			</Card>
 
 			<!-- Recent Withdrawals -->
-			<div
-				class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5"
-			>
+			<Card>
 				<div
 					class="flex items-center justify-between mb-3"
 				>
@@ -432,14 +388,10 @@
 						Withdrawals
 					</h3>
 					{#if minerWithdrawals.length > 0}
-						<button
-							type="button"
-							onclick={exportCsv}
-							class="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] bg-transparent border-none cursor-pointer"
-						>
+						<Button variant="ghost" size="sm" onclick={exportCsv} class="text-[11px] !text-[var(--text-tertiary)]">
 							<Download size={12} strokeWidth={1.5} />
 							CSV
-						</button>
+						</Button>
 					{/if}
 				</div>
 
@@ -498,7 +450,7 @@
 						{/each}
 					</div>
 				{/if}
-			</div>
+			</Card>
 		</div>
 	</div>
 {/if}

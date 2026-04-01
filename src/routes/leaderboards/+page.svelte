@@ -4,6 +4,7 @@
 	import { appIconDataUri } from '$lib/app-icon';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 	import { Network, TrendingUp, Clock, ArrowUp, ArrowDown, Minus } from 'lucide-svelte';
+	import { Button, Card } from '$lib/components/ui';
 
 	type Tab = 'networks' | 'earners' | 'uptime';
 	type Period = 'all' | '30d' | '7d';
@@ -97,14 +98,16 @@
 	<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
 		<div class="flex gap-1 overflow-x-auto">
 			{#each [{ id: 'networks', label: 'Top Projects', short: 'Projects', icon: Network }, { id: 'earners', label: 'Top Earners', short: 'Earners', icon: TrendingUp }, { id: 'uptime', label: 'Best Uptime', short: 'Uptime', icon: Clock }] as t}
-				<button
+				<Button
+					variant="ghost"
+					size="sm"
 					onclick={() => (tab = t.id as Tab)}
-					class="inline-flex items-center gap-1.5 h-[32px] px-4 rounded-[5px] text-[12px] font-medium border-none cursor-pointer transition-colors whitespace-nowrap {tab === t.id ? 'bg-[var(--accent-subtle)] text-[var(--text-accent)]' : 'bg-[var(--surface-1)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'}"
+					class="gap-1.5 px-4 text-[12px] {tab === t.id ? '!bg-[var(--accent-subtle)] !text-[var(--text-accent)]' : ''}"
 				>
 					<svelte:component this={t.icon} size={14} strokeWidth={1.5} />
 					<span class="hidden md:inline">{t.label}</span>
 					<span class="md:hidden">{t.short}</span>
-				</button>
+				</Button>
 			{/each}
 		</div>
 		<div class="flex items-center gap-2">
@@ -116,18 +119,20 @@
 			{/if}
 			<div class="flex gap-[2px] bg-[var(--surface-2)] rounded-[5px] p-[2px]">
 				{#each [{ id: '7d', label: '7D' }, { id: '30d', label: '30D' }, { id: 'all', label: 'All' }] as p}
-					<button
+					<Button
+						variant="ghost"
+						size="sm"
 						onclick={() => (period = p.id as Period)}
-						class="border-none cursor-pointer rounded-[4px] text-[11px] font-medium h-[26px] px-2.5"
-						style="background:{period === p.id ? 'var(--surface-1)' : 'transparent'}; color:{period === p.id ? 'var(--text-primary)' : 'var(--text-tertiary)'}; box-shadow:{period === p.id ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'}"
-					>{p.label}</button>
+						class="!h-[26px] !px-2.5 !rounded-[4px] text-[11px] {period === p.id ? '!bg-[var(--surface-1)] !text-[var(--text-primary)]' : '!text-[var(--text-tertiary)]'}"
+						style={period === p.id ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2)' : ''}
+					>{p.label}</Button>
 				{/each}
 			</div>
 		</div>
 	</div>
 
 	<!-- Table -->
-	<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-1)] overflow-x-auto [-webkit-overflow-scrolling:touch]">
+	<Card padding="p-0" class="overflow-x-auto [-webkit-overflow-scrolling:touch]">
 		<div class="min-w-[580px]">
 
 		{#if tab === 'networks'}
@@ -272,5 +277,5 @@
 		{/if}
 
 		</div>
-	</div>
+	</Card>
 </div>

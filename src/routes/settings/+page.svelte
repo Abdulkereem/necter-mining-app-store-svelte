@@ -11,6 +11,7 @@
     AlertTriangle, Plus, Trash2, Cpu, Server, Laptop, HardDrive, Wifi,
     LogOut
   } from 'lucide-svelte';
+  import { Button, Card, Input, Textarea, Toggle, Select } from '$lib/components/ui';
 
   /* ── Tab config ── */
   const tabs = [
@@ -346,7 +347,7 @@
           {:else}
             <div class="space-y-5">
               <!-- Avatar + identity header -->
-              <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <Card>
                 <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Identity</h2>
                 <div class="flex items-start gap-4 mb-5">
                   <div class="flex flex-col items-center gap-2">
@@ -386,87 +387,84 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Display Name <span class="text-[var(--error)]">*</span></label>
-                    <input bind:value={displayName} placeholder="e.g. NecterMiner42" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={displayName} placeholder="e.g. NecterMiner42" />
                   </div>
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Email</label>
-                    <input type="email" bind:value={email} placeholder="user@example.com" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input type="email" bind:value={email} placeholder="user@example.com" />
                   </div>
                 </div>
                 <div class="mt-3">
                   <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Bio</label>
-                  <textarea
+                  <Textarea
                     bind:value={bio}
                     placeholder="Short description..."
-                    rows="3"
-                    class="w-full text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] p-2.5 resize-vertical leading-relaxed focus:border-[var(--accent-base)] outline-none transition-colors"
-                  ></textarea>
+                    rows={3}
+                  />
                   <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Shows on your public profile. Keep it under 200 characters.</p>
                 </div>
-              </div>
+              </Card>
 
               <!-- Details -->
-              <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <Card>
                 <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Details</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Website</label>
-                    <input type="url" bind:value={website} placeholder="https://yourproject.com" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input type="url" bind:value={website} placeholder="https://yourproject.com" />
                   </div>
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Location</label>
-                    <input bind:value={location} placeholder="San Francisco, CA" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={location} placeholder="San Francisco, CA" />
                   </div>
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Founded</label>
-                    <input bind:value={founded} placeholder="2024" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={founded} placeholder="2024" />
                   </div>
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Category</label>
-                    <input bind:value={category} placeholder="IoT & Wireless" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={category} placeholder="IoT & Wireless" />
                   </div>
                 </div>
                 <div class="mt-3">
                   <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Tags</label>
-                  <input bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                  <Input bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" />
                   <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Comma-separated. Used for search and discovery.</p>
                 </div>
-              </div>
+              </Card>
 
               <!-- Social Links -->
-              <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+              <Card>
                 <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Social Links</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">X / Twitter</label>
-                    <input bind:value={twitter} placeholder="handle (without @)" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={twitter} placeholder="handle (without @)" />
                   </div>
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Discord</label>
-                    <input bind:value={discord} placeholder="server invite code" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={discord} placeholder="server invite code" />
                   </div>
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">GitHub</label>
-                    <input bind:value={github} placeholder="org or username" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={github} placeholder="org or username" />
                   </div>
                   <div>
                     <label class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5 block">Telegram</label>
-                    <input bind:value={telegram} placeholder="channel or group" class="w-full h-9 text-[13px] rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] px-3 focus:border-[var(--accent-base)] outline-none transition-colors" />
+                    <Input bind:value={telegram} placeholder="channel or group" />
                   </div>
                 </div>
-              </div>
+              </Card>
 
               <!-- Save -->
               <div class="flex justify-end gap-2 pt-1">
-                <button
-                  type="button"
+                <Button
                   onclick={handleSaveProfile}
                   disabled={saving || !displayName.trim()}
-                  class="btn-subscribe flex items-center gap-1.5 {saving || !displayName.trim() ? 'opacity-40' : 'opacity-100'}"
                 >
                   <Save size={14} strokeWidth={2} />
                   {saving ? 'Saving...' : 'Save Profile'}
-                </button>
+                </Button>
               </div>
 
               <!-- Divider -->
@@ -547,14 +545,14 @@
                     <p class="text-[13px] font-medium text-[var(--error)] mb-0.5">Delete Account</p>
                     <p class="text-[12px] text-[var(--text-secondary)]">Permanently remove your account and all associated data.</p>
                   </div>
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 h-8 px-3 rounded-[5px] border text-[11px] font-medium cursor-pointer transition-colors bg-[rgba(239,68,68,0.08)] border-[rgba(239,68,68,0.25)] text-[var(--error)]"
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onclick={() => alert('This is a demo')}
                   >
                     <AlertTriangle class="h-3.5 w-3.5" strokeWidth={1.5} />
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -713,10 +711,7 @@
                               <p class="text-[12px] font-medium text-[var(--text-primary)]">Enable alerts for this device</p>
                               <p class="text-[11px] text-[var(--text-tertiary)]">Downtime, high resource usage, proof failures</p>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                              <input type="checkbox" checked class="sr-only peer" />
-                              <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                            </label>
+                            <Toggle checked={true} />
                           </div>
 
                           <!-- Manage actions -->
@@ -757,7 +752,7 @@
         {#if activeTab === 'wallet'}
           <div class="space-y-5">
             <!-- Connected wallet -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4 tracking-[0.01em]">Connected Wallet</h2>
               {#if $wallet}
                 <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between">
@@ -777,14 +772,14 @@
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    class="btn-secondary flex-shrink-0 text-[var(--error)]"
+                  <Button
+                    variant="secondary"
+                    class="flex-shrink-0 text-[var(--error)]"
                     onclick={disconnectWallet}
                   >
                     <LogOut class="h-4 w-4 mr-1.5" />
                     Disconnect
-                  </button>
+                  </Button>
                 </div>
               {:else}
                 <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between">
@@ -798,24 +793,25 @@
                   </button>
                 </div>
               {/if}
-            </div>
+            </Card>
 
             <!-- Transaction history -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <div class="flex items-center justify-between mb-4">
                 <div>
                   <h2 class="text-[13px] font-semibold text-[var(--text-primary)] tracking-[0.01em]">Transaction History</h2>
                   <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Recent withdrawal activity for this miner.</p>
                 </div>
                 {#if minerWithdrawals.length > 0}
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onclick={handleExportCsv}
-                    class="btn-secondary flex items-center gap-1.5 text-[11px] h-7 px-2.5"
+                    class="flex items-center gap-1.5 text-[11px] h-7 px-2.5"
                   >
                     <Download size={12} strokeWidth={1.5} />
                     Export CSV
-                  </button>
+                  </Button>
                 {/if}
               </div>
 
@@ -860,10 +856,10 @@
                   </p>
                 {/if}
               {/if}
-            </div>
+            </Card>
 
             <!-- Withdrawal addresses -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Withdrawal Address Book</h2>
               <p class="text-[12px] text-[var(--text-secondary)] mb-4">Manage saved payout addresses. Earnings uses this list to keep withdrawals simple.</p>
 
@@ -872,15 +868,15 @@
               {:else}
                 <div class="space-y-3">
                   <div class="flex gap-2">
-                    <input
+                    <Input
                       bind:value={newWithdrawalAddress}
                       placeholder="Add address (0x...)"
-                      class="flex-1 h-8 text-[13px] font-mono rounded-[5px] bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-primary)] px-3 placeholder:text-[var(--text-tertiary)]"
+                      class="flex-1 font-mono h-8"
                     />
-                    <button type="button" class="btn-subscribe flex items-center gap-1" onclick={addAddress}>
+                    <Button onclick={addAddress}>
                       <Plus class="h-4 w-4" />
                       Add
-                    </button>
+                    </Button>
                   </div>
                   <div class="space-y-1.5">
                     {#if savedWithdrawalAddresses.length === 0}
@@ -889,38 +885,37 @@
                       {#each savedWithdrawalAddresses as addr}
                         <div class="flex items-center justify-between p-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)]">
                           <div class="font-mono text-[12px] text-[var(--text-primary)] truncate">{addr}</div>
-                          <button
-                            type="button"
-                            class="btn-secondary w-7 p-0 text-[var(--error)]"
+                          <Button
+                            variant="secondary"
+                            class="w-7 p-0 text-[var(--error)]"
                             onclick={() => removeAddress(addr)}
                           >
                             <Trash2 class="h-4 w-4" />
-                          </button>
+                          </Button>
                         </div>
                       {/each}
                     {/if}
                   </div>
                 </div>
               {/if}
-            </div>
+            </Card>
 
             <!-- Additional Wallets -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-[13px] font-semibold text-[var(--text-primary)] tracking-[0.01em]">Additional Wallets</h2>
                   <p class="text-[12px] text-[var(--text-secondary)] mt-0.5">Link another wallet to your miner account for multi-chain payouts.</p>
                 </div>
-                <button
-                  type="button"
-                  class="btn-secondary flex items-center gap-1.5 text-[12px]"
+                <Button
+                  variant="secondary"
                   onclick={() => $showConnectModal = true}
                 >
                   <Plus size={14} strokeWidth={1.5} />
                   Connect Another Wallet
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           </div>
         {/if}
 
@@ -930,7 +925,7 @@
         {#if activeTab === 'notifications'}
           <div class="space-y-5">
             <!-- Global notification toggles -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-5 tracking-[0.01em]">Notification Preferences</h2>
               <div class="space-y-5">
                 {#each notifPrefs as pref, i}
@@ -939,17 +934,14 @@
                       <label class="text-[13px] text-[var(--text-primary)]">{pref.title}</label>
                       <p class="text-[12px] text-[var(--text-secondary)]">{pref.desc}</p>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" bind:checked={notifToggles[i]} class="sr-only peer" />
-                      <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                    </label>
+                    <Toggle bind:checked={notifToggles[i]} />
                   </div>
                 {/each}
               </div>
-            </div>
+            </Card>
 
             <!-- Per-Project Notifications -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Per-Project Notifications</h2>
               <p class="text-[12px] text-[var(--text-secondary)] mb-4">Toggle notifications for each subscribed project.</p>
               {#if subscribedApps.length === 0}
@@ -969,18 +961,15 @@
                         />
                         <span class="text-[13px] text-[var(--text-primary)] truncate">{app.name}</span>
                       </div>
-                      <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" checked class="sr-only peer" />
-                        <div class="w-9 h-5 bg-[var(--surface-3)] peer-checked:bg-[var(--accent-base)] rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
-                      </label>
+                      <Toggle checked={true} />
                     </div>
                   {/each}
                 </div>
               {/if}
-            </div>
+            </Card>
 
             <!-- Delivery Method -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Delivery Method</h2>
               <p class="text-[12px] text-[var(--text-secondary)] mb-4">Choose how you receive notifications.</p>
               <div class="flex gap-2">
@@ -1000,32 +989,32 @@
                   <span class="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[var(--text-tertiary)]">coming soon</span>
                 </button>
               </div>
-            </div>
+            </Card>
 
             <!-- Quiet Hours -->
-            <div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+            <Card>
               <h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Quiet Hours</h2>
               <p class="text-[12px] text-[var(--text-secondary)] mb-4">Suppress notifications between these times.</p>
               <div class="flex items-center gap-3">
                 <div>
                   <label class="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1">From</label>
-                  <input
+                  <Input
                     type="time"
                     bind:value={quietFrom}
-                    class="h-8 px-2.5 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[12px] font-mono text-[var(--text-primary)] outline-none focus:border-[var(--accent-base)] transition-colors"
+                    class="h-8 px-2.5 font-mono text-[12px] w-auto"
                   />
                 </div>
                 <span class="text-[12px] text-[var(--text-tertiary)] mt-4">to</span>
                 <div>
                   <label class="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1">To</label>
-                  <input
+                  <Input
                     type="time"
                     bind:value={quietTo}
-                    class="h-8 px-2.5 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[12px] font-mono text-[var(--text-primary)] outline-none focus:border-[var(--accent-base)] transition-colors"
+                    class="h-8 px-2.5 font-mono text-[12px] w-auto"
                   />
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
         {/if}
 
