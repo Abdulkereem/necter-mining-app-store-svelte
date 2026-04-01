@@ -694,8 +694,7 @@
                                     min="0"
                                     max="100"
                                     value="50"
-                                    class="flex-1 h-1.5 cursor-pointer"
-                                    style="accent-color: var(--accent-base);"
+                                    class="flex-1 h-1.5 cursor-pointer [accent-color:var(--accent-base)]"
                                     oninput={(e) => {
                                       const span = e.target.nextElementSibling;
                                       if (span) span.textContent = `${e.target.value}%`;
@@ -763,7 +762,7 @@
               {#if $wallet}
                 <div class="bg-[var(--surface-2)] border border-[var(--border)] p-3 rounded-[8px] flex items-center justify-between">
                   <div class="flex items-center gap-3 min-w-0">
-                    <div class="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center" style="background: linear-gradient(135deg, #AB9FF2, #6C5CE7)">
+                    <div class="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center bg-[linear-gradient(135deg,#AB9FF2,#6C5CE7)]">
                       <svg width="16" height="14" viewBox="0 0 128 112" fill="none">
                         <path d="M108.87 56.29c0 27.54-22.34 49.88-49.88 49.88h-2.5A49.88 49.88 0 0 1 8.35 62.3c2.5-28.95 27.98-50.43 57.07-48.02a49.88 49.88 0 0 1 43.45 42.01zM36.89 52.32a5.6 5.6 0 1 0 0-11.2 5.6 5.6 0 0 0 0 11.2zm25.2 0a5.6 5.6 0 1 0 0-11.2 5.6 5.6 0 0 0 0 11.2z" fill="white"/>
                       </svg>
@@ -829,7 +828,7 @@
                   <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Completed withdrawals will appear here.</p>
                 </div>
               {:else}
-                <div class="space-y-0 overflow-x-auto border border-[var(--border-default)] rounded-lg" style="-webkit-overflow-scrolling: touch;">
+                <div class="space-y-0 overflow-x-auto border border-[var(--border-default)] rounded-lg [-webkit-overflow-scrolling:touch]">
                   <div class="min-w-[420px]">
                     <!-- Table header -->
                     <div class="grid gap-3 px-3 py-2 bg-[var(--surface-2)] border-b border-[var(--border-default)]" style="grid-template-columns: 1fr 80px 100px 90px;">
@@ -1133,7 +1132,7 @@
                         <p class="text-[13px] font-semibold m-0 leading-[18px] text-[var(--text-secondary)]">{b.name}</p>
                         <p class="text-[11px] leading-[16px] m-0 text-[var(--text-tertiary)]">{b.description}</p>
                         <div class="flex items-center gap-1.5 mt-auto flex-wrap justify-center">
-                          <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[10px] font-medium tracking-[0.02em]" style="background: var(--surface-3); color: var(--text-tertiary);">
+                          <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[10px] font-medium tracking-[0.02em] bg-[var(--surface-3)] text-[var(--text-tertiary)]">
                             {meta.label}
                           </span>
                           <span class="text-[10px] text-[var(--text-tertiary)]">Locked</span>

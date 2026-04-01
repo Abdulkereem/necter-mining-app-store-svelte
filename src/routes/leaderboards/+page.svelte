@@ -127,8 +127,8 @@
 	</div>
 
 	<!-- Table -->
-	<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-1)] overflow-x-auto" style="-webkit-overflow-scrolling:touch">
-		<div style="min-width:580px">
+	<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-1)] overflow-x-auto [-webkit-overflow-scrolling:touch]">
+		<div class="min-w-[580px]">
 
 		{#if tab === 'networks'}
 			<div class="grid items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]"
@@ -200,13 +200,13 @@
 				<div class="px-4 py-1.5 border-b border-[var(--border-default)]">
 					<span class="text-[10px] text-[var(--text-tertiary)]">···</span>
 				</div>
-				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px; background:var(--accent-subtle)">
+				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer bg-[var(--accent-subtle)]" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px">
 					<div class="flex items-center gap-4 min-w-0">
-						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)]" style="font-feature-settings:'tnum'">{currentMinerEarnerRank}</span>
+						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)] tabular-nums">{currentMinerEarnerRank}</span>
 						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
 					</div>
-					<span class="text-right text-[13px] font-medium font-mono text-[var(--text-accent)]" style="font-feature-settings:'tnum'">${(currentMinerEarner.totalEarned * periodMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+					<span class="text-right text-[13px] font-medium font-mono text-[var(--text-accent)] tabular-nums">${(currentMinerEarner.totalEarned * periodMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
 					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{currentMinerEarner.networkCount}</span>
 					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{currentMinerEarner.avgUptime.toFixed(1)}%</span>
 					<span class="flex justify-end">
@@ -251,9 +251,9 @@
 				<div class="px-4 py-1.5 border-b border-[var(--border-default)]">
 					<span class="text-[10px] text-[var(--text-tertiary)]">···</span>
 				</div>
-				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px; background:var(--accent-subtle)">
+				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer bg-[var(--accent-subtle)]" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px">
 					<div class="flex items-center gap-4 min-w-0">
-						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)]" style="font-feature-settings:'tnum'">{currentMinerUptimeRank}</span>
+						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)] tabular-nums">{currentMinerUptimeRank}</span>
 						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
 					</div>

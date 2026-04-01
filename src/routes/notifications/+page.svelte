@@ -349,7 +349,7 @@
     </div>
   </div>
 {:else}
-  <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-8 pb-12" style="max-width:720px;margin:0 auto">
+  <div class="animate-fadeIn px-4 md:px-6 pt-4 md:pt-8 pb-12 max-w-[720px] mx-auto">
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">
       <div>
@@ -369,7 +369,7 @@
 
     <!-- Summary stats bar -->
     <div class="rounded-[8px] border border-[var(--border)] overflow-hidden mb-6">
-      <div class="grid grid-cols-2 md:grid-cols-4" style="gap:1px;background:var(--border-default)">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)]">
         {#each summaryItems as stat}
           <div class="bg-[var(--surface-1)] px-3 md:px-4 py-3">
             <div class="text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{stat.label}</div>
@@ -446,7 +446,7 @@
                       class="w-full flex items-center gap-3 py-3 px-3.5 hover:bg-[var(--surface-2)] transition-colors text-left"
                       onclick={() => toggleExpandGroup(groupKey)}
                     >
-                      <div class="flex-shrink-0" style="width:28px">
+                      <div class="flex-shrink-0 w-7">
                         <div class="h-6 w-6 rounded-[4px] bg-[var(--surface-3)] flex items-center justify-center">
                           {#if uiType === 'update'}
                             <Download class="h-4 w-4 text-[var(--text-accent)]" />
@@ -498,7 +498,7 @@
                               <div
                                 class="flex items-start gap-3 py-3 px-3.5 transition-colors cursor-pointer {!n.read ? 'bg-[var(--accent-subtle)]' : 'hover:bg-[var(--surface-2)]'}"
                               >
-                                <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                                <div class="flex-shrink-0 pt-0.5 w-7">
                                   {#if iconSrc}
                                     <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
                                   {:else}
@@ -547,7 +547,7 @@
                                 </div>
                                 {#if !n.read}
                                   <div class="flex-shrink-0 pt-1.5">
-                                    <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                                    <div class="w-1.5 h-1.5 rounded-full bg-[var(--accent-base)]"></div>
                                   </div>
                                 {/if}
                               </div>
@@ -560,7 +560,7 @@
                               onclick={() => markAsRead(n.id)}
                               onkeydown={(e) => e.key === 'Enter' && markAsRead(n.id)}
                             >
-                              <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                              <div class="flex-shrink-0 pt-0.5 w-7">
                                 {#if iconSrc}
                                   <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
                                 {:else}
@@ -609,7 +609,7 @@
                               </div>
                               {#if !n.read}
                                 <div class="flex-shrink-0 pt-1.5">
-                                  <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                                  <div class="w-1.5 h-1.5 rounded-full bg-[var(--accent-base)]"></div>
                                 </div>
                               {/if}
                             </div>
@@ -632,7 +632,7 @@
                       <div
                         class="flex items-start gap-3 py-3 px-3.5 transition-colors cursor-pointer {!n.read ? 'bg-[var(--accent-subtle)]' : 'hover:bg-[var(--surface-2)]'}"
                       >
-                        <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                        <div class="flex-shrink-0 pt-0.5 w-7">
                           {#if iconSrc}
                             <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
                           {:else}
@@ -681,7 +681,7 @@
                         </div>
                         {#if !n.read}
                           <div class="flex-shrink-0 pt-1.5">
-                            <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-[var(--accent-base)]"></div>
                           </div>
                         {/if}
                       </div>
@@ -694,7 +694,7 @@
                       onclick={() => markAsRead(n.id)}
                       onkeydown={(e) => e.key === 'Enter' && markAsRead(n.id)}
                     >
-                      <div class="flex-shrink-0 pt-0.5" style="width:28px">
+                      <div class="flex-shrink-0 pt-0.5 w-7">
                         {#if iconSrc}
                           <img src={iconSrc} alt={app?.name ?? ''} width="24" height="24" class="rounded-[4px]" />
                         {:else}
@@ -743,7 +743,7 @@
                       </div>
                       {#if !n.read}
                         <div class="flex-shrink-0 pt-1.5">
-                          <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-base)"></div>
+                          <div class="w-1.5 h-1.5 rounded-full bg-[var(--accent-base)]"></div>
                         </div>
                       {/if}
                     </div>

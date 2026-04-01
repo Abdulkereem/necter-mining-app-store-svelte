@@ -79,11 +79,11 @@
 
 {#if !walletAddress}
   <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
-    <div style="max-width: 480px; margin: 80px auto 0; padding: 32px; background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; text-align: center;">
-      <h2 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">
+    <div class="max-w-[480px] mt-20 mx-auto p-8 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg text-center">
+      <h2 class="text-[16px] font-semibold text-[var(--text-primary)] mb-2">
         Earnings & Withdrawals
       </h2>
-      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+      <p class="text-[13px] text-[var(--text-secondary)] mb-4">
         Connect your wallet to view earnings and withdraw funds.
       </p>
       <button type="button" onclick={() => $showConnectModal = true} class="btn-pill-primary">
@@ -96,15 +96,15 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
       <div>
-        <h1 style="font-size: 20px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.015em; line-height: 28px; margin: 0;">
+        <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-[-0.015em] leading-7 m-0">
           Earnings & Withdrawals
         </h1>
-        <p style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">
+        <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">
           Manage your mining revenue and withdraw funds
         </p>
       </div>
       <a href="/mining" class="btn-secondary">
-        <ArrowLeft class="h-3 w-3" strokeWidth={1.5} style="margin-right: 6px;" />
+        <ArrowLeft class="h-3 w-3 mr-1.5" strokeWidth={1.5} />
         Back
       </a>
     </div>
@@ -117,66 +117,66 @@
         { label: 'Total Withdrawn', value: fmtCurrency(totalWithdrawn), accent: false },
         { label: 'Pending', value: fmtCurrency(pendingAmount), accent: false },
       ] as stat}
-        <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 16px;">
-          <p style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; margin-bottom: 4px;">
+        <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg p-4">
+          <p class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] font-medium mb-1">
             {stat.label}
           </p>
-          <p style="font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: {stat.accent ? 'var(--text-accent)' : 'var(--text-primary)'}; font-feature-settings: 'tnum';">
+          <p class="text-[20px] font-semibold font-mono tabular-nums {stat.accent ? 'text-[var(--text-accent)]' : 'text-[var(--text-primary)]'}">
             {stat.value}
           </p>
         </div>
       {/each}
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="grid grid-cols-2 gap-4">
       <!-- Withdrawal form -->
-      <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 20px;">
-        <h2 style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin-bottom: 16px;">
+      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg p-5">
+        <h2 class="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.006em] mb-4">
           Withdraw Funds
         </h2>
 
-        <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="flex flex-col gap-3">
           <!-- Amount -->
           <div>
-            <label style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 6px;">
+            <label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1.5">
               Amount
             </label>
-            <div style="position: relative;">
-                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text-tertiary);">$</span>
+            <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--text-tertiary)]">$</span>
                 <input
                   type="number"
                   bind:value={amount}
                   placeholder="0.00"
-                  style="width: 100%; height: 36px; padding-left: 28px; padding-right: 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 13px; font-family: var(--font-mono); color: var(--text-primary); outline: none; font-feature-settings: 'tnum';"
+                  class="w-full h-9 pl-7 pr-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] font-mono text-[var(--text-primary)] outline-none tabular-nums"
                 />
             </div>
-            <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
+            <p class="text-[11px] text-[var(--text-tertiary)] mt-1">
               Available: ${availableBalance.toFixed(2)}
             </p>
           </div>
 
           <!-- Destination select -->
           <div>
-            <label style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 6px;">
+            <label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1.5">
               Destination Address
             </label>
             <input
               type="text"
               bind:value={destination}
               placeholder={walletAddress}
-              style="width: 100%; height: 36px; padding: 0 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); outline: none;"
+              class="w-full h-9 px-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[12px] font-mono text-[var(--text-primary)] outline-none"
             />
-            <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
+            <p class="text-[11px] text-[var(--text-tertiary)] mt-1">
               Leave blank to withdraw to connected wallet
             </p>
           </div>
 
           <!-- Network -->
           <div>
-            <label style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 6px;">
+            <label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1.5">
               Network
             </label>
-            <div style="height: 36px; padding: 0 12px; border-radius: 5px; border: 1px solid var(--border-default); background: var(--surface-0); font-size: 13px; color: var(--text-secondary); display: flex; align-items: center;">
+            <div class="h-9 px-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] text-[var(--text-secondary)] flex items-center">
               {network}
             </div>
           </div>
@@ -185,8 +185,7 @@
             type="button"
             onclick={handleWithdraw}
             disabled={!canWithdraw}
-            class="btn-subscribe"
-            style="margin-top: 4px; opacity: {canWithdraw ? 1 : 0.4}; cursor: {canWithdraw ? 'pointer' : 'not-allowed'};"
+            class="btn-subscribe mt-1 {canWithdraw ? 'opacity-100 cursor-pointer' : 'opacity-40 cursor-not-allowed'}"
           >
             <ArrowDownToLine class="h-3.5 w-3.5" strokeWidth={1.5} />
             {submitting ? 'Processing...' : 'Withdraw'}
@@ -196,40 +195,40 @@
       </div>
 
       <!-- Recent withdrawals -->
-      <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; overflow: hidden;">
-        <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-default);">
-          <h2 style="font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.006em; margin: 0;">
+      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg overflow-hidden">
+        <div class="px-5 py-4 border-b border-[var(--border-default)]">
+          <h2 class="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.006em] m-0">
             Recent Withdrawals
           </h2>
         </div>
 
         {#if withdrawals.length === 0}
-          <div style="padding: 32px 20px; text-align: center;">
-            <p style="font-size: 13px; color: var(--text-secondary);">No withdrawals yet.</p>
+          <div class="px-5 py-8 text-center">
+            <p class="text-[13px] text-[var(--text-secondary)]">No withdrawals yet.</p>
           </div>
         {:else}
-          <div style="overflow-x: auto;">
+          <div class="overflow-x-auto">
             <!-- Table header -->
-            <div style="display: grid; grid-template-columns: 1fr 100px 90px 1fr; gap: 8px; padding: 8px 20px; background: var(--surface-1); border-bottom: 1px solid var(--border-default);">
+            <div class="grid gap-2 px-5 py-2 bg-[var(--surface-1)] border-b border-[var(--border-default)]" style="grid-template-columns: 1fr 100px 90px 1fr;">
               {#each ['Date', 'Amount', 'Status', 'Tx Hash'] as h}
-                <span style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.02em;">{h}</span>
+                <span class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.02em]">{h}</span>
               {/each}
             </div>
             <!-- Rows -->
             {#each withdrawals.slice(0, 20) as w}
               {@const sc = statusColor[w.status] ?? statusColor.pending}
               {@const txDisplay = w.txHash ? `${w.txHash.slice(0, 10)}...${w.txHash.slice(-6)}` : '--'}
-              <div style="display: grid; grid-template-columns: 1fr 100px 90px 1fr; gap: 8px; padding: 10px 20px; border-bottom: 1px solid var(--border-default); align-items: center;">
-                <span style="font-size: 12px; color: var(--text-secondary);">
+              <div class="grid gap-2 px-5 py-2.5 border-b border-[var(--border-default)] items-center" style="grid-template-columns: 1fr 100px 90px 1fr;">
+                <span class="text-[12px] text-[var(--text-secondary)]">
                   {new Date(w.requestedAt).toLocaleDateString()}
                 </span>
-                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); font-feature-settings: 'tnum';">
+                <span class="text-[12px] font-mono text-[var(--text-primary)] tabular-nums">
                   ${w.amount.toFixed(2)}
                 </span>
-                <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 3px; font-size: 11px; font-weight: 500; background: {sc.bg}; color: {sc.text}; text-transform: capitalize; width: fit-content;">
+                <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[11px] font-medium capitalize w-fit" style="background: {sc.bg}; color: {sc.text};">
                   {w.status}
                 </span>
-                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--text-tertiary);">
+                <span class="text-[12px] font-mono text-[var(--text-tertiary)]">
                   {txDisplay}
                 </span>
               </div>

@@ -89,35 +89,31 @@
 	<!-- Search bar -->
 	<div
 		class="sticky top-[48px] md:top-0 z-30"
-		style="background: var(--surface-0); border-bottom: 1px solid var(--border-default);"
+		class="bg-[var(--surface-0)] border-b border-[var(--border-default)]"
 	>
 		<div class="px-4 md:px-6 py-3 max-w-[640px] mx-auto">
 			<div
-				class="flex items-center gap-3 h-[40px] px-3 rounded-[10px]"
-				style="background: var(--surface-1); border: 1px solid var(--border-default);"
+				class="flex items-center gap-3 h-[40px] px-3 rounded-[10px] bg-[var(--surface-1)] border border-[var(--border-default)]"
 			>
 				<Search
-					class="h-[18px] w-[18px] shrink-0"
+					class="h-[18px] w-[18px] shrink-0 text-[var(--text-tertiary)]"
 					strokeWidth={1.5}
-					style="color: var(--text-tertiary);"
 				/>
 				<input
 					bind:this={inputRef}
 					type="text"
 					bind:value={query}
 					placeholder="Search projects, categories, developers..."
-					class="flex-1 bg-transparent border-none outline-none text-[15px]"
-					style="color: var(--text-primary);"
+					class="flex-1 bg-transparent border-none outline-none text-[15px] text-[var(--text-primary)]"
 					onkeydown={handleKeydown}
 				/>
 				{#if query}
 					<button
 						type="button"
 						onclick={() => (query = '')}
-						class="h-5 w-5 rounded-full flex items-center justify-center border-none cursor-pointer shrink-0"
-						style="background: var(--surface-3);"
+						class="h-5 w-5 rounded-full flex items-center justify-center border-none cursor-pointer shrink-0 bg-[var(--surface-3)]"
 					>
-						<X class="h-3 w-3" strokeWidth={2} style="color: var(--text-tertiary);" />
+						<X class="h-3 w-3 text-[var(--text-tertiary)]" strokeWidth={2} />
 					</button>
 				{/if}
 			</div>
@@ -130,12 +126,11 @@
 			<div class="space-y-6">
 				<!-- Suggested projects -->
 				<div>
-					<h2 class="text-[15px] font-semibold mb-3" style="color: var(--text-primary);">
+					<h2 class="text-[15px] font-semibold mb-3 text-[var(--text-primary)]">
 						Suggested
 					</h2>
 					<div
-						class="rounded-[10px] overflow-hidden divide-y"
-						style="background: var(--surface-1); border: 1px solid var(--border-default); --tw-divide-color: var(--border-default);"
+						class="rounded-[10px] overflow-hidden divide-y bg-[var(--surface-1)] border border-[var(--border-default)] divide-[var(--border-default)]"
 					>
 						{#each suggestedApps as app (app.id)}
 							<a
@@ -148,17 +143,16 @@
 									class="w-[44px] h-[44px] rounded-[10px] shrink-0"
 								/>
 								<div class="flex-1 min-w-0">
-									<p class="text-[14px] font-medium truncate" style="color: var(--text-primary);">
+									<p class="text-[14px] font-medium truncate text-[var(--text-primary)]">
 										{app.name}
 									</p>
-									<p class="text-[12px]" style="color: var(--text-tertiary);">
+									<p class="text-[12px] text-[var(--text-tertiary)]">
 										{app.category}
 									</p>
 								</div>
 								<div class="text-right shrink-0">
 									<p
-										class="text-[12px] font-mono"
-										style="color: var(--text-accent); font-feature-settings: 'tnum' 1;"
+										class="text-[12px] font-mono text-[var(--text-accent)] tabular-nums"
 									>
 										${app.avgEarningsPerDay.toFixed(0)}/d
 									</p>
@@ -170,7 +164,7 @@
 
 				<!-- Trending terms -->
 				<div>
-					<h2 class="text-[15px] font-semibold mb-3" style="color: var(--text-primary);">
+					<h2 class="text-[15px] font-semibold mb-3 text-[var(--text-primary)]">
 						Trending
 					</h2>
 					<div class="flex flex-wrap gap-2">
@@ -178,8 +172,7 @@
 							<button
 								type="button"
 								onclick={() => handleTrendingClick(term)}
-								class="inline-flex items-center h-[34px] px-4 rounded-full text-[13px] cursor-pointer transition-colors hover:bg-[var(--surface-2)]"
-								style="background: var(--surface-1); border: 1px solid var(--border-default); color: var(--text-primary);"
+								class="inline-flex items-center h-[34px] px-4 rounded-full text-[13px] cursor-pointer transition-colors hover:bg-[var(--surface-2)] bg-[var(--surface-1)] border border-[var(--border-default)] text-[var(--text-primary)]"
 							>
 								{term}
 							</button>
@@ -192,17 +185,16 @@
 			<div>
 				{#if results.length === 0}
 					<div class="text-center pt-12">
-						<p class="text-[15px] font-semibold mb-1" style="color: var(--text-primary);">
+						<p class="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">
 							No results for "{query}"
 						</p>
-						<p class="text-[13px]" style="color: var(--text-tertiary);">
+						<p class="text-[13px] text-[var(--text-tertiary)]">
 							Try a different search term
 						</p>
 					</div>
 				{:else}
 					<div
-						class="rounded-[10px] overflow-hidden divide-y"
-						style="background: var(--surface-1); border: 1px solid var(--border-default); --tw-divide-color: var(--border-default);"
+						class="rounded-[10px] overflow-hidden divide-y bg-[var(--surface-1)] border border-[var(--border-default)] divide-[var(--border-default)]"
 					>
 						{#each results as app (app.id)}
 							<a
@@ -216,21 +208,20 @@
 									class="w-[44px] h-[44px] rounded-[10px] shrink-0"
 								/>
 								<div class="flex-1 min-w-0">
-									<p class="text-[14px] font-medium truncate" style="color: var(--text-primary);">
+									<p class="text-[14px] font-medium truncate text-[var(--text-primary)]">
 										{app.name}
 									</p>
-									<p class="text-[12px]" style="color: var(--text-tertiary);">
+									<p class="text-[12px] text-[var(--text-tertiary)]">
 										{app.category}
 									</p>
 								</div>
 								<div class="text-right shrink-0">
 									<p
-										class="text-[12px] font-mono"
-										style="color: var(--text-accent); font-feature-settings: 'tnum' 1;"
+										class="text-[12px] font-mono text-[var(--text-accent)] tabular-nums"
 									>
 										${app.avgEarningsPerDay.toFixed(0)}/d
 									</p>
-									<p class="text-[10px]" style="color: var(--text-tertiary);">
+									<p class="text-[10px] text-[var(--text-tertiary)]">
 										{app.totalMiners} miners
 									</p>
 								</div>
