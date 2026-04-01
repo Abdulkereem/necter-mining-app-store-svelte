@@ -88,8 +88,7 @@
 <div class="animate-fadeIn min-h-screen">
 	<!-- Search bar -->
 	<div
-		class="sticky top-[48px] md:top-0 z-30"
-		class="bg-[var(--surface-0)] border-b border-[var(--border-default)]"
+		class="sticky top-[48px] md:top-0 z-30 bg-[var(--surface-0)] border-b border-[var(--border-default)]"
 	>
 		<div class="px-4 md:px-6 py-3 max-w-[640px] mx-auto">
 			<div
