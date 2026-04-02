@@ -365,6 +365,11 @@
 						class="inline-flex items-center h-5 px-[6px] rounded-[3px] text-[11px] font-medium whitespace-nowrap {variantClasses.accent}"
 						>{app.category}</span
 					>
+					{#if app.attestations > 0}
+						<span class="inline-flex items-center gap-1 h-5 px-[6px] rounded-[3px] text-[11px] font-medium whitespace-nowrap bg-[rgba(255,191,0,0.06)] text-[var(--text-accent)]">
+							<Shield size={10} strokeWidth={2} /> {app.attestations} verified
+						</span>
+					{/if}
 					{#if trustScore}
 						<span
 							class="inline-flex items-center h-5 px-[6px] rounded-[3px] text-[11px] font-medium whitespace-nowrap {variantClasses[getTrustVariant(trustScore.overallScore)]}"
@@ -560,32 +565,7 @@
 				</div>
 			{/if}
 
-			<!-- ═══════════════════════════════════════════════════════
-			     ATTESTATION ALERT
-			════════════════════════════════════════════════════════ -->
-			<div
-				class="flex items-start gap-[10px] bg-[rgba(255,191,0,0.06)] border border-[var(--border-accent)] rounded-[8px] px-[14px] py-3 mb-8"
-			>
-				<Shield size={14} strokeWidth={1.5} class="text-[var(--text-accent)] shrink-0 mt-[1px]" />
-				<div>
-					<p class="text-[13px] text-[var(--text-primary)]">
-						<span class="font-semibold">Community Verified</span>
-						{' · '}
-						<span class="text-[var(--text-secondary)]"
-							>{app.attestations} on-chain attestations from governance members</span
-						>
-					</p>
-					{#if attestationReqs.length > 0}
-						<p class="text-[12px] text-[var(--text-secondary)] mt-1">
-							<span class="font-medium">Required attestations: </span>
-							{attestationReqs.join(', ')}
-							{#if missingAttestations.length > 0}
-								<span class="text-[var(--warning)] ml-[6px]">(missing: {missingAttestations.join(', ')})</span>
-							{/if}
-						</p>
-					{/if}
-				</div>
-			</div>
+			<!-- Attestation info is shown as a badge in the header badges row -->
 
 			<!-- ═══════════════════════════════════════════════════════
 			     TABS -- horizontally scrollable on mobile

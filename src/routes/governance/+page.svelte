@@ -303,7 +303,7 @@
 								<span style="color: {quorumMet ? 'var(--success)' : 'var(--warning)'};">Quorum {quorumMet ? '\u2713' : `${quorumPct.toFixed(0)}%`}</span>
 							</div>
 							<div class="h-1.5 rounded-full w-full bg-[rgba(235,87,87,0.15)] overflow-hidden flex">
-								<div class="h-full bg-[var(--success)] rounded-l-full" style="width: {forPct}%"></div>
+								<div class="h-full bg-[var(--success)] rounded-l-full transition-all duration-300" style="width: {forPct}%"></div>
 							</div>
 							<div class="flex justify-between text-[10px] mt-1">
 								<span class="text-[var(--success)]">For {forPct.toFixed(0)}%</span>
@@ -339,12 +339,12 @@
 									<span class="text-[11px] text-[var(--text-tertiary)]">{g.yesVotes + g.noVotes} of {g.requiredAttestations} votes</span>
 								</div>
 							</div>
-							<div class="h-1.5 rounded-full w-full bg-[var(--surface-3)] overflow-hidden mb-1">
-								<div class="h-full bg-[var(--text-accent)] rounded-full transition-all" style="width: {yesPct}%"></div>
+							<div class="h-1.5 rounded-full w-full bg-[rgba(235,87,87,0.15)] overflow-hidden flex mb-1">
+								<div class="h-full bg-[var(--success)] rounded-l-full transition-all duration-300" style="width: {yesPct}%"></div>
 							</div>
-							<div class="flex justify-between text-[10px] text-[var(--text-tertiary)] mb-2.5">
-								<span class="font-mono">{g.yesVotes} yes</span>
-								<span class="font-mono">{g.noVotes} no</span>
+							<div class="flex justify-between text-[10px] mb-2.5">
+								<span class="font-mono text-[var(--success)]">{g.yesVotes} yes</span>
+								<span class="font-mono text-[var(--error)]">{g.noVotes} no</span>
 							</div>
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div class="flex gap-2" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>

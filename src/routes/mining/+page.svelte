@@ -638,8 +638,7 @@
 								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-4 pt-4 pb-6">
-								<img src="/brand/3d/mining-platform.png" alt="" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-80" />
-								<p class="text-[13px] mb-3 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
+																<p class="text-[13px] mb-3 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
 								<a href="/discover"><Button>Discover projects</Button></a>
 							</div>
 						</div>
@@ -821,8 +820,7 @@
 								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-6 pt-5 pb-7">
-								<img src="/brand/3d/mining-platform.png" alt="" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-80" />
-								<p class="text-[13px] mb-4 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
+																<p class="text-[13px] mb-4 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
 								<a href="/discover"><Button>Discover projects</Button></a>
 							</div>
 						</div>
