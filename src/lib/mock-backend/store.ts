@@ -43,7 +43,7 @@ import type {
 } from "$lib/mock-backend/types"
 import type { App, HardwareProfile, MinerDevice, MiningProfile, ProofDetail, ProofSubmission, Subscription, Withdrawal } from "$lib/types"
 
-const STORAGE_KEY = "necter_mock_backend_v1"
+const STORAGE_KEY = "necter_mock_backend_v2"
 
 type Listener = () => void
 
