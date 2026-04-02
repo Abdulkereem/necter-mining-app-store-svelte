@@ -110,8 +110,9 @@
   <!-- ── No enrollment — full-bleed background ── -->
   <div class="animate-fadeIn min-h-[calc(100vh-48px)] flex items-center justify-center relative overflow-hidden">
     <!-- Background layers -->
-    <div class="absolute inset-0 bg-honeycomb opacity-30"></div>
-    <div class="absolute inset-0" style="background: radial-gradient(ellipse at 50% 40%, rgba(255,201,51,0.06) 0%, transparent 70%);"></div>
+    <div class="absolute inset-0" style="background-image: url('/brand/hero-honeycomb.png'); background-size: cover; background-position: center; opacity: 0.15;"></div>
+    <div class="absolute inset-0" style="background: radial-gradient(ellipse at 50% 30%, rgba(255,201,51,0.12) 0%, rgba(255,150,9,0.04) 40%, transparent 70%);"></div>
+    <div class="absolute inset-0" style="background: radial-gradient(circle at 50% 50%, transparent 30%, var(--surface-0) 80%);"></div>
 
     <!-- Card -->
     <div class="relative z-10 w-full max-w-[480px] mx-4 md:mx-auto">
