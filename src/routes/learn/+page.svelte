@@ -136,22 +136,22 @@
 		<!-- Getting Started Hero with Bee -->
 		<a
 			href="/learn/guides/getting-started"
-			class="flex items-center gap-3 md:gap-5 p-4 md:p-5 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-1)] hover:border-[var(--border-hover)] transition-colors duration-100 no-underline mb-6 md:mb-8"
-			style="background: linear-gradient(135deg, var(--surface-1) 0%, rgba(255,191,0,0.03) 100%);"
+			class="flex items-center gap-0 rounded-[10px] border border-[var(--border-accent)] overflow-hidden hover:border-[var(--border-hover)] transition-colors duration-100 no-underline mb-6 md:mb-8"
 		>
-			<img
-				src="/brand/3d/bee-dark.png"
-				alt=""
-				loading="lazy"
-				class="hidden md:block flex-shrink-0"
-				style="width: 64px; height: 72px; object-fit: contain;"
-			/>
-			<div class="flex-1">
+			<!-- Bee panel with gradient -->
+			<div
+				class="hidden md:flex items-center justify-center w-[140px] shrink-0 self-stretch"
+				style="background: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%); background-image: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%), url('/brand/hero-honeycomb.png'); background-size: cover, 200px; background-blend-mode: normal, overlay;"
+			>
+				<img src="/brand/3d/bee-dark.png" alt="" loading="lazy" class="w-[90px] h-auto object-contain" style="filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));" />
+			</div>
+			<!-- Content -->
+			<div class="flex-1 p-4 md:p-5 bg-[var(--surface-1)]">
 				<p class="text-[10px] font-semibold text-[var(--text-accent)] uppercase tracking-[0.05em] mb-1">New to Necter?</p>
 				<h2 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Get started in under a minute</h2>
 				<p class="text-[12px] text-[var(--text-secondary)] m-0 leading-[17px]">Connect your wallet, set up your hardware profile, subscribe to a project, and start earning rewards.</p>
 			</div>
-			<ArrowRight class="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0 hidden md:block" strokeWidth={1.5} />
+			<ArrowRight class="h-5 w-5 text-[var(--text-tertiary)] flex-shrink-0 hidden md:block mr-4" strokeWidth={1.5} />
 		</a>
 
 		<!-- Tabs -->

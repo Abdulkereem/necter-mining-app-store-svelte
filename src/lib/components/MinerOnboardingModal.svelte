@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { X, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
-	import { fly, fade } from 'svelte/transition';
+	// transitions removed — kept instant step switches
 	import { actor } from '$lib/stores/wallet';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { getAppIcon } from '$lib/app-icon';
@@ -126,9 +126,7 @@
 				</div>
 
 				<!-- Content -->
-				<div class="min-h-[340px] flex flex-col overflow-hidden">
-					{#key step}
-					<div in:fly={{ x: 30, duration: 250, delay: 100 }} out:fade={{ duration: 100 }} class="flex-1 flex flex-col">
+				<div class="min-h-[340px] flex flex-col">
 					{#if step === 2}
 						<!-- Hardware -->
 						<div class="flex-1 flex flex-col pt-2 px-6 pb-6">
@@ -236,8 +234,6 @@
 							</button>
 						</div>
 					{/if}
-					</div>
-					{/key}
 				</div>
 			</div>
 		{/if}
