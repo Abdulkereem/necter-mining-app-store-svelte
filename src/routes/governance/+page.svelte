@@ -349,10 +349,10 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div class="flex gap-2" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 								<Button variant="secondary" class="flex-1 h-[32px] text-[12px]"
-									onclick={(e) => { e.stopPropagation(); if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'yes' }); showToast('Approved'); }); }}
+									onclick={(e) => { e.stopPropagation(); if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'yes' }); }); }}
 								>Approve</Button>
 								<Button variant="secondary" class="flex-1 h-[32px] text-[12px]"
-									onclick={(e) => { e.stopPropagation(); if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'no' }); showToast('Rejected'); }); }}
+									onclick={(e) => { e.stopPropagation(); if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'no' }); }); }}
 								>Reject</Button>
 							</div>
 						</div>
