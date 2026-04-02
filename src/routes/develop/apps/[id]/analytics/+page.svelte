@@ -74,7 +74,7 @@
         <ArrowLeft style="height: 16px; width: 16px;" />
         Back
       </a>
-      <h1 style="font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); margin: 0;">Network Analytics</h1>
+      <h1 style="font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); margin: 0;">Project Analytics</h1>
     </div>
     <div style="display: flex; gap: 8px;">
       <button style="height: 32px; padding: 0 12px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border-default); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer;">
@@ -116,7 +116,7 @@
         <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">No activity yet</div>
         <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
           Analytics populates once miners subscribe and proofs/jobs are produced.
-          {#if app} Network: {app.name}{/if}
+          {#if app} Project: {app.name}{/if}
         </div>
       </div>
     {/if}
@@ -179,7 +179,7 @@
       </div>
 
       <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 12px;">
-        {#if app}Network: {app.name} · {/if}Range: {range} · Metric: {metricLabel}
+        {#if app}Project: {app.name} · {/if}Range: {range} · Metric: {metricLabel}
       </div>
     </div>
   </div>

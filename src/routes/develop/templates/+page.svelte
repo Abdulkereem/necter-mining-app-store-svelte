@@ -16,7 +16,7 @@
     {
       name: 'AI Inference Network',
       category: 'AI/ML',
-      description: 'Deploy a distributed AI inference network. Miners contribute GPU compute to serve model predictions. Supports popular frameworks like PyTorch, TensorFlow, and ONNX Runtime out of the box.',
+      description: 'Deploy a distributed AI inference project. Miners contribute GPU compute to serve model predictions. Supports popular frameworks like PyTorch, TensorFlow, and ONNX Runtime out of the box.',
       consensus: 'Proof of Inference',
       rewardModel: 'Per-task',
       hardware: 'GPU required, 16GB+ VRAM',
@@ -26,7 +26,7 @@
     {
       name: 'Storage Provider',
       category: 'Storage',
-      description: 'Create a decentralized storage network. Miners provide disk space and bandwidth for data availability. Includes erasure coding, replication policies, and retrieval market configuration.',
+      description: 'Create a decentralized storage project. Miners provide disk space and bandwidth for data availability. Includes erasure coding, replication policies, and retrieval market configuration.',
       consensus: 'Proof of Storage',
       rewardModel: 'Capacity-based',
       hardware: '1TB+ SSD, 100Mbps uplink',
@@ -36,7 +36,7 @@
     {
       name: 'IoT Sensor Grid',
       category: 'IoT',
-      description: 'Build a sensor data collection network. Miners run IoT gateways to aggregate and validate sensor readings. Supports LoRa, Zigbee, and BLE protocols with built-in data normalization.',
+      description: 'Build a sensor data collection project. Miners run IoT gateways to aggregate and validate sensor readings. Supports LoRa, Zigbee, and BLE protocols with built-in data normalization.',
       consensus: 'Proof of Coverage',
       rewardModel: 'Data-volume',
       hardware: 'ARM/x86, LoRa gateway',
@@ -46,7 +46,7 @@
     {
       name: 'CDN Relay Network',
       category: 'DePIN',
-      description: 'Launch a content delivery relay network. Miners cache and serve content at the edge for low-latency access. Includes geographic load balancing, cache invalidation, and bandwidth metering.',
+      description: 'Launch a content delivery relay project. Miners cache and serve content at the edge for low-latency access. Includes geographic load balancing, cache invalidation, and bandwidth metering.',
       consensus: 'Proof of Bandwidth',
       rewardModel: 'Bandwidth-based',
       hardware: '100Mbps+ uplink, 500GB cache',
@@ -56,7 +56,7 @@
     {
       name: 'Data Validation',
       category: 'Data Sovereignty',
-      description: 'Run a data validation and attestation network. Miners verify data integrity and generate cryptographic proofs. Built-in support for ZK circuits, Merkle proofs, and cross-chain attestation.',
+      description: 'Run a data validation and attestation project. Miners verify data integrity and generate cryptographic proofs. Built-in support for ZK circuits, Merkle proofs, and cross-chain attestation.',
       consensus: 'Proof of Correctness',
       rewardModel: 'Per-validation',
       hardware: '4-core CPU, 8GB RAM',
@@ -66,7 +66,7 @@
     {
       name: 'GPU Compute Pool',
       category: 'Compute',
-      description: 'Create a shared GPU compute pool for rendering, training, and general-purpose parallel workloads. Job scheduler handles queue management, priority tiers, and automatic failover.',
+      description: 'Create a shared GPU compute project for rendering, training, and general-purpose parallel workloads. Job scheduler handles queue management, priority tiers, and automatic failover.',
       consensus: 'Proof of Work',
       rewardModel: 'Compute-time',
       hardware: 'GPU required, 8GB+ VRAM',
@@ -76,7 +76,7 @@
     {
       name: 'Coverage Network',
       category: 'DePIN',
-      description: 'Deploy a wireless coverage network. Miners operate hotspots to extend network reach and earn coverage rewards. Includes hex-based coverage mapping and signal quality attestation.',
+      description: 'Deploy a wireless coverage project. Miners operate hotspots to extend network reach and earn coverage rewards. Includes hex-based coverage mapping and signal quality attestation.',
       consensus: 'Proof of Coverage',
       rewardModel: 'Coverage-based',
       hardware: 'Hotspot hardware, outdoor antenna',
@@ -113,7 +113,7 @@
       Templates & Starter Kits
     </h1>
     <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;line-height:20px">
-      Bootstrap a mining network in minutes. Choose a template, customize in the wizard, and deploy.
+      Bootstrap a mining project in minutes. Choose a template, customize in the wizard, and deploy.
     </p>
 
     <!-- Grid -->

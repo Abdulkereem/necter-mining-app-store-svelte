@@ -3,7 +3,7 @@
 	import { actor } from '$lib/stores/wallet';
 	import { appIconDataUri } from '$lib/app-icon';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
-	import { Network, TrendingUp, Clock, ArrowUp, ArrowDown, Minus } from 'lucide-svelte';
+	import { Network, TrendingUp, Clock, ArrowUp, ArrowDown, Minus, ChevronDown } from 'lucide-svelte';
 	import { Button, Card } from '$lib/components/ui';
 
 	type Tab = 'networks' | 'earners' | 'uptime';
@@ -112,10 +112,13 @@
 		</div>
 		<div class="flex items-center gap-2">
 			{#if tab === 'networks'}
-				<select bind:value={category} class="appearance-none h-[30px] pl-3 pr-9 rounded-[5px] bg-[var(--surface-1)] border border-[var(--border)] text-[11px] text-[var(--text-secondary)] outline-none cursor-pointer">
-					<option value="all">All Categories</option>
-					{#each categories as c}<option value={c}>{c}</option>{/each}
-				</select>
+				<div class="relative">
+					<select bind:value={category} class="appearance-none h-[30px] pl-3 pr-8 rounded-[5px] bg-[var(--surface-1)] border border-[var(--border)] text-[11px] text-[var(--text-secondary)] outline-none cursor-pointer">
+						<option value="all">All Categories</option>
+						{#each categories as c}<option value={c}>{c}</option>{/each}
+					</select>
+					<ChevronDown size={12} strokeWidth={1.5} class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+				</div>
 			{/if}
 			<div class="flex gap-[2px] bg-[var(--surface-2)] rounded-[5px] p-[2px]">
 				{#each [{ id: '7d', label: '7D' }, { id: '30d', label: '30D' }, { id: 'all', label: 'All' }] as p}

@@ -75,7 +75,7 @@
 				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">General</h2>
 				<div class="space-y-4">
 					<div>
-						<label class={labelClass}>Network Name</label>
+						<label class={labelClass}>Project Name</label>
 						<input class={inputClass} bind:value={name} />
 					</div>
 					<div>

@@ -101,7 +101,7 @@
       <div class="bg-[var(--surface-1)] border border-[var(--border-default)] border-t-0 rounded-b-[12px] px-8 pt-6 pb-8 text-center">
         <img src="/brand/logo.svg" alt="" class="w-10 h-10 mx-auto mb-4" />
         <h2 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">Developer Portal</h2>
-        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Build mining networks on Necter. Define your workloads, set reward economics, and attract miners from the marketplace.</p>
+        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Build mining projects on Necter. Define your workloads, set reward economics, and attract miners from the marketplace.</p>
         <button type="button" onclick={() => { $showConnectModal = true; }} class="btn-primary">Connect Wallet</button>
       </div>
     </div>
@@ -117,7 +117,7 @@
       </div>
       <div class="bg-[var(--surface-1)] border border-[var(--border-default)] border-t-0 rounded-b-[12px] px-8 pt-6 pb-8 text-center">
         <h2 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">Set Up Your Developer Account</h2>
-        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Complete your profile to start building and publishing mining networks on Necter.</p>
+        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Complete your profile to start building and publishing mining projects on Necter.</p>
         <button type="button" onclick={() => { setupModalOpen = true; }} class="btn-primary">Get Started</button>
       </div>
     </div>
@@ -132,13 +132,12 @@
       <div class="flex items-center justify-between gap-4">
         <div>
           <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-[-0.015em]">Developer Portal</h1>
-          <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Build and manage mining networks on Necter</p>
+          <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Build and manage mining projects on Necter</p>
         </div>
         <div class="flex gap-2">
-          <a href="/develop/profile" class="btn-secondary gap-1">Edit Profile</a>
           <a href="/develop/create" class="btn-subscribe gap-1">
             <Plus class="w-3 h-3" strokeWidth={2} />
-            Create Network
+            Create Project
           </a>
         </div>
       </div>
@@ -146,7 +145,7 @@
       <!-- Stats -->
       <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
         {#each [
-          { label: 'Networks', value: developerApps.length.toString() },
+          { label: 'Projects', value: developerApps.length.toString() },
           { label: 'Total Miners', value: totalMiners.toLocaleString() },
           { label: 'Revenue', value: `$${totalRevenue.toLocaleString()}`, accent: true },
           { label: 'Fleet Size', value: operatorMiners.length.toString() },
@@ -161,7 +160,7 @@
       <!-- Your Networks -->
       <div>
         <div class="flex items-center justify-between mb-4">
-          <span class="text-[14px] font-semibold text-[var(--text-primary)]">Your Networks</span>
+          <span class="text-[14px] font-semibold text-[var(--text-primary)]">Your Projects</span>
         </div>
 
         {#if developerApps.length > 0}
@@ -217,11 +216,11 @@
           </div>
         {:else}
           <div class="bg-honeycomb border border-dashed border-[var(--border-default)] rounded-[8px] px-6 py-12 text-center">
-            <p class="text-[14px] font-medium text-[var(--text-secondary)] mb-1">No networks yet</p>
-            <p class="text-[12px] text-[var(--text-tertiary)] mb-4">Create your first network or start from a template below.</p>
+            <p class="text-[14px] font-medium text-[var(--text-secondary)] mb-1">No projects yet</p>
+            <p class="text-[12px] text-[var(--text-tertiary)] mb-4">Create your first project or start from a template below.</p>
             <a href="/develop/create" class="btn-subscribe gap-1">
               <Plus class="w-3 h-3" strokeWidth={2} />
-              Create Network
+              Create Project
             </a>
           </div>
         {/if}

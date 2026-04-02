@@ -225,14 +225,16 @@
 				Vote on proposals, review listings, and moderate flagged projects.
 			</p>
 		</div>
-		<Button class="hidden md:inline-flex" onclick={openCreateModal}>
-			Create Proposal
-		</Button>
+		<div class="hidden md:block">
+			<Button onclick={openCreateModal}>
+				Create Proposal
+			</Button>
+		</div>
 	</div>
 
 	<!-- Stats Grid -->
 	<div
-		class="mobile-grid-2 grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden mb-3 md:mb-6"
+		class="mobile-grid-2 grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden mb-6"
 	>
 		{#each [
 			{ label: 'Active Proposals', value: activeProposalCount.toString(), accent: false },
@@ -256,9 +258,11 @@
 	</div>
 
 	<!-- Create Proposal — mobile, under stats -->
-	<Button class="w-full md:hidden mb-4" onclick={openCreateModal}>
-		Create Proposal
-	</Button>
+	<div class="md:hidden mt-4 mb-4">
+		<Button class="w-full" onclick={openCreateModal}>
+			Create Proposal
+		</Button>
+	</div>
 
 	<!-- ═══════════════════════════════════════════
        SECTION: VOTING (proposals, listings, moderation)
@@ -583,7 +587,7 @@
 	<!-- ══════════════════════════════════════════
        CREATE PROPOSAL MODAL
       ══════════════════════════════════════════ -->
-	<Modal bind:open={showCreateModal} maxWidth="520px" class="max-h-[100vh] md:max-h-[85vh] overflow-y-auto">
+	<Modal bind:open={showCreateModal} maxWidth="520px" class="!p-0 max-h-[100vh] md:max-h-[85vh] overflow-y-auto">
 				<!-- Modal header -->
 				<div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
 					<div>

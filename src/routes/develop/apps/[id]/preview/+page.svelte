@@ -54,7 +54,7 @@
 
 {#if !app}
   <div style="padding: 24px; color: var(--text-secondary); font-size: 13px;">
-    Network not found.
+    Project not found.
     <a href="/develop" style="color: var(--text-accent); text-decoration: none;">Back to Dashboard</a>
   </div>
 {:else}
@@ -64,7 +64,7 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--info); box-shadow: 0 0 6px var(--info);"></div>
         <span style="font-size: 13px; font-weight: 600; color: var(--info);">Preview Mode</span>
-        <span style="font-size: 12px; color: var(--text-secondary);">This is how miners will see your network</span>
+        <span style="font-size: 12px; color: var(--text-secondary);">This is how miners will see your project</span>
       </div>
       <a href="/develop/apps/{id}" style="display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px; border-radius: 5px; font-size: 12px; font-weight: 500; background: var(--surface-2); border: 1px solid var(--border-default); color: var(--text-secondary); text-decoration: none;">
         <ArrowLeft style="width: 12px; height: 12px;" strokeWidth={1.5} />

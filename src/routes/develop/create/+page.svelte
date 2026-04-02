@@ -18,8 +18,8 @@
     { type: 'compute-training', label: 'AI Training', desc: 'Distributed model training', icon: Server },
     { type: 'data-storage', label: 'Storage', desc: 'Decentralized file storage', icon: Database },
     { type: 'data-retrieval', label: 'Data Retrieval', desc: 'Indexed data access', icon: Database },
-    { type: 'network-relay', label: 'Network Relay', desc: 'P2P message routing', icon: Network },
-    { type: 'network-coverage', label: 'Coverage', desc: 'Wireless network coverage', icon: Wifi },
+    { type: 'network-relay', label: 'Relay', desc: 'P2P message routing', icon: Network },
+    { type: 'network-coverage', label: 'Coverage', desc: 'Wireless coverage', icon: Wifi },
     { type: 'data-validation', label: 'Validation', desc: 'Data integrity proofs', icon: Shield },
     { type: 'content-delivery', label: 'CDN', desc: 'Edge content delivery', icon: Globe },
     { type: 'custom', label: 'Custom', desc: 'Define your own', icon: Settings },
@@ -166,7 +166,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-[20px] font-semibold text-[var(--text-primary)]">Create Network</h1>
+        <h1 class="text-[20px] font-semibold text-[var(--text-primary)]">Create Project</h1>
         <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Step {step} of 3 &middot; {stepLabels[step - 1]}</p>
       </div>
       <a href="/develop" class="back-link m-0"><ArrowLeft size={14} strokeWidth={1.5} /> Back</a>
@@ -190,22 +190,22 @@
     {#if step === 1}
       <div class="flex flex-col gap-4">
         <div class="n-card">
-          <h3 class="section-title mb-3.5">Network Details</h3>
+          <h3 class="section-title mb-3.5">Project Details</h3>
           <div class="flex flex-col gap-3">
             <div>
-              <label class="field-label">Network Name <span class="text-[var(--error)]">*</span></label>
+              <label class="field-label">Project Name <span class="text-[var(--error)]">*</span></label>
               <input type="text" bind:value={name} placeholder="e.g. Helium Network" class={inp} />
             </div>
             <div>
               <label class="field-label">Description <span class="text-[var(--error)]">*</span></label>
-              <textarea bind:value={description} placeholder="What does your network do? What problem does it solve for miners?" rows="3" class={inpTextarea}></textarea>
+              <textarea bind:value={description} placeholder="What does your project do? What problem does it solve for miners?" rows="3" class={inpTextarea}></textarea>
             </div>
           </div>
         </div>
 
         <div class="n-card">
           <h3 class="section-title mb-1">Task Domain</h3>
-          <p class="field-hint mb-3">What kind of work will miners do on your network?</p>
+          <p class="field-hint mb-3">What kind of work will miners do on your project?</p>
           <div class="grid grid-cols-3 gap-2">
             {#each taskDomains as td}
               {@const sel = taskDomain === td.type}
@@ -415,7 +415,7 @@
           class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5"
           style="opacity:{creating || !name.trim() ? 0.4 : 1}"
         >
-          {creating ? 'Creating...' : 'Create Network'}
+          {creating ? 'Creating...' : 'Create Project'}
         </button>
       {/if}
     </div>

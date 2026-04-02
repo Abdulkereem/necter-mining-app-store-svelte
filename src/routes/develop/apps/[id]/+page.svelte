@@ -144,7 +144,7 @@
 {#if !app}
   <div class="min-h-screen animate-fadeIn">
     <div class="p-6">
-      <p class="text-[13px] text-[var(--text-secondary)]">Network not found.</p>
+      <p class="text-[13px] text-[var(--text-secondary)]">Project not found.</p>
       <a href="/develop" class="text-[13px] text-[var(--text-accent)] no-underline">Back to Dashboard</a>
     </div>
   </div>
@@ -433,7 +433,7 @@
             </div>
           {:else}
             <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] text-center p-8">
-              <p class="text-[13px] text-[var(--text-tertiary)]">No miners have subscribed yet. Once your network is live, miners will appear here.</p>
+              <p class="text-[13px] text-[var(--text-tertiary)]">No miners have subscribed yet. Once your project is live, miners will appear here.</p>
             </div>
           {/if}
         </div>
@@ -481,7 +481,7 @@
             <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3.5">General</h3>
             <div class="flex flex-col gap-3">
               <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Network Name</label>
+                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Project Name</label>
                 <input type="text" bind:value={settingsName} class={inp} />
               </div>
               <div>
