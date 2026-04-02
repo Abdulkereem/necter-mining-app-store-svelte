@@ -108,47 +108,14 @@
   </div>
 
 {:else if !enrollmentActive}
-  <!-- ── No enrollment — developer landing ── -->
+  <!-- ── No enrollment ── -->
   <div class="animate-fadeIn px-4 md:px-6 pt-6 pb-12">
-    <div class="max-w-[640px] mx-auto mt-6 md:mt-10">
-      <!-- Hero card -->
-      <div class="rounded-[12px] border border-[var(--border-default)] overflow-hidden">
-        <div class="w-full h-[180px] md:h-[220px] overflow-hidden relative">
-          <img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom" />
-          <div class="absolute inset-0" style="background:linear-gradient(to top,var(--surface-1) 0%,transparent 60%)" />
-          <div class="absolute bottom-4 left-6 right-6">
-            <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-16 h-auto mb-2 opacity-90" />
-            <h2 class="text-[22px] font-semibold text-[var(--text-primary)] mb-1">Build on Necter</h2>
-            <p class="text-[13px] text-[var(--text-secondary)] leading-5">Publish mining projects, attract miners, and earn from distributed compute.</p>
-          </div>
-        </div>
-        <div class="bg-[var(--surface-1)] px-6 pb-6 pt-5">
-          <!-- Features grid -->
-          <div class="grid grid-cols-2 gap-3 mb-6">
-            {#each [
-              { icon: '⚡', title: 'Deploy in minutes', desc: 'Create wizard walks you through setup' },
-              { icon: '📊', title: 'Real-time analytics', desc: 'Revenue, miners, and proof monitoring' },
-              { icon: '🔧', title: 'Full control', desc: 'Versions, announcements, miner tiers' },
-              { icon: '💰', title: 'Earn from day one', desc: 'Automatic reward distribution to miners' },
-            ] as f}
-              <div class="p-3 rounded-[8px] bg-[var(--surface-2)]">
-                <span class="text-[16px] block mb-1.5">{f.icon}</span>
-                <p class="text-[12px] font-semibold text-[var(--text-primary)] mb-0.5">{f.title}</p>
-                <p class="text-[11px] text-[var(--text-tertiary)] leading-[15px] m-0">{f.desc}</p>
-              </div>
-            {/each}
-          </div>
-          <!-- Social proof -->
-          <div class="flex items-center justify-center gap-4 text-[11px] text-[var(--text-tertiary)] mb-5">
-            <span><span class="font-semibold text-[var(--text-primary)]">30+</span> projects live</span>
-            <span class="text-[var(--border-strong)]">·</span>
-            <span><span class="font-semibold text-[var(--text-primary)]">10K+</span> active miners</span>
-            <span class="text-[var(--border-strong)]">·</span>
-            <span><span class="font-semibold text-[var(--text-primary)]">$2M+</span> distributed</span>
-          </div>
-          <!-- CTA -->
-          <button type="button" onclick={() => { setupModalOpen = true; }} class="btn-primary w-full h-11 text-[14px]">Create Developer Account</button>
-        </div>
+    <div class="max-w-[480px] mx-auto mt-10 md:mt-16">
+      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[12px] px-6 md:px-8 pt-8 pb-8 text-center">
+        <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-20 h-auto mx-auto mb-5 opacity-80" />
+        <h2 class="text-[20px] font-semibold text-[var(--text-primary)] mb-2">Developer Portal</h2>
+        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-6 leading-5 max-w-[320px]">Publish mining projects, manage miners, and track earnings on Necter.</p>
+        <button type="button" onclick={() => { setupModalOpen = true; }} class="btn-primary w-full h-10">Create Developer Account</button>
       </div>
     </div>
   </div>
