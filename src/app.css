@@ -937,6 +937,11 @@
       radial-gradient(circle at 70% 80%, rgba(255, 191, 0, 0.06) 0%, transparent 50%);
   }
 
+  /* Hex avatar — hexagonal clip for miner avatars */
+  .hex-avatar {
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
   /* Divider honey — thin amber gradient line */
   .divider-honey {
     background: linear-gradient(90deg, transparent, var(--accent-base), transparent);

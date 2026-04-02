@@ -188,7 +188,7 @@
 				<a href="/miners/{miner.minerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--surface-2)] transition-colors no-underline" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px; {miner.minerId === currentMinerId ? 'background:var(--accent-subtle)' : ''}">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
+						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-primary)] font-mono truncate">{miner.minerId}</span>
 					</div>
 					<span class="text-right text-[13px] font-medium font-mono" style="color:{color}">${miner.periodEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -211,7 +211,7 @@
 				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer bg-[var(--accent-subtle)]" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)] tabular-nums">{currentMinerEarnerRank}</span>
-						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
+						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
 					</div>
 					<span class="text-right text-[13px] font-medium font-mono text-[var(--text-accent)] tabular-nums">${(currentMinerEarner.totalEarned * periodMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -239,7 +239,7 @@
 				<a href="/miners/{miner.minerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--surface-2)] transition-colors no-underline" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px; {miner.minerId === currentMinerId ? 'background:var(--accent-subtle)' : ''}">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
+						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-primary)] font-mono truncate">{miner.minerId}</span>
 					</div>
 					<span class="text-right text-[14px] font-semibold font-mono" style="color:{color}">{miner.avgUptime.toFixed(1)}%</span>
@@ -262,7 +262,7 @@
 				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer bg-[var(--accent-subtle)]" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)] tabular-nums">{currentMinerUptimeRank}</span>
-						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" loading="lazy" />
+						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
 						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
 					</div>
 					<span class="text-right text-[14px] font-semibold font-mono text-[var(--text-accent)]">{currentMinerUptime.avgUptime.toFixed(1)}%</span>

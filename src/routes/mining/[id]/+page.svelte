@@ -318,13 +318,13 @@
 			</a>
 
 			<!-- Header -->
-			<div class="flex items-start gap-6">
+			<div class="flex items-start gap-3 md:gap-4">
 				<img
 					src={iconSrc}
 					alt={app.name}
-					width="100"
-					height="100"
-					class="rounded-[8px] w-[100px] h-[100px] object-cover"
+					width="48"
+					height="48"
+					class="rounded-[10px] w-12 h-12 md:w-14 md:h-14 object-cover shrink-0"
 				/>
 				<div class="flex-1">
 					<div class="flex items-center gap-3 mb-2">

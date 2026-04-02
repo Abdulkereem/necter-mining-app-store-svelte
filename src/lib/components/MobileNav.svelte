@@ -71,7 +71,7 @@
 		style="background: var(--surface-2); border: 1px solid var(--border-default);"
 	>
 		{#if avatarSrc}
-			<img src={avatarSrc} alt="" class="h-8 w-8 rounded-full" />
+			<img src={avatarSrc} alt="" class="h-8 w-8 hex-avatar" />
 		{:else}
 			<span class="text-[11px] font-semibold" style="color: var(--text-tertiary);">?</span>
 		{/if}

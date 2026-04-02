@@ -67,6 +67,7 @@
 
 <aside
 	class="fixed left-0 top-0 h-screen w-[220px] bg-[var(--surface-0)] border-r border-[var(--border-strong)] flex flex-col z-40"
+	style="background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23FFC933' fill-opacity='0.03'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&quot;);"
 >
 	<!-- Brand mark -->
 	<div class="px-3 pt-5 pb-2">
@@ -249,7 +250,7 @@
 				<img
 					src={minerAvatarDataUri($actor?.minerId ?? $wallet.address)}
 					alt=""
-					class="h-8 w-8 rounded-[6px] flex-shrink-0"
+					class="h-8 w-8 flex-shrink-0 hex-avatar"
 				/>
 				<div class="flex-1 min-w-0">
 					<p class="text-[12px] font-mono text-[var(--text-primary)] truncate">
