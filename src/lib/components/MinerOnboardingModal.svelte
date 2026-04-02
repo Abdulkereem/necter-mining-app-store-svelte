@@ -37,7 +37,7 @@
 				<!-- Bee image — top banner on mobile -->
 				<div
 					class="md:hidden w-full h-[100px] flex items-center justify-center"
-					style="background: linear-gradient(170deg, #2a1e00 0%, #1a1200 40%, #0C0C0E 100%);"
+					style="background: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%);"
 				>
 					<img
 						src="/brand/3d/bee-dark.png"
@@ -50,7 +50,7 @@
 				<!-- Bee image — left panel on desktop -->
 				<div
 					class="hidden md:flex w-[240px] shrink-0 items-center justify-center p-6"
-					style="background: linear-gradient(170deg, #2a1e00 0%, #1a1200 40%, #0C0C0E 100%);"
+					style="background: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%);"
 				>
 					<img
 						src="/brand/3d/bee-dark.png"
