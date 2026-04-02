@@ -749,12 +749,19 @@ export class MockBackendStore {
       ...(input.listingStatusByAppId ?? {}),
     } as Record<string, AppListingStatus>
 
-    // Merge: start with saved apps, then add any new mockApps not already present
+    // Merge: start with saved apps, then add any new mockApps not already present.
+    // Always prefer mock data icons/screenshots over stale localStorage versions.
     const savedApps: App[] =
       Array.isArray((input as any).apps) && (input as any).apps.length > 0 ? ((input as any).apps as App[]) : []
-    const savedIds = new Set(savedApps.map((a) => String(a.id)))
+    const mockById = new Map(mockApps.map((a) => [String(a.id), a]))
+    const mergedSaved = savedApps.map((a) => {
+      const fresh = mockById.get(String(a.id))
+      if (fresh) return { ...a, icon: fresh.icon, screenshots: (fresh as any).screenshots }
+      return a
+    })
+    const savedIds = new Set(mergedSaved.map((a) => String(a.id)))
     const newApps = mockApps.filter((a) => !savedIds.has(String(a.id)))
-    const rawApps: App[] = [...savedApps, ...newApps]
+    const rawApps: App[] = [...mergedSaved, ...newApps]
 
     const migratedApps = rawApps.map((a) => {
       const nextId = legacyRemapAppId(a)
