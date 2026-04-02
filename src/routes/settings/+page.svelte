@@ -1058,26 +1058,34 @@
                 {/each}
               </div>
 
-              <!-- Earned Badges -->
-              {#if filteredEarned.length > 0}
-                <div>
-                  <p class="text-[10px] font-semibold tracking-[0.04em] uppercase text-[var(--text-tertiary)] mb-3">
-                    Earned ({filteredEarned.length})
-                  </p>
-                  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {#each filteredEarned as b (b.id)}
-                      {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
-                      <div class="badge-card">
-                        <svg class="badge-honeycomb-bg" viewBox="0 0 60 60" fill="currentColor">
-                          <polygon points="30,2 52,16 52,44 30,58 8,44 8,16" fill="none" stroke="currentColor" stroke-width="1" />
-                          <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
-                        </svg>
-                        <div class="badge-icon w-16 h-16 relative">
-                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" loading="lazy" />
-                        </div>
-                        <p class="text-[13px] font-semibold m-0 leading-[18px] text-[var(--text-primary)]">{b.name}</p>
-                        <p class="text-[11px] leading-[16px] m-0 text-[var(--text-secondary)]">{b.description}</p>
-                        <div class="flex items-center gap-1.5 mt-auto flex-wrap justify-center">
+              <!-- All Badges (earned light up, locked are dimmed) -->
+              {@const allFiltered = [...filteredEarned.map(b => ({ ...b, earned: true })), ...filteredNotEarned.map(b => ({ ...b, earned: false, id: b.name }))]}
+              {#if allFiltered.length === 0}
+                <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-6 py-12 text-center">
+                  <p class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">No badges in this category yet</p>
+                  <p class="text-[13px] text-[var(--text-secondary)]">Try selecting a different filter.</p>
+                </div>
+              {:else}
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {#each allFiltered as b (b.id)}
+                    {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
+                    <div class="badge-card {b.earned ? '' : 'locked'}">
+                      <svg class="badge-honeycomb-bg" viewBox="0 0 60 60" fill="currentColor">
+                        <polygon points="30,2 52,16 52,44 30,58 8,44 8,16" fill="none" stroke="currentColor" stroke-width="1" />
+                        <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
+                      </svg>
+                      <div class="badge-icon w-16 h-16 relative">
+                        <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" loading="lazy" />
+                        {#if !b.earned}
+                          <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--surface-2)] border-2 border-[var(--surface-1)] flex items-center justify-center">
+                            <Lock size={10} strokeWidth={2} class="text-[var(--text-tertiary)]" />
+                          </div>
+                        {/if}
+                      </div>
+                      <p class="text-[13px] font-semibold m-0 leading-[18px] {b.earned ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}">{b.name}</p>
+                      <p class="text-[11px] leading-[16px] m-0 {b.earned ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}">{b.description}</p>
+                      <div class="flex items-center gap-1.5 mt-auto flex-wrap justify-center">
+                        {#if b.earned}
                           <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[10px] font-medium tracking-[0.02em]" style="background: {meta.bg}; color: {meta.color};">
                             {meta.label}
                           </span>
@@ -1086,51 +1094,16 @@
                               {new Date(b.mintedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
                           {/if}
-                        </div>
-                      </div>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
-
-              <!-- Locked Badges -->
-              <div>
-                <p class="text-[10px] font-semibold tracking-[0.04em] uppercase text-[var(--text-tertiary)] mb-3">
-                  {filteredEarned.length > 0 ? `Locked (${filteredNotEarned.length})` : `All Badges (${filteredNotEarned.length})`}
-                </p>
-                {#if filteredNotEarned.length === 0 && filteredEarned.length === 0}
-                  <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-lg px-6 py-12 text-center">
-                    <p class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">No badges in this category yet</p>
-                    <p class="text-[13px] text-[var(--text-secondary)]">Try selecting a different filter.</p>
-                  </div>
-                {:else}
-                  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {#each filteredNotEarned as b (b.name)}
-                      {@const meta = badgeKindMeta[b.kind] ?? badgeKindMeta.milestone}
-                      <div class="badge-card locked">
-                        <svg class="badge-honeycomb-bg" viewBox="0 0 60 60" fill="currentColor">
-                          <polygon points="30,2 52,16 52,44 30,58 8,44 8,16" fill="none" stroke="currentColor" stroke-width="1" />
-                          <polygon points="30,14 41,21 41,35 30,42 19,35 19,21" fill="none" stroke="currentColor" stroke-width="0.5" />
-                        </svg>
-                        <div class="badge-icon w-16 h-16 relative">
-                          <img src={badgeIconDataUri(b.name, b.kind)} alt="" class="w-16 h-16" loading="lazy" />
-                          <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[var(--surface-2)] border-2 border-[var(--surface-1)] flex items-center justify-center">
-                            <Lock size={10} strokeWidth={2} class="text-[var(--text-tertiary)]" />
-                          </div>
-                        </div>
-                        <p class="text-[13px] font-semibold m-0 leading-[18px] text-[var(--text-secondary)]">{b.name}</p>
-                        <p class="text-[11px] leading-[16px] m-0 text-[var(--text-tertiary)]">{b.description}</p>
-                        <div class="flex items-center gap-1.5 mt-auto flex-wrap justify-center">
+                        {:else}
                           <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[10px] font-medium tracking-[0.02em] bg-[var(--surface-3)] text-[var(--text-tertiary)]">
                             {meta.label}
                           </span>
-                          <span class="text-[10px] text-[var(--text-tertiary)]">Locked</span>
-                        </div>
+                        {/if}
                       </div>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
             </div>
           {/if}
         {/if}

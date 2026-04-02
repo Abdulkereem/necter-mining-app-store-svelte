@@ -394,7 +394,7 @@
 									onclick={(e) => e.stopPropagation()}
 									onkeydown={(e) => e.stopPropagation()}
 								>
-									<Button
+									<Button variant="secondary"
 										class="flex-1 h-[34px] text-[12px]"
 										onclick={(e) => {
 											e.stopPropagation();
@@ -442,7 +442,7 @@
 									<Badge variant="error" class="flex-shrink-0 text-[9px] font-semibold uppercase">Flagged</Badge>
 								</div>
 								<div class="flex gap-2">
-									<Button
+									<Button variant="secondary"
 										onclick={() => {
 											if (!$actor) { $showConnectModal = true; return; }
 											if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
@@ -481,7 +481,7 @@
 								<div class="text-[11px] text-[var(--text-tertiary)]">Identity verification</div>
 							</div>
 							<div class="flex gap-2 flex-shrink-0">
-								<Button
+								<Button variant="secondary"
 									onclick={() =>
 										safe(() =>
 											backend.reviewDeveloperVerification({
@@ -516,7 +516,7 @@
 								</div>
 							</div>
 							<div class="flex gap-2 flex-shrink-0">
-								<Button
+								<Button variant="secondary"
 									onclick={() =>
 										safe(() =>
 											backend.reviewDeveloperEnrollment({
@@ -675,7 +675,7 @@
 									{/each}
 								</div>
 							</div>
-							<Button
+							<Button variant="secondary"
 								disabled={propTitle.trim().length < 6}
 								onclick={() => (createStep = 2)}
 								size="lg"
@@ -755,7 +755,7 @@
 								/>
 							</div>
 							<div class="flex gap-2">
-								<Button
+								<Button variant="secondary"
 									variant="secondary"
 									onclick={() => (createStep = 1)}
 									size="lg"
@@ -833,7 +833,7 @@
 								{/if}
 							</div>
 							<div class="flex gap-2">
-								<Button
+								<Button variant="secondary"
 									variant="secondary"
 									onclick={() => (createStep = 2)}
 									size="lg"

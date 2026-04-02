@@ -328,8 +328,8 @@
 						</div>
 					</div>
 
-					<!-- CTA + share -->
-					<div class="flex items-center gap-2 shrink-0">
+					<!-- CTA + share — mobile only (desktop has it in badges row) -->
+					<div class="flex md:hidden items-center gap-2 shrink-0">
 						{#if miningStatus === 'not-subscribed'}
 							<button class="btn-subscribe font-semibold" onclick={handleSubscribe}>Subscribe</button>
 						{/if}
