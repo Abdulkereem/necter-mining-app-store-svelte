@@ -114,7 +114,7 @@
       <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[12px] px-6 md:px-8 pt-8 pb-8 text-center">
         <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-20 h-auto mx-auto mb-5 opacity-80" />
         <h2 class="text-[20px] font-semibold text-[var(--text-primary)] mb-2">Set Up Your Developer Account</h2>
-        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-6 leading-5 max-w-[320px]">Complete your profile to start building and publishing mining projects on Necter.</p>
+        <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-6 leading-5 max-w-[340px]">Complete your profile to start publishing mining projects, managing miners, and tracking earnings on Necter.</p>
         <button type="button" onclick={() => { setupModalOpen = true; }} class="btn-primary w-full h-10">Get Started</button>
       </div>
     </div>
