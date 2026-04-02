@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import EarningsPanel from '$lib/components/mining/EarningsPanel.svelte';
 	import { ArrowUpRight } from 'lucide-svelte';
 	import type { App } from '$lib/types';
@@ -188,9 +188,7 @@
 	}
 
 	function appIcon(app: App): string {
-		return app.icon && app.icon !== '/placeholder.svg'
-			? app.icon
-			: appIconDataUri({ id: app.id, name: app.name });
+		return getAppIcon(app);
 	}
 
 	// Chart helper: max value for bar chart scaling
@@ -664,7 +662,7 @@
 					{:else}
 						{#each subs as s, idx}
 							{@const app = appsById.get(s.appId)}
-							{@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : '/placeholder.svg'}
+							{@const iconSrc = app ? getAppIcon(app) : '/placeholder.svg'}
 							<a
 								href="/mining/{encodeURIComponent(s.id)}"
 								class="flex items-center gap-2.5 px-3 py-2.5 no-underline transition-colors hover:bg-[var(--surface-2)]"
@@ -860,7 +858,7 @@
 
 						{#each subs as s, idx}
 							{@const app = appsById.get(s.appId)}
-							{@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : '/placeholder.svg'}
+							{@const iconSrc = app ? getAppIcon(app) : '/placeholder.svg'}
 							<a
 								href="/mining/{encodeURIComponent(s.id)}"
 								class="grid h-11 px-3 items-center no-underline transition-colors hover:bg-[var(--surface-2)] [grid-template-columns:1fr_80px_80px_80px_80px_80px]"

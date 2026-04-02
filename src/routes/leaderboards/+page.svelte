@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor } from '$lib/stores/wallet';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 	import { Network, TrendingUp, Clock, ArrowUp, ArrowDown, Minus, ChevronDown } from 'lucide-svelte';
 	import { Button, Card } from '$lib/components/ui';
@@ -159,7 +159,7 @@
 					style="grid-template-columns:{isMobile ? '1fr 55px 75px 55px 40px' : '1fr 70px 90px 75px 65px 50px'}; gap:0 20px">
 					<div class="flex items-center gap-4 min-w-0">
 						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={app.icon || appIconDataUri({ id: app.id, name: app.name, category: app.category })} alt="" class="w-7 h-7 rounded-[5px] shrink-0" loading="lazy" />
+						<img src={getAppIcon(app)} alt="" class="w-7 h-7 rounded-[5px] shrink-0" loading="lazy" />
 						<div class="min-w-0"><span class="text-[13px] font-medium text-[var(--text-primary)] truncate block">{app.name}</span><span class="text-[10px] text-[var(--text-tertiary)] truncate block">{app.category}</span></div>
 					</div>
 					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{app.totalMiners}</span>

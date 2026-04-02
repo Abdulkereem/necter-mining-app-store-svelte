@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { backendState, backend } from '$lib/stores/backend';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { Signal, Brain, HardDrive, Server, Wifi, Layers, Cpu, Lock } from 'lucide-svelte';
 	import type { App, AppCategory } from '$lib/types';
 
 	/* ─── Helper ─── */
 	function appIcon(app: App): string {
-		return app.icon && app.icon !== '/placeholder.svg'
-			? app.icon
-			: appIconDataUri({ id: app.id, name: app.name, category: app.category });
+		return getAppIcon(app);
 	}
 
 	/* ─── Categories ─── */

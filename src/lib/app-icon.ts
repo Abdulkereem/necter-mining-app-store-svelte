@@ -107,3 +107,11 @@ export function appIconDataUri(input: { id: string; name: string; category?: str
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
 }
+
+/** Get the best icon for an app — real icon first, SVG fallback only if missing */
+export function getAppIcon(app: { id: string; name: string; icon?: string | null; category?: string }): string {
+  if (app.icon && app.icon !== '/placeholder.svg' && app.icon !== '/placeholder-logo.png') {
+    return app.icon
+  }
+  return appIconDataUri({ id: app.id, name: app.name, category: app.category })
+}

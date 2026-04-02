@@ -4,7 +4,7 @@
   import { showToast, showError } from '$lib/stores/toast';
   import { minerAvatarDataUri } from '$lib/miner-avatar';
   import { badgeIconDataUri } from '$lib/badge-icon';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import {
     User, Wallet as WalletIcon, Bell, Monitor, Award, Save, Upload, Copy,
     Key, ChevronRight, ChevronDown, Clock, Lock, ExternalLink, Download,
@@ -955,7 +955,7 @@
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-2.5 min-w-0">
                         <img
-                          src={app.icon || appIconDataUri({ id: app.id, name: app.name, category: app.category })}
+                          src={getAppIcon(app)}
                           alt=""
                           class="w-7 h-7 rounded-[5px] flex-shrink-0"
                           loading="lazy"

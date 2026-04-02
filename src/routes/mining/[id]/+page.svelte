@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import {
 		ArrowLeft,
 		CheckCircle2,
@@ -42,11 +42,7 @@
 		subscription ? $backendState.apps.find((a) => a.id === subscription.appId) ?? null : null
 	);
 
-	let iconSrc = $derived.by(() => {
-		if (!app) return '/placeholder.svg';
-		if (app.icon && app.icon !== '/placeholder.svg') return app.icon;
-		return appIconDataUri({ id: app.id, name: app.name });
-	});
+	let iconSrc = $derived(app ? getAppIcon(app) : '/placeholder.svg');
 
 	let proofsForApp = $derived.by(() => {
 		if (!subscription) return [];

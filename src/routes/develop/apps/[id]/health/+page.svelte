@@ -1,7 +1,7 @@
 <script>
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import { ArrowLeft, Heart, Shield, Zap, Users, AlertTriangle, CheckCircle2 } from 'lucide-svelte';
 
   const id = $derived($page.params.id);
@@ -9,9 +9,7 @@
   const health = $derived(backend.getProjectHealthScore(id));
 
   const iconSrc = $derived(
-    app && app.icon && app.icon !== '/placeholder.svg'
-      ? app.icon
-      : appIconDataUri({ id: id, name: app?.name ?? '' })
+    getAppIcon({ id: id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
   );
 
   const statusConfig = {

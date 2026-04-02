@@ -1,7 +1,7 @@
 <script>
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import { minerAvatarDataUri } from '$lib/miner-avatar';
   import { ArrowLeft } from 'lucide-svelte';
 
@@ -88,7 +88,7 @@
                 style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; text-decoration: none; transition: border-color 100ms ease-out;"
               >
                 <img
-                  src={app.icon && app.icon !== '/placeholder.svg' ? app.icon : appIconDataUri({ id: app.id, name: app.name })}
+                  src={getAppIcon(app)}
                   alt={app.name}
                   width="36"
                   height="36"

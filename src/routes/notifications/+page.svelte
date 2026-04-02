@@ -1,7 +1,7 @@
 <script>
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import { onMount } from 'svelte';
   import {
     Bell,
@@ -481,7 +481,7 @@
                       <div class="border-t border-[var(--border-default)]">
                         {#each entry.items as n (n.id)}
                           {@const app = n.appId ? $backendState.apps.find((a) => a.id === n.appId) : null}
-                          {@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : null}
+                          {@const iconSrc = app ? getAppIcon(app) : null}
                           {@const link = linkForEvent(n)}
                           {@const isEarning = n.eventType === 'payout_distributed'}
                           {@const isWithdrawal = n.eventType === 'withdrawal_requested' || n.eventType === 'withdrawal_completed'}
@@ -615,7 +615,7 @@
                   <!-- Single event card -->
                   {@const n = entry.item}
                   {@const app = n.appId ? $backendState.apps.find((a) => a.id === n.appId) : null}
-                  {@const iconSrc = app?.icon && app.icon !== '/placeholder.svg' ? app.icon : app ? appIconDataUri({ id: app.id, name: app.name }) : null}
+                  {@const iconSrc = app ? getAppIcon(app) : null}
                   {@const link = linkForEvent(n)}
                   {@const isEarning = n.eventType === 'payout_distributed'}
                   {@const isWithdrawal = n.eventType === 'withdrawal_requested' || n.eventType === 'withdrawal_completed'}

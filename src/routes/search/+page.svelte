@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Search, X } from 'lucide-svelte';
 	import { backendState, backend } from '$lib/stores/backend';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { onMount } from 'svelte';
 
 	const TRENDING_TERMS = ['AI', 'Storage', 'DePIN', 'GPU', 'Compute', 'IoT', 'Bandwidth'];
@@ -34,8 +34,7 @@
 	const isSearching = $derived(query.trim().length > 0);
 
 	function getIconSrc(app: (typeof apps)[0]) {
-		if (app.icon && app.icon !== '/placeholder.svg') return app.icon;
-		return appIconDataUri({ id: app.id, name: app.name });
+		return getAppIcon(app);
 	}
 
 	function saveSearch(term: string) {

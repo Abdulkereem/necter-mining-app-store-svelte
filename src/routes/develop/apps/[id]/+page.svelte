@@ -2,7 +2,7 @@
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import { minerAvatarDataUri } from '$lib/miner-avatar';
   import {
     ArrowLeft, Send, ExternalLink, CheckCircle2, Circle, Clock,
@@ -29,9 +29,7 @@
   let activeTab = $state('overview');
 
   const iconSrc = $derived(
-    app && app.icon && app.icon !== '/placeholder.svg'
-      ? app.icon
-      : appIconDataUri({ id: id, name: app?.name ?? '' })
+    getAppIcon({ id: id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
   );
   const subs = $derived($backendState.subscriptions.filter((s) => s.appId === id));
   const activeMiners = $derived(subs.filter((s) => s.status === 'active').length);

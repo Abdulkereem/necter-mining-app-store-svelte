@@ -4,7 +4,7 @@
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, showConnectModal } from '$lib/stores/wallet';
 	import { showToast } from '$lib/stores/toast';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { ArrowLeft, Pause, Play } from 'lucide-svelte';
 
 	let minerId = $derived($actor?.minerId ?? null);
@@ -36,8 +36,7 @@
 
 	function getIconSrc(app: { id: string; name: string; icon: string } | undefined) {
 		if (!app) return '';
-		if (app.icon && app.icon !== '/placeholder.svg') return app.icon;
-		return appIconDataUri({ id: app.id, name: app.name });
+		return getAppIcon(app);
 	}
 
 	function handlePause(e: MouseEvent, subId: string) {

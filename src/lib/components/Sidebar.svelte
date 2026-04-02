@@ -5,7 +5,7 @@
 	import { wallet, actor, showConnectModal } from '$lib/stores/wallet';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import SettingsModal from './SettingsModal.svelte';
 
 	let catOpen = $state(false);
@@ -122,7 +122,7 @@
 						>
 							<div class="h-6 w-6 rounded-[5px] bg-[var(--surface-3)] flex items-center justify-center flex-shrink-0 overflow-hidden">
 								<img
-									src={app.icon || appIconDataUri({ id: app.id, name: app.name, category: app.category })}
+									src={getAppIcon(app)}
 									alt=""
 									class="h-6 w-6 rounded-[5px]"
 								/>

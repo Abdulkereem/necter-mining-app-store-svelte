@@ -5,7 +5,7 @@
 	import { actor, showConnectModal } from '$lib/stores/wallet';
 	import { showToast } from '$lib/stores/toast';
 	import { mockMiningProfiles, mockMiningProfileTrustScores } from '$lib/mock-data';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 	import { getAppScreenshots } from '$lib/app-screenshots';
 	import { shareOrCopy } from '$lib/share';
@@ -217,7 +217,7 @@
 	}
 
 	function appIcon(a: { id: string; name: string; category: string; icon?: string }) {
-		return a.icon && a.icon !== '/placeholder.svg' ? a.icon : appIconDataUri({ id: a.id, name: a.name, category: a.category });
+		return getAppIcon(a);
 	}
 
 	async function handleShare() {

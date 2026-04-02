@@ -4,7 +4,7 @@
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, showConnectModal } from '$lib/stores/wallet';
 	import { showToast, showError } from '$lib/stores/toast';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { mockMiner } from '$lib/mock-data';
 	import {
 		ArrowLeft,
@@ -21,11 +21,7 @@
 
 	let app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
 
-	let iconSrc = $derived.by(() => {
-		if (!app) return '/placeholder.svg';
-		if (app.icon && app.icon !== '/placeholder.svg') return app.icon;
-		return appIconDataUri({ id: app.id, name: app.name });
-	});
+	let iconSrc = $derived(app ? getAppIcon(app) : '/placeholder.svg');
 
 	let hardwareChecks = $derived.by(() => {
 		if (!app) return [];

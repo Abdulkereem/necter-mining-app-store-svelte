@@ -1,7 +1,7 @@
 <script>
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import { getDeveloperByAddress } from '$lib/developer-registry';
   import {
     CheckCircle2,
@@ -227,7 +227,7 @@
           >
             <div class="flex items-start gap-3 mb-3">
               <img
-                src={app.icon && app.icon !== '/placeholder.svg' ? app.icon : appIconDataUri({ id: app.id, name: app.name })}
+                src={getAppIcon(app)}
                 alt={app.name}
                 width="40"
                 height="40"

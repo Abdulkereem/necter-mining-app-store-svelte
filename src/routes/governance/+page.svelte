@@ -3,7 +3,7 @@
 	import { showToast, showError } from '$lib/stores/toast';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import {
 		CheckCircle2,
 		XCircle,
@@ -362,7 +362,7 @@
 								<div class="flex items-center gap-2 mb-2">
 									{#if app}
 										<img
-											src={appIconDataUri({ id: app.id, name: app.name, category: app.category })}
+											src={getAppIcon(app)}
 											alt=""
 											class="w-7 h-7 rounded-[6px] shrink-0"
 										/>
@@ -430,7 +430,7 @@
 								<div class="flex items-center gap-2 mb-2">
 									{#if app}
 										<img
-											src={appIconDataUri({ id: app.id, name: app.name, category: app.category })}
+											src={getAppIcon(app)}
 											alt=""
 											class="w-6 h-6 rounded-[5px] shrink-0"
 										/>

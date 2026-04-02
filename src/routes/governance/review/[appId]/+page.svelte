@@ -4,7 +4,7 @@
   import { goto } from '$app/navigation';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import {
     ChevronLeft,
     Save,
@@ -114,7 +114,7 @@
 
     <!-- Header -->
     <div class="flex items-start gap-4 mb-8">
-      <img src={appIconDataUri({ id: app.id, name: app.name, category: app.category })} alt="" class="h-14 w-14 rounded-[12px] flex-shrink-0" />
+      <img src={getAppIcon(app)} alt="" class="h-14 w-14 rounded-[12px] flex-shrink-0" />
       <div class="flex-1">
         <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">{app.name}</h1>
         <p class="text-[13px] text-[var(--text-secondary)] mt-0.5">{app.category} · {app.developer}</p>

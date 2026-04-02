@@ -3,7 +3,7 @@
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, showConnectModal } from '$lib/stores/wallet';
 	import { showToast, showError } from '$lib/stores/toast';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 	import {
 		ArrowLeft,
@@ -48,11 +48,7 @@
 		}))
 	);
 
-	let iconSrc = $derived.by(() => {
-		if (!app) return '/placeholder.svg';
-		if (app.icon && app.icon !== '/placeholder.svg') return app.icon;
-		return appIconDataUri({ id: app.id, name: app.name });
-	});
+	let iconSrc = $derived(app ? getAppIcon(app) : '/placeholder.svg');
 
 	function ratingLabel(v: number): string {
 		return v === 1 ? 'Poor' : v === 2 ? 'Fair' : v === 3 ? 'Good' : v === 4 ? 'Great' : 'Excellent';

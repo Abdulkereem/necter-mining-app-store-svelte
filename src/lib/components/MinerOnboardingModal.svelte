@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { actor } from '$lib/stores/wallet';
 	import { backendState, backend } from '$lib/stores/backend';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 
 	let { open = $bindable(false), onClose }: { open: boolean; onClose: () => void } = $props();
 
@@ -177,7 +177,7 @@
 										{@const isSub = subscribed.has(app.id)}
 										<div class="flex items-center gap-2.5 p-2 px-2.5 rounded-[6px] {isSub ? 'bg-[var(--accent-subtle)] border border-[var(--border-accent)]' : 'bg-[var(--surface-2)] border border-transparent'}">
 											<img
-												src={app.icon && app.icon !== '/placeholder.svg' ? app.icon : appIconDataUri({ id: app.id, name: app.name, category: app.category })}
+												src={getAppIcon(app)}
 												alt="" class="w-7 h-7 rounded-[5px] shrink-0"
 											/>
 											<div class="flex-1 min-w-0">

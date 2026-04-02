@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
-  import { appIconDataUri } from '$lib/app-icon';
+  import { getAppIcon } from '$lib/app-icon';
   import DevSetupModal from '$lib/components/DevSetupModal.svelte';
   import {
     Plus, Send, Cpu, Server, Database, Wifi, Globe, Shield,
@@ -65,7 +65,7 @@
   const enrollmentActive = $derived(enrollment?.status === 'active' || enrollment?.status === 'pending');
 
   function getIconSrc(app) {
-    return app.icon && app.icon !== '/placeholder.svg' ? app.icon : appIconDataUri({ id: app.id, name: app.name });
+    return getAppIcon(app);
   }
 
   function getListingStatus(appId) {

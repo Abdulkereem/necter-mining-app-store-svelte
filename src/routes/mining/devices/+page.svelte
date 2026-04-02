@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor, showConnectModal } from '$lib/stores/wallet';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import {
 		Monitor,
 		Server,
@@ -296,12 +296,7 @@
 														class="flex items-center gap-2 px-2.5 py-1.5 rounded-[5px] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition-colors no-underline"
 													>
 														<img
-															src={app.icon ||
-																appIconDataUri({
-																	id: app.id,
-																	name: app.name,
-																	category: app.category
-																})}
+															src={getAppIcon(app)}
 															alt=""
 															class="w-5 h-5 rounded-[3px]"
 														/>

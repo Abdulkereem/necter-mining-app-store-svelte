@@ -3,16 +3,14 @@
 	import { goto } from '$app/navigation';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor } from '$lib/stores/wallet';
-	import { appIconDataUri } from '$lib/app-icon';
+	import { getAppIcon } from '$lib/app-icon';
 	import { ChevronRight, ChevronLeft } from 'lucide-svelte';
 	import MinerOnboardingModal from '$lib/components/MinerOnboardingModal.svelte';
 	import type { App } from '$lib/types';
 
 	/* ─── Helper ─── */
 	function appIcon(app: App): string {
-		return app.icon && app.icon !== '/placeholder.svg'
-			? app.icon
-			: appIconDataUri({ id: app.id, name: app.name, category: app.category });
+		return getAppIcon(app);
 	}
 
 	/* ═══════════════════════════════════════════
