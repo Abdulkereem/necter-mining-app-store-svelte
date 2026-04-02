@@ -128,7 +128,8 @@
 	const appsById = $derived(new Map($backendState.apps.map((a: any) => [a.id, a])));
 
 	// ─── Derived: stats ──────────────────────────────────────────────────────
-	const activeProposalCount = $derived(proposals.filter((p: any) => p.status === 'active').length);
+	const activeProposalsForVote = $derived(proposals.filter((p: any) => p.status === 'active'));
+	const activeProposalCount = $derived(activeProposalsForVote.length);
 	const expiringToday = $derived(
 		proposals.filter((p: any) => {
 			if (p.status !== 'active' || !p.endsAt) return false;
@@ -265,207 +266,145 @@
 	</div>
 
 	<!-- ═══════════════════════════════════════════
-       SECTION: VOTING (proposals, listings, moderation)
+       SECTION: VOTING — split by type
       ═══════════════════════════════════════════ -->
-	<div>
-		<div class="mb-8">
-			{#if voteItems.length === 0}
-				<div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
-					<div class="flex items-start gap-3">
-						<AlertCircle class="h-4 w-4 text-[var(--text-tertiary)] mt-0.5" />
-						<div>
-							<div class="text-[13px] font-semibold text-[var(--text-primary)]">
-								Nothing to vote on right now
-							</div>
-							<div class="text-[12px] text-[var(--text-secondary)] mt-1">
-								Active proposals, listing reviews, and moderation cases will appear here.
-							</div>
-						</div>
-					</div>
-				</div>
-			{:else}
+	<div class="space-y-6">
+
+		<!-- Active Proposals -->
+		{#if activeProposalsForVote.length > 0}
+			<div>
+				<h2 class="text-[12px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-2.5">Proposals ({activeProposalsForVote.length})</h2>
 				<div class="space-y-2">
-					{#each voteItems as item (item.kind + '-' + (item.data.id ?? item.data.g?.appId ?? item.data.appId ?? ''))}
-						{#if item.kind === 'proposal'}
-							{@const proposal = item.data}
-							{@const totalVotes = proposal.votesFor + proposal.votesAgainst}
-							{@const forPct = totalVotes > 0 ? (proposal.votesFor / totalVotes) * 100 : 0}
-							{@const urgency = getUrgency(proposal.endsAt)}
-							{@const quorumPct = totalVP > 0 ? (totalVotes / (totalVP * (proposal.quorumPercent / 100))) * 100 : 0}
-							{@const quorumMet = quorumPct >= 100}
-							<a
-								href="/governance/proposals/{proposal.id}"
-								class="block p-3 md:p-4 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors no-underline cursor-pointer"
-							>
-								<!-- Title + urgency -->
-								<div class="flex items-center gap-2 mb-1.5">
-									<Badge variant="accent" class="flex-shrink-0 text-[9px] font-semibold uppercase">Proposal</Badge>
-									{#if urgency}
-										<span
-											class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold uppercase flex-shrink-0 {urgency.pulsing
-												? 'animate-pulse'
-												: ''}"
-											style="background: {urgency.bg}; color: {urgency.color};"
-										>
-											{urgency.label}
-										</span>
-									{/if}
-									<h3
-										class="text-[13px] font-semibold text-[var(--text-primary)] truncate flex-1 min-w-0"
-									>
-										{proposal.title}
-									</h3>
-								</div>
-								<!-- Meta -->
-								<div class="flex items-center gap-3 text-[11px] text-[var(--text-tertiary)] mb-2">
-									<span class="flex items-center gap-1">
-										<Clock class="h-3 w-3" />
-										<span
-											style="color: {urgency ? urgency.color : 'inherit'}; font-weight: {urgency
-												? 600
-												: 'inherit'};">{formatTimeLeft(proposal.endsAt)}</span
-										>
-									</span>
-									<span>{totalVotes.toLocaleString()} VP</span>
+					{#each activeProposalsForVote as proposal (proposal.id)}
+						{@const totalVotes = proposal.votesFor + proposal.votesAgainst}
+						{@const forPct = totalVotes > 0 ? (proposal.votesFor / totalVotes) * 100 : 0}
+						{@const urgency = getUrgency(proposal.endsAt)}
+						{@const quorumPct = totalVP > 0 ? (totalVotes / (totalVP * (proposal.quorumPercent / 100))) * 100 : 0}
+						{@const quorumMet = quorumPct >= 100}
+						<a
+							href="/governance/proposals/{proposal.id}"
+							class="block p-3 md:p-4 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors no-underline cursor-pointer"
+						>
+							<div class="flex items-center gap-2 mb-1.5">
+								{#if urgency}
 									<span
-										style="color: {quorumMet ? 'var(--success)' : 'var(--warning)'};"
-									>
-										Quorum {quorumMet ? '\u2713' : `${quorumPct.toFixed(0)}%`}
-									</span>
-								</div>
-								<!-- Vote bar -->
-								<div
-									class="h-1.5 rounded-full w-full bg-[rgba(235,87,87,0.15)] overflow-hidden flex"
-								>
-									<div
-										class="h-full bg-[var(--success)] rounded-l-full"
-										style="width: {forPct}%"
-									></div>
-								</div>
-								<div class="flex justify-between text-[10px] mt-1">
-									<span class="text-[var(--success)]">For {forPct.toFixed(0)}%</span>
-									<span class="text-[var(--error)]">Against {(100 - forPct).toFixed(0)}%</span>
-								</div>
-							</a>
-						{:else if item.kind === 'listing'}
-							{@const g = item.data.g}
-							{@const app = item.data.app}
-							{@const totalVotes = g.yesVotes + g.noVotes}
-							{@const yesPct = totalVotes > 0 ? (g.yesVotes / totalVotes) * 100 : 0}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div
-								class="p-3 md:p-4 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors cursor-pointer"
-								onclick={() => goto(`/governance/review/${g.appId}`)}
-								onkeydown={(e) => { if (e.key === 'Enter') goto(`/governance/review/${g.appId}`); }}
-							>
-								<!-- Header: icon + name + badge -->
-								<div class="flex items-center gap-2 mb-2">
-									{#if app}
-										<img
-											src={getAppIcon(app)}
-											alt=""
-											class="w-7 h-7 rounded-[6px] shrink-0"
-										/>
-									{/if}
-									<div class="flex-1 min-w-0">
-										<span
-											class="text-[13px] font-semibold text-[var(--text-primary)] truncate block"
-											>{app?.name || `App ${g.appId}`}</span
-										>
-										<span class="text-[11px] text-[var(--text-tertiary)]"
-											>{g.yesVotes + g.noVotes} of {g.requiredAttestations} votes</span
-										>
-									</div>
-									<Badge variant="neutral" class="flex-shrink-0 text-[9px] font-semibold uppercase">Listing</Badge>
-								</div>
-								<!-- Progress -->
-								<div class="h-1.5 rounded-full w-full bg-[var(--surface-3)] overflow-hidden mb-1">
-									<div
-										class="h-full bg-[var(--text-accent)] rounded-full transition-all"
-										style="width: {yesPct}%"
-									></div>
-								</div>
-								<div
-									class="flex justify-between text-[10px] text-[var(--text-tertiary)] mb-3"
-								>
-									<span class="font-mono">{g.yesVotes} yes</span>
-									<span class="font-mono">{g.noVotes} no</span>
-								</div>
-								<!-- Actions -->
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									class="flex gap-2"
-									onclick={(e) => e.stopPropagation()}
-									onkeydown={(e) => e.stopPropagation()}
-								>
-									<Button variant="secondary"
-										class="flex-1 h-[34px] text-[12px]"
-										onclick={(e) => {
-											e.stopPropagation();
-											if (!$actor) { $showConnectModal = true; return; }
-											if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
-											safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor!.walletAddress, direction: 'yes' }); showToast('Approved'); });
-										}}
-									>
-										Approve
-									</Button>
-									<Button
-										variant="secondary"
-										class="flex-1 h-[34px] text-[12px]"
-										onclick={(e) => {
-											e.stopPropagation();
-											if (!$actor) { $showConnectModal = true; return; }
-											if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
-											safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor!.walletAddress, direction: 'no' }); showToast('Rejected'); });
-										}}
-									>
-										Reject
-									</Button>
-								</div>
+										class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold uppercase flex-shrink-0 {urgency.pulsing ? 'animate-pulse' : ''}"
+										style="background: {urgency.bg}; color: {urgency.color};"
+									>{urgency.label}</span>
+								{/if}
+								<h3 class="text-[13px] font-semibold text-[var(--text-primary)] truncate flex-1 min-w-0">{proposal.title}</h3>
 							</div>
-						{:else if item.kind === 'moderation'}
-							{@const c = item.data}
-							{@const app = appsById.get(c.appId) ?? null}
-							<div class="p-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]">
-								<div class="flex items-center gap-2 mb-2">
-									{#if app}
-										<img
-											src={getAppIcon(app)}
-											alt=""
-											class="w-6 h-6 rounded-[5px] shrink-0"
-										/>
-									{/if}
-									<div class="min-w-0 flex-1">
-										<div class="text-[13px] font-medium text-[var(--text-primary)] truncate">
-											{app?.name ?? c.appId}
-										</div>
-										<div class="text-[10px] text-[var(--text-tertiary)]">
-											{c.reportCount} reports
-										</div>
-									</div>
-									<Badge variant="error" class="flex-shrink-0 text-[9px] font-semibold uppercase">Flagged</Badge>
-								</div>
-								<div class="flex gap-2">
-									<Button variant="secondary"
-										onclick={() => {
-											if (!$actor) { $showConnectModal = true; return; }
-											if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
-											safe(() => backend.castModerationVote({ appId: c.appId, voterId: $actor!.walletAddress, direction: 'keep' }));
-										}}>Keep</Button>
-									<Button
-										variant="secondary"
-										onclick={() => {
-											if (!$actor) { $showConnectModal = true; return; }
-											if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); }
-											safe(() => backend.castModerationVote({ appId: c.appId, voterId: $actor!.walletAddress, direction: 'delist' }));
-										}}>Delist</Button>
-								</div>
+							<div class="flex items-center gap-3 text-[11px] text-[var(--text-tertiary)] mb-2">
+								<span class="flex items-center gap-1">
+									<Clock class="h-3 w-3" />
+									<span style="color: {urgency ? urgency.color : 'inherit'}; font-weight: {urgency ? 600 : 'inherit'};">{formatTimeLeft(proposal.endsAt)}</span>
+								</span>
+								<span>{totalVotes.toLocaleString()} VP</span>
+								<span style="color: {quorumMet ? 'var(--success)' : 'var(--warning)'};">Quorum {quorumMet ? '\u2713' : `${quorumPct.toFixed(0)}%`}</span>
 							</div>
-						{/if}
+							<div class="h-1.5 rounded-full w-full bg-[rgba(235,87,87,0.15)] overflow-hidden flex">
+								<div class="h-full bg-[var(--success)] rounded-l-full" style="width: {forPct}%"></div>
+							</div>
+							<div class="flex justify-between text-[10px] mt-1">
+								<span class="text-[var(--success)]">For {forPct.toFixed(0)}%</span>
+								<span class="text-[var(--error)]">Against {(100 - forPct).toFixed(0)}%</span>
+							</div>
+						</a>
 					{/each}
 				</div>
-			{/if}
-		</div>
+			</div>
+		{/if}
+
+		<!-- Listing Reviews -->
+		{#if pendingListings.length > 0}
+			<div>
+				<h2 class="text-[12px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-2.5">Listing Reviews ({pendingListings.length})</h2>
+				<div class="space-y-2">
+					{#each pendingListings as g (g.appId)}
+						{@const app = appsById.get(g.appId) ?? null}
+						{@const totalVotes = g.yesVotes + g.noVotes}
+						{@const yesPct = totalVotes > 0 ? (g.yesVotes / totalVotes) * 100 : 0}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div
+							class="p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors cursor-pointer"
+							onclick={() => goto(`/governance/review/${g.appId}`)}
+							onkeydown={(e) => { if (e.key === 'Enter') goto(`/governance/review/${g.appId}`); }}
+						>
+							<div class="flex items-center gap-2 mb-2">
+								{#if app}
+									<img src={getAppIcon(app)} alt="" class="w-7 h-7 rounded-[6px] shrink-0" />
+								{/if}
+								<div class="flex-1 min-w-0">
+									<span class="text-[13px] font-semibold text-[var(--text-primary)] truncate block">{app?.name || `App ${g.appId}`}</span>
+									<span class="text-[11px] text-[var(--text-tertiary)]">{g.yesVotes + g.noVotes} of {g.requiredAttestations} votes</span>
+								</div>
+							</div>
+							<div class="h-1.5 rounded-full w-full bg-[var(--surface-3)] overflow-hidden mb-1">
+								<div class="h-full bg-[var(--text-accent)] rounded-full transition-all" style="width: {yesPct}%"></div>
+							</div>
+							<div class="flex justify-between text-[10px] text-[var(--text-tertiary)] mb-2.5">
+								<span class="font-mono">{g.yesVotes} yes</span>
+								<span class="font-mono">{g.noVotes} no</span>
+							</div>
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div class="flex gap-2" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+								<Button variant="secondary" class="flex-1 h-[32px] text-[12px]"
+									onclick={(e) => { e.stopPropagation(); if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'yes' }); showToast('Approved'); }); }}
+								>Approve</Button>
+								<Button variant="secondary" class="flex-1 h-[32px] text-[12px]"
+									onclick={(e) => { e.stopPropagation(); if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => { backend.castGovernanceAttestation({ appId: g.appId, attestor: $actor.walletAddress, direction: 'no' }); showToast('Rejected'); }); }}
+								>Reject</Button>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Flagged Projects -->
+		{#if moderationCases.length > 0}
+			<div>
+				<h2 class="text-[12px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-2.5">Flagged Projects ({moderationCases.length})</h2>
+				<div class="space-y-2">
+					{#each moderationCases as c (c.appId)}
+						{@const app = appsById.get(c.appId) ?? null}
+						<div class="p-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]">
+							<div class="flex items-center gap-2 mb-2">
+								{#if app}
+									<img src={getAppIcon(app)} alt="" class="w-6 h-6 rounded-[5px] shrink-0" />
+								{/if}
+								<div class="min-w-0 flex-1">
+									<div class="text-[13px] font-medium text-[var(--text-primary)] truncate">{app?.name ?? c.appId}</div>
+									<div class="text-[10px] text-[var(--text-tertiary)]">{c.reportCount} reports</div>
+								</div>
+								<Badge variant="error" class="flex-shrink-0 text-[9px] font-semibold uppercase">Flagged</Badge>
+							</div>
+							<div class="flex gap-2">
+								<Button variant="secondary"
+									onclick={() => { if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => backend.castModerationVote({ appId: c.appId, voterId: $actor.walletAddress, direction: 'keep' })); }}
+								>Keep</Button>
+								<Button variant="secondary"
+									onclick={() => { if (!$actor) { $showConnectModal = true; return; } if (!hasGovRole) { backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true }); } safe(() => backend.castModerationVote({ appId: c.appId, voterId: $actor.walletAddress, direction: 'delist' })); }}
+								>Delist</Button>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Empty state -->
+		{#if activeProposalsForVote.length === 0 && pendingListings.length === 0 && moderationCases.length === 0}
+			<div class="p-5 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)]">
+				<div class="flex items-start gap-3">
+					<AlertCircle class="h-4 w-4 text-[var(--text-tertiary)] mt-0.5" />
+					<div>
+						<div class="text-[13px] font-semibold text-[var(--text-primary)]">Nothing to vote on right now</div>
+						<div class="text-[12px] text-[var(--text-secondary)] mt-1">Active proposals, listing reviews, and moderation cases will appear here.</div>
+					</div>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Developer Applications — desktop only -->
 		{#if hasGovRole && (pendingDeveloperVerifications.length > 0 || pendingDeveloperEnrollments.length > 0)}
