@@ -99,7 +99,7 @@
         <div class="absolute inset-0" style="background:linear-gradient(to top,var(--surface-1) 0%,transparent 60%)" />
       </div>
       <div class="bg-[var(--surface-1)] border border-[var(--border-default)] border-t-0 rounded-b-[12px] px-8 pt-6 pb-8 text-center">
-        <img src="/brand/logo.svg" alt="" class="w-10 h-10 mx-auto mb-4" />
+        <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-32 h-auto mx-auto mb-4 opacity-70" />
         <h2 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">Developer Portal</h2>
         <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Build mining projects on Necter. Define your workloads, set reward economics, and attract miners from the marketplace.</p>
         <button type="button" onclick={() => { $showConnectModal = true; }} class="btn-primary">Connect Wallet</button>
@@ -216,6 +216,7 @@
           </div>
         {:else}
           <div class="bg-honeycomb border border-dashed border-[var(--border-default)] rounded-[8px] px-6 py-12 text-center">
+            <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-32 h-auto mx-auto mb-4 opacity-70" />
             <p class="text-[14px] font-medium text-[var(--text-secondary)] mb-1">No projects yet</p>
             <p class="text-[12px] text-[var(--text-tertiary)] mb-4">Create your first project or start from a template below.</p>
             <a href="/develop/create" class="btn-subscribe gap-1">

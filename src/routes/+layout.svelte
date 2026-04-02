@@ -25,7 +25,7 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href="/brand/logo.svg" />
+	<link rel="icon" type="image/png" href="/favicon.png" />
 	<title>Necter Mining App Store</title>
 	<meta
 		name="description"

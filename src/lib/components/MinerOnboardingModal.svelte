@@ -40,8 +40,9 @@
 					style="background: linear-gradient(170deg, #2a1e00 0%, #1a1200 40%, #0C0C0E 100%);"
 				>
 					<img
-						src="/brand/bee.png"
+						src="/brand/3d/bee-dark.png"
 						alt=""
+						loading="lazy"
 						class="w-[80px] h-auto object-contain"
 						style="filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));"
 					/>
@@ -52,8 +53,9 @@
 					style="background: linear-gradient(170deg, #2a1e00 0%, #1a1200 40%, #0C0C0E 100%);"
 				>
 					<img
-						src="/brand/bee.png"
+						src="/brand/3d/bee-dark.png"
 						alt=""
+						loading="lazy"
 						class="w-[180px] h-auto object-contain"
 						style="filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));"
 					/>

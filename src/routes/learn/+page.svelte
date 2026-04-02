@@ -140,8 +140,9 @@
 			style="background: linear-gradient(135deg, var(--surface-1) 0%, rgba(255,191,0,0.03) 100%);"
 		>
 			<img
-				src="/brand/bee.png"
+				src="/brand/3d/bee-dark.png"
 				alt=""
+				loading="lazy"
 				class="hidden md:block flex-shrink-0"
 				style="width: 64px; height: 72px; object-fit: contain;"
 			/>

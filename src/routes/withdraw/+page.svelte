@@ -81,6 +81,7 @@
 {#if !walletAddress}
   <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
     <Card class="max-w-[480px] mt-20 mx-auto text-center" padding="p-8">
+      <img src="/brand/3d/blockchain-network.png" alt="" loading="lazy" class="w-24 h-auto mx-auto mb-3 opacity-60" />
       <h2 class="text-[16px] font-semibold text-[var(--text-primary)] mb-2">
         Earnings & Withdrawals
       </h2>
@@ -198,6 +199,7 @@
 
         {#if withdrawals.length === 0}
           <div class="px-5 py-8 text-center">
+            <img src="/brand/3d/hourglass.png" alt="" loading="lazy" class="w-20 h-auto mx-auto mb-3 opacity-60" />
             <p class="text-[13px] text-[var(--text-secondary)]">No withdrawals yet.</p>
           </div>
         {:else}

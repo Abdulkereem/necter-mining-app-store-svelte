@@ -343,24 +343,7 @@
 		<div
 			class="bg-honeycomb bg-[var(--surface-1)] [background-image:var(--honeycomb-pattern)] border border-[var(--border-default)] rounded-lg px-10 py-12 text-center max-w-[400px] w-full"
 		>
-			<div class="w-12 h-12 mx-auto mb-4">
-				<svg viewBox="0 0 48 48" fill="none">
-					<polygon
-						points="24,2 44.8,12.5 44.8,35.5 24,46 3.2,35.5 3.2,12.5"
-						fill="var(--accent-subtle)"
-						stroke="var(--accent-base)"
-						stroke-width="1"
-					/>
-					<polygon
-						points="24,12 33,17 33,27 24,32 15,27 15,17"
-						fill="none"
-						stroke="var(--accent-base)"
-						stroke-width="0.8"
-						opacity="0.4"
-					/>
-					<circle cx="24" cy="24" r="3" fill="var(--accent-base)" />
-				</svg>
-			</div>
+			<img src="/brand/3d/blockchain-network.png" alt="" loading="lazy" class="w-24 h-auto mx-auto mb-4 opacity-60" />
 			<p class="text-[13px] text-[var(--text-secondary)] mb-4 leading-5">
 				Connect a wallet to view your mining dashboard.
 			</p>
@@ -655,6 +638,7 @@
 								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-4 pt-4 pb-6">
+								<img src="/brand/3d/mining-platform.png" alt="" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-80" />
 								<p class="text-[13px] mb-3 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
 								<a href="/discover"><Button>Discover projects</Button></a>
 							</div>
@@ -837,6 +821,7 @@
 								<img src="/brand/hero-honeycomb.png" alt="" class="w-full h-full object-cover object-bottom opacity-60" loading="lazy" />
 							</div>
 							<div class="px-6 pt-5 pb-7">
+								<img src="/brand/3d/mining-platform.png" alt="" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-80" />
 								<p class="text-[13px] mb-4 text-[var(--text-secondary)]">You are not mining any projects yet.</p>
 								<a href="/discover"><Button>Discover projects</Button></a>
 							</div>
