@@ -323,7 +323,9 @@
 					{#each pendingListings as g (g.appId)}
 						{@const app = appsById.get(g.appId) ?? null}
 						{@const totalVotes = g.yesVotes + g.noVotes}
-						{@const yesPct = totalVotes > 0 ? (g.yesVotes / totalVotes) * 100 : 0}
+						{@const required = g.requiredAttestations || 3}
+						{@const yesPct = required > 0 ? Math.min((g.yesVotes / required) * 100, 100) : 0}
+						{@const noPct = required > 0 ? Math.min((g.noVotes / required) * 100, 100) : 0}
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class="p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors cursor-pointer"
@@ -339,12 +341,13 @@
 									<span class="text-[11px] text-[var(--text-tertiary)]">{g.yesVotes + g.noVotes} of {g.requiredAttestations} votes</span>
 								</div>
 							</div>
-							<div class="h-1.5 rounded-full w-full bg-[rgba(235,87,87,0.15)] overflow-hidden flex mb-1">
-								<div class="h-full bg-[var(--success)] rounded-l-full transition-all duration-300" style="width: {yesPct}%"></div>
+							<div class="h-2 rounded-full w-full bg-[var(--surface-3)] overflow-hidden flex mb-1">
+								<div class="h-full bg-[var(--success)] transition-all duration-300" style="width: {yesPct}%"></div>
+								<div class="h-full bg-[var(--error)] transition-all duration-300" style="width: {noPct}%"></div>
 							</div>
 							<div class="flex justify-between text-[10px] mb-2.5">
-								<span class="font-mono text-[var(--success)]">{g.yesVotes} yes</span>
-								<span class="font-mono text-[var(--error)]">{g.noVotes} no</span>
+								<span class="font-mono text-[var(--success)]">{g.yesVotes}/{required} approve</span>
+								<span class="font-mono text-[var(--error)]">{g.noVotes}/{required} reject</span>
 							</div>
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div class="flex gap-2" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
