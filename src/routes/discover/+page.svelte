@@ -441,11 +441,11 @@
 							See All <ChevronRight class="w-3 h-3" strokeWidth={1.5} />
 						</a>
 					</div>
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+					<div class="flex md:grid md:grid-cols-3 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:overflow-visible">
 						{#each bestNew as app (app.id)}
 							<a
 								href="/apps/{app.id}"
-								class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
+								class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)] min-w-[260px] md:min-w-0 shrink-0 md:shrink"
 							>
 								<img
 									src={appIcon(app)}
@@ -491,11 +491,11 @@
 							See All <ChevronRight class="w-3 h-3" strokeWidth={1.5} />
 						</a>
 					</div>
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+					<div class="flex md:grid md:grid-cols-3 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:overflow-visible">
 						{#each trending as app (app.id)}
 							<a
 								href="/apps/{app.id}"
-								class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
+								class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)] min-w-[260px] md:min-w-0 shrink-0 md:shrink"
 							>
 								<img
 									src={appIcon(app)}
@@ -552,11 +552,11 @@
 								{col.description}
 							</p>
 						{/if}
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+						<div class="flex md:grid md:grid-cols-3 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:overflow-visible">
 							{#each colApps as app (app.id)}
 								<a
 									href="/apps/{app.id}"
-									class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
+									class="flex items-center gap-3 p-3 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)] min-w-[260px] md:min-w-0 shrink-0 md:shrink"
 								>
 									<img
 										src={appIcon(app)}
