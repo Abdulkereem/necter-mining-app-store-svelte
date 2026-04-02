@@ -3,7 +3,7 @@
     { q: 'How do I start mining?', a: 'Browse apps on the Discover page, open an app detail page, and click Subscribe. Follow the setup instructions.' },
     { q: 'How are earnings calculated?', a: 'Each network sets its own reward schedule. Necter aggregates earnings across all subscribed apps in the Mining dashboard.' },
     { q: 'How do I withdraw?', a: 'Go to My Mining -> Earnings tab and use the withdrawal flow.' },
-    { q: 'How do I publish a network?', a: 'Click Developer Portal in the sidebar, set up your account, then use the Create Network wizard.' },
+    { q: 'How do I publish a project?', a: 'Click Developer Portal in the sidebar, set up your account, then use the Create Project wizard.' },
   ];
 
   const contacts = [
@@ -23,7 +23,7 @@
       <h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-3">About Necter</h2>
       <div class="text-[13px] text-[var(--text-secondary)] leading-relaxed space-y-2">
         <p>Necter is a decentralized mining app marketplace connecting miners with DePIN, AI/ML, Storage, Compute, IoT, and Bandwidth networks.</p>
-        <p>Apps listed on Necter pass a DAO governance review. Developers submit their network, attestors verify legitimacy, and approved apps become available for miners.</p>
+        <p>Apps listed on Necter pass a DAO governance review. Developers submit their project, attestors verify legitimacy, and approved apps become available for miners.</p>
         <p>Mining earnings are tracked on-chain with proof-of-work dashboards, leaderboards, and analytics.</p>
       </div>
     </div>

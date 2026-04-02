@@ -277,7 +277,7 @@
 				class="p-12 text-center bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]"
 			>
 				<p class="text-[13px] text-[var(--text-secondary)]">
-					Connect a wallet to view network details.
+					Connect a wallet to view subscription details.
 				</p>
 				<div class="mt-4">
 					<button type="button" class="btn-pill" onclick={() => showConnectModal.set(true)}>
@@ -298,7 +298,7 @@
 			<div
 				class="p-12 text-center bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]"
 			>
-				<p class="text-[13px] text-[var(--text-secondary)]">Network not found</p>
+				<p class="text-[13px] text-[var(--text-secondary)]">Subscription not found</p>
 				<p class="text-[12px] text-[var(--text-tertiary)] mt-2">
 					This subscription id may not exist in your current demo state.
 				</p>
@@ -344,7 +344,7 @@
 						class="text-[13px] text-[var(--text-secondary)] mb-4 flex flex-wrap items-center gap-2"
 					>
 						<span>
-							Network subscription: <span
+							Subscription: <span
 								class="font-mono text-[12px] text-[var(--text-primary)]">{subscription.id}</span
 							>
 						</span>
@@ -358,7 +358,7 @@
 								<AlertTriangle class="h-5 w-5 text-[var(--warning)] mt-0.5" />
 								<div>
 									<div class="text-[13px] font-medium text-[var(--text-primary)]">
-										This network belongs to a different wallet
+										This subscription belongs to a different wallet
 									</div>
 									<div class="text-[12px] text-[var(--text-secondary)] mt-1">
 										Connect the wallet for miner <span class="font-mono"
@@ -493,16 +493,16 @@
 							</div>
 						</div>
 
-						<!-- Node & network | Earnings side by side -->
+						<!-- Node & project | Earnings side by side -->
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-							<!-- Node & network -->
+							<!-- Node & project -->
 							<div
 								class="p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]"
 							>
 								<h3
 									class="text-[14px] font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2"
 								>
-									Node & network
+									Node & project
 								</h3>
 								<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
 									<div>
@@ -650,7 +650,7 @@
 										>
 									</div>
 									<p class="text-[11px] text-[var(--text-tertiary)] mb-3">
-										Recent verified payouts for this network.
+										Recent verified payouts for this project.
 									</p>
 									<div class="space-y-1.5 max-h-40 overflow-y-auto">
 										{#each verifiedProofs
@@ -817,7 +817,7 @@
 									</div>
 								{:else}
 									<p class="text-[13px] text-[var(--text-secondary)]">
-										No jobs yet. They appear when the network assigns work.
+										No jobs yet. They appear when the project assigns work.
 									</p>
 								{/if}
 							{/if}
@@ -832,7 +832,7 @@
 							</h3>
 							{#if recentEvents.length === 0}
 								<p class="text-[13px] text-[var(--text-secondary)]">
-									No activity for this network yet.
+									No activity for this project yet.
 								</p>
 							{:else}
 								<div class="space-y-1.5 max-h-64 overflow-y-auto">
@@ -863,7 +863,7 @@
 									Leave a Review
 								</h3>
 								<p class="text-[13px] text-[var(--text-secondary)] mb-4">
-									Share your experience mining on this network.
+									Share your experience mining on this project.
 								</p>
 
 								{#if submitted}
@@ -1159,7 +1159,7 @@
 								NDSR Container Resources
 							</h3>
 							<p class="text-[13px] text-[var(--text-secondary)] mb-4">
-								Resource usage and allocation for your NDSR container on this network.
+								Resource usage and allocation for your NDSR container on this project.
 							</p>
 
 							<div class="mb-3">
@@ -1213,7 +1213,7 @@
 
 							<div class="mt-6 pt-6 border-t border-[var(--border)]">
 								<h4 class="text-[13px] font-semibold text-[var(--text-primary)] mb-3">
-									Reallocate resources (partition for this network)
+									Reallocate resources (partition for this project)
 								</h4>
 								<p class="text-[13px] text-[var(--text-secondary)] mb-4">
 									Set the share of each resource type dedicated to this subscription.
@@ -1625,7 +1625,7 @@
 								Recent cases
 							</h4>
 							<p class="text-[13px] text-[var(--text-secondary)] mb-4">
-								Slashing and dispute events for this network.
+								Slashing and dispute events for this project.
 							</p>
 							{#if slashingHistory.length === 0}
 								<div

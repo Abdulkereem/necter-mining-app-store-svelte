@@ -61,7 +61,7 @@
       payout_distributed: 'Payout distributed',
       withdrawal_completed: 'Withdrawal completed',
       withdrawal_requested: 'Withdrawal requested',
-      subscription_created: 'Subscribed to network',
+      subscription_created: 'Subscribed to project',
       subscription_blocked: 'Subscription blocked',
       listing_approved: 'Listing approved',
       listing_rejected: 'Listing rejected',

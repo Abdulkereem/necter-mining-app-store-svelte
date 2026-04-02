@@ -262,7 +262,7 @@
 								}}
 								class="w-full h-[36px] rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer hover:brightness-110 transition-all"
 							>
-								Create Your First Network
+								Create Your First Project
 							</button>
 							<button
 								type="button"
