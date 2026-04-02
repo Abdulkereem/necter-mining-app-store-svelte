@@ -428,21 +428,21 @@
 
 			<!-- Tabs -->
 			<div class="w-full">
-				<div class="grid w-full grid-cols-2 md:grid-cols-4 mb-6 gap-1">
+				<div class="flex w-full mb-6 gap-0 bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-[3px] overflow-x-auto" style="-webkit-overflow-scrolling: touch;">
 					{#each [
-						{ id: 'node', label: 'Node Information', Icon: HardDrive },
-						{ id: 'financial', label: 'Financial Summary', Icon: Wallet },
-						{ id: 'resources', label: 'NDSR Runtime', Icon: Boxes },
-						{ id: 'security', label: 'Security & Health', Icon: ShieldAlert }
+						{ id: 'node', label: 'Node', Icon: HardDrive },
+						{ id: 'financial', label: 'Financial', Icon: Wallet },
+						{ id: 'resources', label: 'Runtime', Icon: Boxes },
+						{ id: 'security', label: 'Security', Icon: ShieldAlert }
 					] as tabDef}
 						<button
 							type="button"
-							class="flex items-center justify-center gap-2 px-3 py-2 text-[13px] rounded-[5px] border transition-colors {activeTab === tabDef.id
-								? 'bg-[var(--accent)] text-[#0C0C0E] border-[var(--accent)]'
-								: 'bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'}"
+							class="flex-1 flex items-center justify-center gap-1.5 h-8 px-2 text-[12px] font-medium rounded-[5px] border-none cursor-pointer transition-colors whitespace-nowrap {activeTab === tabDef.id
+								? 'bg-[var(--surface-3)] text-[var(--text-primary)]'
+								: 'bg-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}"
 							onclick={() => (activeTab = tabDef.id)}
 						>
-							<tabDef.Icon class="h-4 w-4" />
+							<tabDef.Icon class="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
 							{tabDef.label}
 						</button>
 					{/each}
