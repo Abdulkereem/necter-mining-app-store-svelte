@@ -99,7 +99,6 @@
         <div class="absolute inset-0" style="background:linear-gradient(to top,var(--surface-1) 0%,transparent 60%)" />
       </div>
       <div class="bg-[var(--surface-1)] border border-[var(--border-default)] border-t-0 rounded-b-[12px] px-8 pt-6 pb-8 text-center">
-        <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-32 h-auto mx-auto mb-4 opacity-70" />
         <h2 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">Developer Portal</h2>
         <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-5 leading-5 max-w-[360px]">Build mining projects on Necter. Define your workloads, set reward economics, and attract miners from the marketplace.</p>
         <button type="button" onclick={() => { $showConnectModal = true; }} class="btn-primary">Connect Wallet</button>
@@ -108,11 +107,15 @@
   </div>
 
 {:else if !enrollmentActive}
-  <!-- ── No enrollment ── -->
-  <div class="animate-fadeIn px-4 md:px-6 pt-6 pb-12">
-    <div class="max-w-[480px] mx-auto mt-10 md:mt-16">
-      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[12px] px-6 md:px-8 pt-8 pb-8 text-center">
-        <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-20 h-auto mx-auto mb-5 opacity-80" />
+  <!-- ── No enrollment — full-bleed background ── -->
+  <div class="animate-fadeIn min-h-[calc(100vh-48px)] flex items-center justify-center relative overflow-hidden">
+    <!-- Background layers -->
+    <div class="absolute inset-0 bg-honeycomb opacity-30"></div>
+    <div class="absolute inset-0" style="background: radial-gradient(ellipse at 50% 40%, rgba(255,201,51,0.06) 0%, transparent 70%);"></div>
+
+    <!-- Card -->
+    <div class="relative z-10 w-full max-w-[480px] mx-4 md:mx-auto">
+      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[12px] px-6 md:px-8 pt-8 pb-8 text-center" style="box-shadow: 0 16px 70px rgba(0,0,0,0.3);">
         <h2 class="text-[20px] font-semibold text-[var(--text-primary)] mb-2">Developer Portal</h2>
         <p class="text-[13px] text-[var(--text-secondary)] mx-auto mb-6 leading-5 max-w-[320px]">Publish mining projects, manage miners, and track earnings on Necter.</p>
         <button type="button" onclick={() => { setupModalOpen = true; }} class="btn-primary w-full h-10">Create Developer Account</button>
@@ -213,8 +216,7 @@
           </div>
         {:else}
           <div class="bg-honeycomb border border-dashed border-[var(--border-default)] rounded-[8px] px-6 py-12 text-center">
-            <img src="/brand/3d/cloud-infra.png" alt="" loading="lazy" class="w-32 h-auto mx-auto mb-4 opacity-70" />
-            <p class="text-[14px] font-medium text-[var(--text-secondary)] mb-1">No projects yet</p>
+                <p class="text-[14px] font-medium text-[var(--text-secondary)] mb-1">No projects yet</p>
             <p class="text-[12px] text-[var(--text-tertiary)] mb-4">Create your first project or start from a template below.</p>
             <a href="/develop/create" class="btn-subscribe gap-1">
               <Plus class="w-3 h-3" strokeWidth={2} />
