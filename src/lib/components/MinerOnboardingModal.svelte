@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { X, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
+	import { fly, fade } from 'svelte/transition';
 	import { actor } from '$lib/stores/wallet';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { getAppIcon } from '$lib/app-icon';
@@ -37,7 +38,7 @@
 				<!-- Bee image — top banner on mobile -->
 				<div
 					class="md:hidden w-full h-[100px] flex items-center justify-center"
-					style="background: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%);"
+					style="background: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%); background-image: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%), url('/brand/hero-honeycomb.png'); background-size: cover, 200px; background-blend-mode: normal, overlay;"
 				>
 					<img
 						src="/brand/3d/bee-dark.png"
@@ -50,7 +51,7 @@
 				<!-- Bee image — left panel on desktop -->
 				<div
 					class="hidden md:flex w-[240px] shrink-0 items-center justify-center p-6"
-					style="background: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%);"
+					style="background: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%); background-image: linear-gradient(170deg, #FF9809 0%, #FFE37D 100%), url('/brand/hero-honeycomb.png'); background-size: cover, 200px; background-blend-mode: normal, overlay;"
 				>
 					<img
 						src="/brand/3d/bee-dark.png"
@@ -125,7 +126,9 @@
 				</div>
 
 				<!-- Content -->
-				<div class="min-h-[340px] flex flex-col">
+				<div class="min-h-[340px] flex flex-col overflow-hidden">
+					{#key step}
+					<div in:fly={{ x: 30, duration: 250, delay: 100 }} out:fade={{ duration: 100 }} class="flex-1 flex flex-col">
 					{#if step === 2}
 						<!-- Hardware -->
 						<div class="flex-1 flex flex-col pt-2 px-6 pb-6">
@@ -159,9 +162,9 @@
 									<ArrowLeft size={14} strokeWidth={2} />
 								</button>
 								<button onclick={() => {
-									if (minerId) {
-										backend.upsertHardwareProfile({ minerId, gpu: gpuModel || undefined, ram: ramSize || '8GB', storage: storageSize || '256GB', networkBandwidth: bandwidth || '50 Mbps' });
-									}
+									try {
+										if (minerId) backend.upsertHardwareProfile({ minerId, gpu: gpuModel || undefined, ram: ramSize || '8GB', storage: storageSize || '256GB', networkBandwidth: bandwidth || '50 Mbps' });
+									} catch (e) { console.warn('Hardware profile:', e); }
 									step = 3;
 								}} class="btn-subscribe flex-1 h-10 justify-center">Continue</button>
 							</div>
@@ -233,6 +236,8 @@
 							</button>
 						</div>
 					{/if}
+					</div>
+					{/key}
 				</div>
 			</div>
 		{/if}
