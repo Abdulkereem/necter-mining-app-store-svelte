@@ -24,7 +24,7 @@
 </script>
 
 <button
-	class="n-btn n-btn--{variant} n-btn--{size} {className}"
+	class="n-btn n-btn--{variant} n-btn--{size} inline-flex {className}"
 	{disabled}
 	{onclick}
 	{...rest}
@@ -34,7 +34,6 @@
 
 <style>
 	.n-btn {
-		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 6px;

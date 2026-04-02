@@ -756,7 +756,6 @@
 							</div>
 							<div class="flex gap-2">
 								<Button variant="secondary"
-									variant="secondary"
 									onclick={() => (createStep = 1)}
 									size="lg"
 									class="px-4">Back</Button>
@@ -834,7 +833,6 @@
 							</div>
 							<div class="flex gap-2">
 								<Button variant="secondary"
-									variant="secondary"
 									onclick={() => (createStep = 2)}
 									size="lg"
 									class="px-4">Back</Button>
