@@ -78,6 +78,12 @@ export interface App {
   escrowBalance?: number // in reward token units (prototype)
   dailyEmission?: number // tokens/day (prototype)
   disputeWindowSeconds?: number
+  requiredAttestations?: number
+  minStake?: number
+  rewardSplitMiner?: number
+  rewardSplitDeveloper?: number
+  rewardSplitTreasury?: number
+  sla?: SLARequirements
 }
 
 export interface Miner {
@@ -143,6 +149,9 @@ export type ConsensusMechanism =
   | "PoR" // Proof of Replication
   | "PoA" // Proof of Authority
   | "DPoS" // Delegated Proof of Stake
+  | "Proof of Uptime"
+  | "Proof of Inference"
+  | "Proof of Training"
   | "Custom"
 
 export type VerificationMethod =
@@ -152,6 +161,9 @@ export type VerificationMethod =
   | "oracle" // Oracle-based verification
   | "multi-sig" // Multi-signature verification
   | "merkle-proof" // Merkle proof verification
+  | "Container Health Check"
+  | "Response Validation"
+  | "Gradient Verification"
   | "custom"
 
 export type RewardModel =
@@ -161,6 +173,10 @@ export type RewardModel =
   | "stake-weighted" // Reward weighted by stake
   | "storage-based" // Reward based on storage provided
   | "hybrid" // Combination of multiple models
+  | "Per-container-hour"
+  | "Per-query"
+  | "Per-epoch"
+  | "per-block"
 
 export type TaskDomain =
   | "data-storage"

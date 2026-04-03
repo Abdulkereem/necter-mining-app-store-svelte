@@ -157,7 +157,7 @@
 					<button
 						type="button"
 						class="bg-transparent border-none cursor-pointer p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition"
-						onclick={() => copyToClipboard(proof.id)}
+						onclick={() => copyToClipboard(proof.id as string)}
 					>
 						{#if copied}
 							<CheckCircle2 class="h-3.5 w-3.5 text-[var(--success)]" />
@@ -320,7 +320,7 @@
 										onclick={() =>
 											safe(() =>
 												backend.fileProofDispute({
-													proofId: proof.id,
+													proofId: proof.id as string,
 													reason: disputeReason
 												})
 											)}
@@ -332,7 +332,7 @@
 									<button
 										type="button"
 										class="btn-secondary w-full"
-										onclick={() => safe(() => backend.retryProof(proof.id))}
+										onclick={() => safe(() => backend.retryProof(proof.id as string))}
 									>
 										Retry (queue new job)
 									</button>

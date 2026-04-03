@@ -86,7 +86,7 @@
 	const relatedApps = $derived(
 		app ? $backendState.apps.filter((a) => String(a.id) !== String(id) && a.category === app.category).slice(0, 4) : []
 	);
-	const listingStatus = $derived($backendState.listingStatusByAppId?.[id] ?? 'draft');
+	const listingStatus = $derived($backendState.listingStatusByAppId?.[id!] ?? 'draft');
 
 	const pricingModel = $derived(app?.rewardPricingModel ?? null);
 	const baseRewardPerTask = $derived(typeof app?.baseRewardPerTask === 'number' ? Number(app.baseRewardPerTask) : null);
@@ -152,8 +152,8 @@
 	let shareOpen = $state(false);
 	let shareUrl = $state('');
 	let reportOpen = $state(false);
-	let reportCategory = $state('scam');
-	let reportSeverity = $state('medium');
+	let reportCategory: any = $state('scam');
+	let reportSeverity: any = $state('medium');
 	let reportReason = $state('');
 
 	const tabLabels = ['overview', 'economics', 'requirements', 'reviews'] as const;

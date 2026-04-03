@@ -23,15 +23,15 @@
 
 	const RANK_COLORS: Record<number, string> = { 1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32' };
 
-	let state = $derived($backendState);
+	let bState = $derived($backendState);
 	let currentMinerId = $derived($actor?.minerId ?? null);
 	let periodMultiplier = $derived(period === '7d' ? 0.25 : period === '30d' ? 0.7 : 1);
 
-	let categories = $derived([...new Set(state.apps.map((a: any) => a.category).filter(Boolean))].sort());
+	let categories = $derived([...new Set(bState.apps.map((a: any) => a.category).filter(Boolean))].sort());
 
 	let minerStats = $derived((() => {
 		const map = new Map<string, { minerId: string; totalEarned: number; uptime: number; uptimeCount: number; networkCount: number }>();
-		for (const sub of state.subscriptions) {
+		for (const sub of bState.subscriptions) {
 			const e = map.get(sub.minerId);
 			if (e) { e.totalEarned += sub.totalEarned; e.uptime += sub.uptime; e.uptimeCount += 1; e.networkCount += 1; }
 			else map.set(sub.minerId, { minerId: sub.minerId, totalEarned: sub.totalEarned, uptime: sub.uptime, uptimeCount: 1, networkCount: 1 });
@@ -55,14 +55,14 @@
 	let isUptimeInTop25 = $derived((currentMinerUptimeRank ?? 999) <= 25);
 
 	let topNetworks = $derived((() => {
-		let apps = [...state.apps];
+		let apps = [...bState.apps];
 		if (category !== 'all') apps = apps.filter((a: any) => a.category === category);
 		return apps.sort((a: any, b: any) => b.totalMiners - a.totalMiners || b.totalEarnings - a.totalEarnings).slice(0, 25);
 	})());
 
 	let proofsByApp = $derived((() => {
 		const map = new Map<string, { total: number; verified: number }>();
-		for (const p of state.proofs) {
+		for (const p of bState.proofs) {
 			const e = map.get(p.appId) ?? { total: 0, verified: 0 };
 			e.total++; if (p.status === 'verified') e.verified++;
 			map.set(p.appId, e);

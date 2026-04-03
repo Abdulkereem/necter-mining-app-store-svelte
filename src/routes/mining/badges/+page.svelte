@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { badgeIconDataUri } from '$lib/badge-icon';
   import { ChevronLeft, Lock } from 'lucide-svelte';
 
-  const badgeKindMeta = {
+  const badgeKindMeta: Record<string, { color: string; bg: string; label: string }> = {
     milestone: { color: 'var(--text-accent)', bg: 'var(--accent-subtle)', label: 'Milestone' },
     performance: { color: 'var(--success)', bg: 'rgba(76,183,130,0.12)', label: 'Performance' },
     governance: { color: 'var(--info)', bg: 'rgba(110,159,255,0.12)', label: 'Governance' },

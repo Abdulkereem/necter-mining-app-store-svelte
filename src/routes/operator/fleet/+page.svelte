@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { ArrowLeft, Server, Filter } from 'lucide-svelte';
@@ -18,7 +18,7 @@
   });
 
   const minerMeta = $derived.by(() => {
-    const meta = {};
+    const meta: Record<string, any> = {};
     for (const m of miners) {
       const subs = $backendState.subscriptions.filter((s) => s.minerId === m.id && s.status === 'active');
       const totalEarned = $backendState.payouts.filter((p) => p.minerId === m.id).reduce((sum, p) => sum + p.minerAmount, 0);

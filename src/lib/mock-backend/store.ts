@@ -1553,13 +1553,13 @@ export class MockBackendStore {
   }
 
   submitReview(input: { appId: string; rating: number; comment: string }) {
-    const { minerId } = this.requireAuth()
+    const { minerId } = this.requireSession()
     const app = this.state.apps.find((a) => a.id === input.appId)
     if (!app) throw new Error("App not found.")
     if (input.rating < 1 || input.rating > 5) throw new Error("Rating must be 1-5.")
     if (!input.comment.trim()) throw new Error("Comment is required.")
 
-    const existing = (app.reviews ?? []).find((r) => r.minerId === minerId)
+    const existing = (app.reviews ?? []).find((r: any) => r.minerId === minerId)
     if (existing) throw new Error("You have already reviewed this project.")
 
     const review = {
@@ -2232,7 +2232,7 @@ export class MockBackendStore {
 
       // Auto-close when time passes (lightweight simulation).
       const ended = p.endsAt ? Date.now() >= new Date(p.endsAt).getTime() : false
-      let status = p.status
+      let status: GovernanceProposal["status"] = p.status
       if (ended) {
         status = nextVotesFor >= nextVotesAgainst ? ("passed" as const) : ("rejected" as const)
       }
@@ -2293,12 +2293,10 @@ export class MockBackendStore {
     if (input.minerId !== session.minerId) throw new Error("Forbidden (not your miner).")
     this.setState((prev) => {
       const existing = prev.hardwareProfileByMinerId?.[input.minerId] ?? null
-      const next: HardwareProfile = {
-        id: existing?.id ?? `hw_${input.minerId}`,
-        minerId: input.minerId,
-        ...existing,
-        ...input.profile,
-      }
+      const merged = { ...existing, ...input.profile } as any
+      merged.id = existing?.id ?? `hw_${input.minerId}`
+      merged.minerId = input.minerId
+      const next: HardwareProfile = merged as HardwareProfile
       return {
         ...prev,
         hardwareProfileByMinerId: { ...(prev.hardwareProfileByMinerId ?? {}), [input.minerId]: next },
@@ -2846,12 +2844,12 @@ export class MockBackendStore {
           const mockMinerNames = ["miner-alpha", "miner-beta", "miner-gamma", "miner-delta", "miner-epsilon", "miner-zeta", "miner-eta", "miner-theta", "miner-iota", "miner-kappa"]
           const now2 = nowIso()
           this.setState((prev2) => {
-            const newSubs = mockMinerNames.map((minerId, i) => ({
+            const newSubs: Subscription[] = mockMinerNames.map((minerId, i) => ({
               id: `sub_mock_${appId}_${i}`,
               appId,
               minerId,
               status: i < 8 ? "active" as const : "paused" as const,
-              subscribedAt: new Date(Date.now() - (i * 86400000)).toISOString(),
+              startedAt: new Date(Date.now() - (i * 86400000)).toISOString(),
               totalEarned: Number((Math.random() * 50 + 5).toFixed(2)),
               tasksCompleted: Math.floor(Math.random() * 100 + 10),
               uptime: Number((95 + Math.random() * 4.5).toFixed(1)),
@@ -2874,7 +2872,7 @@ export class MockBackendStore {
             return {
               ...prev2,
               apps,
-              subscriptions: [...prev2.subscriptions, ...newSubs],
+              subscriptions: [...prev2.subscriptions, ...newSubs] as Subscription[],
               proofs: [...prev2.proofs, ...newProofs],
               updatedAt: now2,
             }
@@ -3211,7 +3209,7 @@ export class MockBackendStore {
   // ═══════════════════════════════════════════════════
 
   depositGovernanceStake(address: string, amount: number) {
-    this.requireAuth()
+    this.requireSession()
     if (amount <= 0) throw new Error("Amount must be positive.")
     const balance = this.state.walletBalancesByAddress[address] ?? 0
     if (balance < amount) throw new Error(`Insufficient wallet balance. Have ${balance.toFixed(2)}, need ${amount}.`)
@@ -3235,7 +3233,7 @@ export class MockBackendStore {
   }
 
   withdrawGovernanceStake(address: string, amount: number) {
-    this.requireAuth()
+    this.requireSession()
     if (amount <= 0) throw new Error("Amount must be positive.")
     const stake = this.state.governanceStakesByAddress[address] ?? { total: 0, locked: 0, available: 0 }
     if (stake.available < amount) throw new Error(`Insufficient available stake. Have ${stake.available.toFixed(2)} available, ${stake.locked.toFixed(2)} locked.`)
@@ -3259,7 +3257,7 @@ export class MockBackendStore {
   }
 
   claimGovernanceRewards(address: string) {
-    this.requireAuth()
+    this.requireSession()
     const rewards = this.state.governanceRewards[address] ?? 0
     if (rewards <= 0) throw new Error("No rewards to claim.")
 
@@ -3301,7 +3299,7 @@ export class MockBackendStore {
   // ═══════════════════════════════════════════════════
 
   delegateVotingPower(input: { from: string; to: string; amount: number }) {
-    this.requireAuth()
+    this.requireSession()
     if (input.from === input.to) throw new Error("Cannot delegate to yourself.")
     if (input.amount <= 0) throw new Error("Amount must be positive.")
     const stake = this.state.governanceStakesByAddress[input.from] ?? { total: 0, locked: 0, available: 0 }
@@ -3329,7 +3327,7 @@ export class MockBackendStore {
   }
 
   revokeDelegation(delegationId: string) {
-    this.requireAuth()
+    this.requireSession()
     const del = (this.state.governanceDelegations ?? []).find((d) => d.id === delegationId && !d.revokedAt)
     if (!del) throw new Error("Delegation not found or already revoked.")
 
@@ -3393,7 +3391,7 @@ export class MockBackendStore {
   }
 
   addProposalComment(input: { proposalId: string; authorAddress: string; content: string; parentCommentId?: string }): ProposalComment {
-    this.requireAuth()
+    this.requireSession()
     if (!input.content.trim()) throw new Error("Comment cannot be empty.")
     const comment: ProposalComment = {
       id: `pc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -3414,7 +3412,7 @@ export class MockBackendStore {
   }
 
   upvoteProposalComment(commentId: string, voterAddress: string) {
-    this.requireAuth()
+    this.requireSession()
     this.setState((prev) => ({
       ...prev,
       proposalComments: (prev.proposalComments ?? []).map((c) => {
@@ -3619,13 +3617,13 @@ export class MockBackendStore {
   }
 
   triggerDeployment(appId: string, version: string) {
-    const { walletAddress } = this.requireAuth()
+    const { walletAddress } = this.requireSession()
     const steps: DeploymentStep[] = [
       { name: "Pull source", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: ["Cloning repository...", "Checkout complete."] },
       { name: "Build container", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: ["Building Docker image...", "Layer 1/8: FROM ubuntu:22.04", "Layer 8/8: ENTRYPOINT", "Build complete. Image size: 342MB"] },
       { name: "Run tests", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: ["Running proof validation tests...", "12/12 tests passed.", "Coverage: 94.2%"] },
       { name: "Push to registry", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: [`Pushing necter/${appId}:${version}...`, "Push complete. Digest: sha256:a1b2c3d4..."] },
-      { name: "Deploy to network", status: "live", startedAt: nowIso(), completedAt: nowIso(), logs: ["Rolling out to 3 regions...", "us-east-1: healthy", "eu-west-1: healthy", "ap-southeast-1: healthy", "Deployment complete."] },
+      { name: "Deploy to network", status: "completed", startedAt: nowIso(), completedAt: nowIso(), logs: ["Rolling out to 3 regions...", "us-east-1: healthy", "eu-west-1: healthy", "ap-southeast-1: healthy", "Deployment complete."] },
     ]
     const log: DeploymentLog = {
       id: `deploy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -3649,7 +3647,7 @@ export class MockBackendStore {
   }
 
   createAnnouncement(input: { appId: string; title: string; content: string; type: Announcement["type"] }): Announcement {
-    const { walletAddress } = this.requireAuth()
+    const { walletAddress } = this.requireSession()
     const ann: Announcement = {
       id: `ann_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       appId: input.appId, title: input.title, content: input.content, type: input.type,
@@ -3692,7 +3690,7 @@ export class MockBackendStore {
   }
 
   updateMinerTierConfig(appId: string, config: any) {
-    this.requireAuth()
+    this.requireSession()
     this.setState((prev) => ({
       ...prev,
       minerTiersByAppId: { ...prev.minerTiersByAppId, [appId]: config },
@@ -3724,7 +3722,7 @@ export class MockBackendStore {
   }
 
   replySupportTicket(appId: string, ticketId: string, reply: { authorId: string; content: string }) {
-    this.requireAuth()
+    this.requireSession()
     this.setState((prev) => ({
       ...prev,
       supportTicketsByAppId: {
@@ -3740,7 +3738,7 @@ export class MockBackendStore {
   }
 
   updateTicketStatus(appId: string, ticketId: string, status: SupportTicket["status"]) {
-    this.requireAuth()
+    this.requireSession()
     this.setState((prev) => ({
       ...prev,
       supportTicketsByAppId: {
@@ -3762,7 +3760,7 @@ export class MockBackendStore {
   }
 
   runTestnetSession(appId: string): TestnetSession {
-    this.requireAuth()
+    this.requireSession()
     const miners = 3 + Math.floor(Math.random() * 8)
     const total = 20 + Math.floor(Math.random() * 80)
     const failed = Math.floor(Math.random() * Math.ceil(total * 0.1))
@@ -3913,11 +3911,11 @@ export class MockBackendStore {
     const verified = proofs.filter((p) => p.status === "verified").length
     const failed = proofs.filter((p) => p.status === "rejected").length
     const pending = proofs.filter((p) => p.status === "pending").length
-    const disputed = proofs.filter((p) => p.status === "disputed").length
+    const disputed = proofs.filter((p) => (p.status as string) === "disputed").length
     const total = proofs.length || 1
 
     const recentProofs = proofs.slice(-20).reverse().map((p) => ({
-      id: p.id, minerId: p.minerId, status: p.status, createdAt: p.submittedAt ?? p.createdAt ?? nowIso(),
+      id: p.id, minerId: p.minerId, status: p.status, createdAt: p.submittedAt ?? (p as any).createdAt ?? nowIso(),
     }))
 
     const failureReasons = [
@@ -4029,7 +4027,7 @@ export class MockBackendStore {
       const app = this.state.apps.find((a) => a.id === sub.appId)
       const appJobs = this.state.jobs.filter((j) => j.appId === sub.appId && j.minerId === minerId && (j.status === "queued" || j.status === "running"))
       for (const j of appJobs) {
-        jobs.push({ id: j.id, appId: sub.appId, appName: app?.name ?? sub.appId, status: j.status, type: j.type ?? "compute", startedAt: j.startedAt ?? j.createdAt, reward: j.reward ?? 0 })
+        jobs.push({ id: j.id, appId: sub.appId, appName: app?.name ?? sub.appId, status: j.status, type: (j as any).type ?? "compute", startedAt: j.startedAt ?? j.createdAt, reward: j.reward ?? 0 })
       }
     }
     // If no real jobs, generate a few mock active ones
@@ -4098,7 +4096,7 @@ export class MockBackendStore {
   // ═══════════════════════════════════════════════════
 
   topUpCollateral(input: { minerId: string; appId: string; amount: number }) {
-    this.requireAuth()
+    this.requireSession()
     const walletAddress = this.state.session.walletAddress!
     const balance = this.state.walletBalancesByAddress[walletAddress] ?? 0
     if (balance < input.amount) throw new Error(`Insufficient balance. Have ${balance.toFixed(2)}, need ${input.amount}.`)
@@ -4110,7 +4108,7 @@ export class MockBackendStore {
         walletBalancesByAddress: { ...prev.walletBalancesByAddress, [walletAddress]: balance - input.amount },
         subscriptions: prev.subscriptions.map((s) =>
           s.appId === input.appId && s.minerId === input.minerId
-            ? { ...s, collateral: (s.collateral ?? 0) + input.amount }
+            ? { ...s, collateral: ((s as any).collateral ?? 0) + input.amount } as Subscription
             : s
         ),
         updatedAt: nowIso(),

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { getAppIcon } from '$lib/app-icon';
@@ -10,8 +10,8 @@
   const subs = $derived($backendState.subscriptions.filter((s) => s.minerId === minerId));
   const appsById = $derived(new Map($backendState.apps.map((a) => [a.id, a])));
   const proofs = $derived($backendState.proofs.filter((p) => p.minerId === minerId));
-  const badges = $derived(backend.listBadges(minerId));
-  const reputation = $derived($backendState.minerReputationByMinerId?.[minerId] ?? 0);
+  const badges = $derived(backend.listBadges(minerId!));
+  const reputation = $derived($backendState.minerReputationByMinerId?.[minerId!] ?? 0);
 
   const totalEarned = $derived(subs.reduce((sum, s) => sum + (s.totalEarned ?? 0), 0));
   const avgUptime = $derived(subs.length > 0 ? subs.reduce((sum, s) => sum + s.uptime, 0) / subs.length : 0);
@@ -41,7 +41,7 @@
     <!-- Profile header -->
     <div style="background: var(--surface-1); border: 1px solid var(--border-default); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
       <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-        <img src={minerAvatarDataUri(minerId)} alt="" style="width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0;" />
+        <img src={minerAvatarDataUri(minerId!)} alt="" style="width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0;" />
         <div>
           <h1 style="font-size: 20px; font-weight: 600; color: var(--text-primary); margin: 0;">
             {minerId}

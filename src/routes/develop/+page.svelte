@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
@@ -23,7 +23,7 @@
     { key: 'listed', label: 'Live' },
   ];
 
-  function stageIndex(status) {
+  function stageIndex(status: any) {
     const idx = pipelineStages.findIndex((s) => s.key === status);
     return idx === -1 ? 0 : idx;
   }
@@ -64,23 +64,23 @@
   const enrollment = $derived(devWalletAddress ? backend.getDeveloperEnrollment(devWalletAddress) : null);
   const enrollmentActive = $derived(enrollment?.status === 'active' || enrollment?.status === 'pending');
 
-  function getIconSrc(app) {
+  function getIconSrc(app: any) {
     return getAppIcon(app);
   }
 
-  function getListingStatus(appId) {
+  function getListingStatus(appId: any) {
     return $backendState.listingStatusByAppId[appId] ?? 'draft';
   }
 
-  function submitForReview(app) {
+  function submitForReview(app: any) {
     try {
-      const ver = backend.getDeveloperVerification(devWalletAddress);
+      const ver = backend.getDeveloperVerification(devWalletAddress!);
       if (!ver || ver.status !== 'verified') {
-        try { backend.requestDeveloperVerification({ walletAddress: devWalletAddress }); } catch {}
-        try { backend.reviewDeveloperVerification({ walletAddress: devWalletAddress, status: 'verified' }); } catch {}
+        try { backend.requestDeveloperVerification({ walletAddress: devWalletAddress! }); } catch {}
+        try { backend.reviewDeveloperVerification({ walletAddress: devWalletAddress!, status: 'verified' }); } catch {}
       }
       backend.publishAppDraft({ app, listingStatus: 'pending_governance' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Submit error:', err?.message || err);
     }
   }

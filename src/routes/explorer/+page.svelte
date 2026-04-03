@@ -1,14 +1,14 @@
-<script>
+<script lang="ts">
   import { backendState } from '$lib/stores/backend';
   import { minerAvatarDataUri } from '$lib/miner-avatar';
 
-  /** @type {'apps' | 'jobs' | 'proofs' | 'payouts' | 'withdrawals' | 'events'} */
-  let tab = $state('apps');
+  type ExplorerTab = 'apps' | 'jobs' | 'proofs' | 'payouts' | 'withdrawals' | 'events';
+  let tab = $state<ExplorerTab>('apps');
 
   const appsById = $derived(new Map($backendState.apps.map((a) => [a.id, a])));
-  const tabs = ['apps', 'jobs', 'proofs', 'payouts', 'withdrawals', 'events'];
+  const tabs: ExplorerTab[] = ['apps', 'jobs', 'proofs', 'payouts', 'withdrawals', 'events'];
 
-  function copyId(value) {
+  function copyId(value: any) {
     navigator.clipboard.writeText(value).catch(() => {});
   }
 </script>

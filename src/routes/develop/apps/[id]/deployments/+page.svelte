@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { getAppIcon } from '$lib/app-icon';
   import { ArrowLeft, Rocket, CheckCircle2, Clock, XCircle, ChevronDown, ChevronRight, Circle } from 'lucide-svelte';
 
-  function timeAgo(iso) {
+  function timeAgo(iso: any) {
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'just now';
@@ -14,7 +14,7 @@
     return `${Math.floor(hrs / 24)}d ago`;
   }
 
-  const statusStyles = {
+  const statusStyles: Record<string, { color: string; bg: string }> = {
     building: { color: 'var(--info)', bg: 'rgba(110,159,255,0.12)' },
     deploying: { color: 'var(--warning)', bg: 'rgba(242,153,74,0.12)' },
     live: { color: 'var(--success)', bg: 'rgba(76,183,130,0.12)' },
@@ -22,23 +22,23 @@
     rolled_back: { color: 'var(--text-tertiary)', bg: 'var(--surface-3)' },
   };
 
-  const stepDotColor = {
+  const stepDotColor: Record<string, string> = {
     completed: 'var(--success)',
     running: 'var(--warning)',
     failed: 'var(--error)',
     pending: 'var(--text-tertiary)',
   };
 
-  const id = $derived($page.params.id);
+  const id = $derived($page.params.id ?? '');
   const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
   const logs = $derived(backend.listDeploymentLogs(id));
   const iconSrc = $derived(
-    getAppIcon({ id: id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
+    getAppIcon({ id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
   );
 
   let showForm = $state(false);
   let version = $state('');
-  let expandedId = $state(null);
+  let expandedId: string | null = $state(null);
 
   function handleDeploy() {
     const v = version.trim();
@@ -53,7 +53,7 @@
     }
   }
 
-  function handleKeydown(e) {
+  function handleKeydown(e: any) {
     if (e.key === 'Enter') handleDeploy();
   }
 </script>

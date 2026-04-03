@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { showToast } from '$lib/stores/toast';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -21,9 +21,9 @@
   const app = $derived($backendState.apps.find((a) => a.id === appId) ?? null);
   const decision = $derived($backendState.governance.find((g) => g.appId === appId) ?? null);
 
-  const existing = $derived(reviewerId ? backend.getGovernanceReview(appId, reviewerId) : null);
-  const reports = $derived(backend.listAppReports({ appId, limit: 25 }));
-  const submittedReviews = $derived(backend.listGovernanceReviews(appId).filter((r) => r.status === 'submitted'));
+  const existing = $derived(reviewerId ? backend.getGovernanceReview(appId as string, reviewerId) : null);
+  const reports = $derived(backend.listAppReports({ appId: appId as string, limit: 25 }));
+  const submittedReviews = $derived(backend.listGovernanceReviews(appId as string).filter((r) => r.status === 'submitted'));
 
   // ─── Form state ───────────────────────────────────────────────────────────
   let overallScore = $state(7);
@@ -49,25 +49,25 @@
 
   // ─── Vote progress ───────────────────────────────────────────────────────
   const totalVotes = $derived(decision ? decision.yesVotes + decision.noVotes : 0);
-  const yesPct = $derived(totalVotes > 0 ? (decision.yesVotes / totalVotes) * 100 : 0);
+  const yesPct = $derived(totalVotes > 0 ? (decision!.yesVotes / totalVotes) * 100 : 0);
 
   // ─── Save / Submit ────────────────────────────────────────────────────────
-  function save(status) {
+  function save(status: any) {
     if (!$actor) { $showConnectModal = true; return; }
     if (!hasGovRole) {
       backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true });
     }
     backend.upsertGovernanceReview({
-      appId,
+      appId: appId as string,
       reviewerId: $actor.walletAddress,
       status,
       submittedAt: status === 'submitted' ? new Date().toISOString() : undefined,
       overallScore,
-      securityRating,
-      economicFairness,
-      technicalQuality,
+      securityRating: securityRating as any,
+      economicFairness: economicFairness as any,
+      technicalQuality: technicalQuality as any,
       compliance: 'pass',
-      recommendation,
+      recommendation: recommendation as any,
       comments,
       conditions: recommendation === 'conditional' ? conditions : '',
     });
@@ -78,7 +78,7 @@
   // ─── Recommendation button helpers ────────────────────────────────────────
   const recOptions = ['approve', 'conditional', 'reject'];
 
-  function recButtonStyle(opt) {
+  function recButtonStyle(opt: any) {
     const isSelected = recommendation === opt;
     const bg = isSelected
       ? opt === 'approve' ? 'rgba(76,183,130,0.15)' : opt === 'reject' ? 'rgba(235,87,87,0.15)' : 'var(--accent-subtle)'
@@ -89,7 +89,7 @@
     return `height: 32px; padding: 0 14px; border-radius: 5px; font-size: 12px; font-weight: 500; border: none; cursor: pointer; background: ${bg}; color: ${color}; transition: all 100ms;`;
   }
 
-  function recLabel(opt) {
+  function recLabel(opt: any) {
     return opt === 'approve' ? 'Approve' : opt === 'conditional' ? 'Conditional' : 'Reject';
   }
 </script>

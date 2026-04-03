@@ -161,7 +161,7 @@
 								</button>
 								<button onclick={() => {
 									try {
-										if (minerId) backend.upsertHardwareProfile({ minerId, gpu: gpuModel || undefined, ram: ramSize || '8GB', storage: storageSize || '256GB', networkBandwidth: bandwidth || '50 Mbps' });
+										if (minerId) backend.upsertHardwareProfile({ minerId, profile: { gpu: gpuModel || undefined, ram: ramSize || '8GB', storage: storageSize || '256GB', networkBandwidth: bandwidth || '50 Mbps' } as any });
 									} catch (e) { console.warn('Hardware profile:', e); }
 									step = 3;
 								}} class="btn-subscribe flex-1 h-10 justify-center">Continue</button>

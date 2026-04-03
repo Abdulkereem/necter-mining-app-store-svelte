@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { getAppIcon } from '$lib/app-icon';
@@ -6,10 +6,10 @@
 
   const id = $derived($page.params.id);
   const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
-  const data = $derived(backend.getProofMonitoring(id));
+  const data = $derived(backend.getProofMonitoring(id!));
 
   const iconSrc = $derived(
-    getAppIcon({ id: id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
+    getAppIcon({ id: id!, name: app?.name ?? '', icon: app?.icon, category: app?.category })
   );
 
   const statusIcons = {
@@ -111,7 +111,7 @@
     {:else}
       <div class="space-y-0 rounded-[6px] overflow-hidden" style="border: 1px solid var(--border-default);">
         {#each data.recentProofs as p, idx}
-          {@const si = statusIcons[p.status] ?? statusIcons.pending}
+          {@const si = (statusIcons as any)[p.status] ?? statusIcons.pending}
           <div class="flex items-center gap-3 px-3 py-2.5" style="{idx < data.recentProofs.length - 1 ? 'border-bottom: 1px solid var(--border-default);' : ''}">
             {#if p.status === 'verified'}
               <CheckCircle2 class="h-3.5 w-3.5 flex-shrink-0" style="color: {si.color};" />

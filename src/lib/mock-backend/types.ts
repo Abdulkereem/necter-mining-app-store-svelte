@@ -1,4 +1,4 @@
-import type { App, HardwareProfile, MinerDevice, MiningProfile, ProofDetail, ProofSubmission, Subscription, Withdrawal } from "@/lib/types"
+import type { App, HardwareProfile, MinerDevice, MiningProfile, ProofDetail, ProofSubmission, Subscription, Withdrawal } from "$lib/types"
 
 // Listing visibility for the miner-facing marketplace.
 // `beta` means approved but still under post-approval conditions (time-boxed).
@@ -53,6 +53,7 @@ export type EventType =
   | "governance_attested"
   | "listing_approved"
   | "listing_rejected"
+  | "app_governance_approved"
 
 export interface TimelineEvent {
   id: string

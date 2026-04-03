@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { showToast } from '$lib/stores/toast';
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
@@ -17,10 +17,10 @@
   const roles = $derived($actor?.walletAddress ? backend.listRoles($actor.walletAddress) : []);
   const hasGovRole = $derived(roles.includes('governance'));
 
-  const proposal = $derived(backend.getGovernanceProposalById(id));
+  const proposal = $derived(backend.getGovernanceProposalById(id!));
 
   const totalVotes = $derived(proposal ? proposal.votesFor + proposal.votesAgainst : 0);
-  const forPct = $derived(totalVotes > 0 ? (proposal.votesFor / totalVotes) * 100 : 0);
+  const forPct = $derived(totalVotes > 0 ? (proposal!.votesFor / totalVotes) * 100 : 0);
   const isActive = $derived(proposal?.status === 'active');
 
   const voterId = $derived($actor?.walletAddress ?? null);
@@ -41,12 +41,12 @@
   );
 
   // ─── Vote handler ─────────────────────────────────────────────────────────
-  function handleVote(direction) {
+  function handleVote(direction: any) {
     if (!$actor) { $showConnectModal = true; return; }
     if (!hasGovRole) {
       backend.setRoleEnabled({ walletAddress: $actor.walletAddress, role: 'governance', enabled: true });
     }
-    backend.castGovernanceProposalVote({ proposalId: proposal.id, voterId: $actor.walletAddress, direction, vp: 12_450 });
+    backend.castGovernanceProposalVote({ proposalId: proposal!.id, voterId: $actor.walletAddress, direction, vp: 12_450 });
     showToast(direction === 'for' ? 'Voted for' : 'Voted against');
   }
 </script>

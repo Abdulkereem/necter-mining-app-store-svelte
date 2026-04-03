@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { ArrowLeft, Shield, AlertTriangle, Pause, RefreshCw, Star } from 'lucide-svelte';
@@ -18,7 +18,7 @@
     switch_app: 'Switch to higher-ROI app',
   };
 
-  function handleToggle(ruleId) {
+  function handleToggle(ruleId: any) {
     backend.toggleAutomationRule(ruleId);
   }
 

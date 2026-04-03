@@ -1,15 +1,15 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { getAppIcon } from '$lib/app-icon';
   import { ArrowLeft, Heart, Shield, Zap, Users, AlertTriangle, CheckCircle2 } from 'lucide-svelte';
 
-  const id = $derived($page.params.id);
+  const id = $derived($page.params.id ?? '');
   const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
-  const health = $derived(backend.getProjectHealthScore(id));
+  const health = $derived(backend.getProjectHealthScore(id as string));
 
   const iconSrc = $derived(
-    getAppIcon({ id: id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
+    getAppIcon({ id: id as string, name: app?.name ?? '', icon: app?.icon, category: app?.category })
   );
 
   const statusConfig = {

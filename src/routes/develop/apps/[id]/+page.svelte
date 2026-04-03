@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
@@ -23,13 +23,13 @@
 
   const id = $derived($page.params.id);
   const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
-  const listingStatus = $derived($backendState.listingStatusByAppId[id] ?? 'draft');
+  const listingStatus = $derived($backendState.listingStatusByAppId[id!] ?? 'draft');
   const devWalletAddress = $derived($actor?.walletAddress ?? null);
 
   let activeTab = $state('overview');
 
   const iconSrc = $derived(
-    getAppIcon({ id: id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
+    getAppIcon({ id: id!, name: app?.name ?? '', icon: app?.icon, category: app?.category })
   );
   const subs = $derived($backendState.subscriptions.filter((s) => s.appId === id));
   const activeMiners = $derived(subs.filter((s) => s.status === 'active').length);
@@ -37,7 +37,7 @@
   const verifiedProofs = $derived(proofs.filter((p) => p.status === 'verified').length);
   const totalEarned = $derived(proofs.filter((p) => p.status === 'verified').reduce((s, p) => s + p.reward, 0));
   const reviews = $derived((app)?.reviews ?? []);
-  const avgRating = $derived(reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '—');
+  const avgRating = $derived(reviews.length > 0 ? (reviews.reduce((s: any, r: any) => s + r.rating, 0) / reviews.length).toFixed(1) : '—');
   const isDraft = $derived(listingStatus === 'draft');
   const isReview = $derived(listingStatus === 'pending_governance');
   const isLive = $derived(listingStatus === 'listed' || listingStatus === 'beta');
@@ -117,7 +117,7 @@
   function handleSettingsSave() {
     if (!app) return;
     try {
-      backend.updateApp(id, {
+      backend.updateApp(id!, {
         name: settingsName, description: settingsDescription,
         features: settingsFeaturesStr.split('\n').map((f) => f.trim()).filter(Boolean),
         tags: settingsTagsStr.split(',').map((t) => t.trim()).filter(Boolean),
@@ -287,7 +287,7 @@
                     {#each subs.slice(0, 4) as s}
                       <div class="flex justify-between py-1 border-b border-[var(--border-default)] text-[12px]">
                         <span class="text-[var(--text-secondary)]">Miner subscribed</span>
-                        <span class="text-[var(--text-tertiary)] font-mono">{new Date(s.subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        <span class="text-[var(--text-tertiary)] font-mono">{new Date((s as any).subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       </div>
                     {/each}
                     {#each proofs.slice(0, 3) as p}
@@ -419,7 +419,7 @@
                   <span class="font-mono text-[var(--text-primary)] flex items-center gap-2">
                     <img src={minerAvatarDataUri(sub.minerId)} alt="" class="w-5 h-5 rounded shrink-0" />{sub.minerId}
                   </span>
-                  <span class="text-[var(--text-tertiary)]">{new Date(sub.subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span class="text-[var(--text-tertiary)]">{new Date((sub as any).subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                   <span class="inline-flex items-center gap-[5px]">
                     <span class="w-1.5 h-1.5 rounded-full" style="background: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'};"></span>
                     <span class="capitalize" style="color: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'};">{sub.status}</span>

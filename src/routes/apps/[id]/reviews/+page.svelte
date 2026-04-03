@@ -26,10 +26,10 @@
 	let app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
 	let reviews = $derived(app?.reviews ?? []);
 	let avg = $derived(
-		app?.averageRating ?? (reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0)
+		app?.averageRating ?? (reviews.length ? reviews.reduce((s: any, r: any) => s + r.rating, 0) / reviews.length : 0)
 	);
 	let minerId = $derived($actor?.minerId ?? null);
-	let hasReviewed = $derived(minerId ? reviews.some((r) => r.minerId === minerId) : false);
+	let hasReviewed = $derived(minerId ? reviews.some((r: any) => r.minerId === minerId) : false);
 
 	let sorted = $derived.by(() => {
 		return [...reviews].sort((a, b) => {
@@ -43,8 +43,8 @@
 	let ratingDistribution = $derived(
 		[5, 4, 3, 2, 1].map((star) => ({
 			star,
-			count: reviews.filter((r) => r.rating === star).length,
-			pct: reviews.length ? (reviews.filter((r) => r.rating === star).length / reviews.length) * 100 : 0
+			count: reviews.filter((r: any) => r.rating === star).length,
+			pct: reviews.length ? (reviews.filter((r: any) => r.rating === star).length / reviews.length) * 100 : 0
 		}))
 	);
 
@@ -58,7 +58,7 @@
 		if (!$actor || rating === 0 || !draft.trim()) return;
 		submitting = true;
 		try {
-			backend.submitReview({ appId: id, rating, comment: draft });
+			backend.submitReview({ appId: id!, rating, comment: draft });
 			draft = '';
 			rating = 0;
 			showToast('Review submitted', 'Thanks for your feedback!');

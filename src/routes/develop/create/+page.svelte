@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { backendState, backend } from '$lib/stores/backend';
@@ -62,8 +62,8 @@
   let rewardAmount = $state('100');
   let dailyEmission = $state('1000');
   let collateral = $state('5000');
-  let iconPreview = $state(null);
-  let screenshotPreviews = $state([]);
+  let iconPreview: string | null = $state(null);
+  let screenshotPreviews: string[] = $state([]);
   let featuresStr = $state('');
   let tagsStr = $state('');
   let creating = $state(false);
@@ -80,35 +80,35 @@
       'Data Validation': { domain: 'data-validation', consensus: 'PoW', reward: 'per-task' },
       'GPU Compute': { domain: 'compute-inference', consensus: 'PoW', reward: 'hybrid' },
     };
-    const m = map[tpl];
+    const m = (map as any)[tpl];
     if (m) { taskDomain = m.domain; consensus = m.consensus; rewardModel = m.reward; }
   });
 
-  const category = $derived(categoryMap[taskDomain] || 'Compute');
+  const category = $derived((categoryMap as any)[taskDomain] || 'Compute');
   const canNext = $derived(step === 1 ? name.trim().length > 0 && description.trim().length > 0 : true);
 
   // ── File reading ──
-  function readFileAsDataUrl(file) {
+  function readFileAsDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const r = new FileReader();
-      r.onload = () => resolve(r.result);
+      r.onload = () => resolve(r.result as string);
       r.onerror = reject;
       r.readAsDataURL(file);
     });
   }
 
-  async function handleIconUpload(e) {
+  async function handleIconUpload(e: any) {
     const f = e.target.files?.[0];
     if (f) iconPreview = await readFileAsDataUrl(f);
   }
 
-  async function handleScreenshotUpload(e) {
-    const files = Array.from(e.target.files || []).slice(0, 5 - screenshotPreviews.length);
+  async function handleScreenshotUpload(e: any) {
+    const files = Array.from(e.target.files || []).slice(0, 5 - screenshotPreviews.length) as File[];
     const urls = await Promise.all(files.map(readFileAsDataUrl));
     screenshotPreviews = [...screenshotPreviews, ...urls].slice(0, 5);
   }
 
-  function removeScreenshot(idx) {
+  function removeScreenshot(idx: number) {
     screenshotPreviews = screenshotPreviews.filter((_, j) => j !== idx);
   }
 
@@ -132,16 +132,17 @@
         rewardModel, rewardToken: 'NCR', trending: false, screenshots: screenshotPreviews,
         slaRequirements: { minUptime: 95 },
         consensusMechanism: consensus,
-      };
+        attestations: [],
+      } as any;
       try { backend.grantRole(walletAddress, 'developer'); } catch {}
       backend.publishAppDraft({
         app: appDraft,
-        miningProfile: { id: `mp_${appId}`, appId, taskDomain, consensusMechanism: consensus, rewardModel, rewardAmount: Number(rewardAmount), dailyEmission: Number(dailyEmission), collateralRequired: Number(collateral) },
+        miningProfile: { id: `mp_${appId}`, appId, taskDomain, consensusMechanism: consensus, rewardModel, rewardAmount: Number(rewardAmount), dailyEmission: Number(dailyEmission), collateralRequired: Number(collateral) } as any,
         listingStatus: 'draft',
       });
       goto(`/develop/apps/${appId}`);
     } catch (e) {
-      console.error('Create failed:', e?.message || e);
+      console.error('Create failed:', (e as any)?.message || e);
     } finally { creating = false; }
   }
 

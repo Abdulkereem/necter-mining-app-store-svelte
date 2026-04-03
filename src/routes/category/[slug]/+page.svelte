@@ -26,7 +26,7 @@
 
 	/* ─── Derived data ─── */
 	const slug = $derived($page.params.slug);
-	const category = $derived(categoryMap[slug] ?? null);
+	const category = $derived(categoryMap[slug as string] ?? null);
 
 	const apps = $derived.by(() => {
 		const all = backend.listApps();

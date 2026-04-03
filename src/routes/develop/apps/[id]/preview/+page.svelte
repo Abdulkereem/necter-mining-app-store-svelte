@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState } from '$lib/stores/backend';
   import { getAppIcon } from '$lib/app-icon';
@@ -9,7 +9,7 @@
   const app = $derived($backendState.apps.find((a) => String(a.id) === String(id)) ?? null);
 
   const iconSrc = $derived(
-    getAppIcon({ id: id, name: app?.name ?? '', icon: app?.icon, category: app?.category })
+    getAppIcon({ id: id as string, name: app?.name ?? '', icon: app?.icon, category: app?.category })
   );
   const screenshots = $derived(app ? getAppScreenshots(app) : []);
   const features = $derived(app?.features ?? []);

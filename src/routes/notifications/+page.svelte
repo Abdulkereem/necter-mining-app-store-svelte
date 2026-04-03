@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { getAppIcon } from '$lib/app-icon';
@@ -30,8 +30,8 @@
 
   let settings = $state(defaultSettings.map((s) => ({ ...s })));
   let activeFilter = $state('all');
-  let readIds = $state([]);
-  let deletedIds = $state([]);
+  let readIds: string[] = $state([]);
+  let deletedIds: string[] = $state([]);
   let expandedGroups = $state(new Set());
 
   // ─── Constants ─────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@
   ]);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
-  function mapEventToUiType(type) {
+  function mapEventToUiType(type: string): string {
     if (type.startsWith('withdrawal_') || type === 'payout_distributed') return 'earnings';
     if (type.startsWith('subscription_')) return 'subscription';
     if (type === 'slash_applied') return 'slashing';
@@ -54,7 +54,7 @@
     return 'system';
   }
 
-  function titleForEvent(e) {
+  function titleForEvent(e: any) {
     const titles = {
       proof_verified: 'Proof verified',
       proof_submitted: 'Proof submitted',
@@ -68,10 +68,10 @@
       mining_package_uploaded: 'Mining package uploaded',
       mining_package_activated: 'Mining package activated',
     };
-    return titles[e.type] ?? String(e.type).replaceAll('_', ' ');
+    return (titles as any)[e.type] ?? String(e.type).replaceAll('_', ' ');
   }
 
-  function extractAmount(e) {
+  function extractAmount(e: any) {
     const m = e.metadata;
     if (!m) return undefined;
     if (e.type === 'payout_distributed') return typeof m.minerAmount === 'number' ? m.minerAmount : typeof m.gross === 'number' ? m.gross : undefined;
@@ -81,14 +81,14 @@
     return undefined;
   }
 
-  function linkForEvent(n) {
+  function linkForEvent(n: any) {
     if (n.eventType === 'payout_distributed' || n.eventType === 'proof_verified' || n.eventType === 'proof_submitted') return '/mining';
     if (n.eventType.startsWith('subscription_') && n.appId) return `/apps/${n.appId}`;
     if (n.appId) return `/apps/${n.appId}`;
     return null;
   }
 
-  function formatTime(timestamp) {
+  function formatTime(timestamp: string) {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -100,15 +100,15 @@
     return date.toLocaleDateString();
   }
 
-  function dayEarningsSummary(items) {
-    const payouts = items.filter((n) => n.eventType === 'payout_distributed' && typeof n.amount === 'number');
+  function dayEarningsSummary(items: any[]) {
+    const payouts = items.filter((n: any) => n.eventType === 'payout_distributed' && typeof n.amount === 'number');
     if (payouts.length === 0) return null;
-    const total = payouts.reduce((s, n) => s + (n.amount ?? 0), 0);
-    const projectIds = new Set(payouts.map((n) => n.appId).filter(Boolean));
+    const total = payouts.reduce((s: number, n: any) => s + (n.amount ?? 0), 0);
+    const projectIds = new Set(payouts.map((n: any) => n.appId).filter(Boolean));
     return { total: total.toFixed(2), projects: projectIds.size };
   }
 
-  function aggregateEvents(items, dateKey) {
+  function aggregateEvents(items: any[], dateKey: string) {
     const typeCounts = new Map();
     for (const n of items) {
       const key = n.eventType;
@@ -122,8 +122,8 @@
     for (const [eventType, group] of typeCounts) {
       if (group.length >= COLLAPSE_THRESHOLD) {
         collapsedTypes.add(eventType);
-        const projectIds = new Set(group.map((n) => n.appId).filter(Boolean));
-        const totalAmount = group.filter((n) => typeof n.amount === 'number').reduce((s, n) => s + (n.amount ?? 0), 0);
+        const projectIds = new Set(group.map((n: any) => n.appId).filter(Boolean));
+        const totalAmount = group.filter((n: any) => typeof n.amount === 'number').reduce((s: number, n: any) => s + (n.amount ?? 0), 0);
         let summary = '';
         if (eventType === 'payout_distributed') {
           summary = `${group.length} payouts totaling ${totalAmount.toFixed(2)} NECTA across ${projectIds.size} project${projectIds.size !== 1 ? 's' : ''}`;
@@ -157,7 +157,7 @@
     return result;
   }
 
-  function toggleExpandGroup(key) {
+  function toggleExpandGroup(key: string) {
     const next = new Set(expandedGroups);
     if (next.has(key)) next.delete(key);
     else next.add(key);
@@ -215,7 +215,7 @@
       return Boolean(byMiner || byWallet || byDevApp || byGov);
     });
 
-    const allowType = (t) => {
+    const allowType = (t: string) => {
       if (t === 'update') return enabled.has('updates');
       if (t === 'earnings') return enabled.has('earnings');
       if (t === 'subscription') return enabled.has('subscriptions');
@@ -306,12 +306,12 @@
     readIds = [...next];
   }
 
-  function markAsRead(id) {
+  function markAsRead(id: string) {
     if (readIds.includes(id)) return;
     readIds = [...readIds, id];
   }
 
-  function toggleSetting(id) {
+  function toggleSetting(id: string) {
     settings = settings.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s));
   }
 

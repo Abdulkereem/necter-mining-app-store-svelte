@@ -111,14 +111,14 @@
 	);
 
 	// ─── Derived: developer verifications ─────────────────────────────────────
-	const pendingDeveloperVerifications = $derived(
-		Object.values(($backendState as any).developerVerificationByAddress ?? {}).filter(
+	const pendingDeveloperVerifications: any[] = $derived(
+		(Object.values(($backendState as any).developerVerificationByAddress ?? {}) as any[]).filter(
 			(r: any) => r.status === 'pending'
 		)
 	);
 
-	const pendingDeveloperEnrollments = $derived(
-		Object.values(($backendState as any).developerEnrollmentByAddress ?? {}).filter(
+	const pendingDeveloperEnrollments: any[] = $derived(
+		(Object.values(($backendState as any).developerEnrollmentByAddress ?? {}) as any[]).filter(
 			(r: any) => r.status === 'pending'
 		)
 	);

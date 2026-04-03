@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { ArrowLeft, DollarSign, TrendingUp, Clock, ArrowDownToLine } from 'lucide-svelte';
@@ -17,7 +17,7 @@
   const availableAmount = $derived(totalEarned - pendingAmount - withdrawnAmount);
 
   const earningsByApp = $derived.by(() => {
-    const map = {};
+    const map: Record<string, any> = {};
     for (const p of fleetPayouts) {
       if (!map[p.appId]) {
         const app = $backendState.apps.find((a) => a.id === p.appId);

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { getAppIcon } from '$lib/app-icon';
@@ -17,7 +17,7 @@
   } from 'lucide-svelte';
 
   // ─── Route param ─────────────────────────────────────────────────────────────
-  const address = $derived($page.params.address);
+  const address: string = $derived(($page.params as any).address ?? '');
 
   // ─── Developer data ──────────────────────────────────────────────────────────
   const registryProfile = $derived(getDeveloperByAddress(address));
@@ -96,8 +96,8 @@
   });
 
   // ─── Social link helpers ─────────────────────────────────────────────────────
-  const socialUrls = { twitter: 'https://x.com/', discord: 'https://discord.gg/', github: 'https://github.com/', telegram: 'https://t.me/' };
-  const socialLabels = { twitter: 'X / Twitter', discord: 'Discord', github: 'GitHub', telegram: 'Telegram' };
+  const socialUrls: Record<string, string> = { twitter: 'https://x.com/', discord: 'https://discord.gg/', github: 'https://github.com/', telegram: 'https://t.me/' };
+  const socialLabels: Record<string, string> = { twitter: 'X / Twitter', discord: 'Discord', github: 'GitHub', telegram: 'Telegram' };
 </script>
 
 <div class="min-h-screen animate-fadeIn px-6 pt-6 pb-12 max-w-[960px] mx-auto">

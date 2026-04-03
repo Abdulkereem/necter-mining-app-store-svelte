@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { mockMiningProfileTrustScores } from '$lib/mock-data';
@@ -34,7 +34,7 @@
       const missingRequirements = [];
       let performanceRating = 'good';
 
-      const asNum = (s) => { if (!s) return null; const m = s.match(/(\d+(\.\d+)?)/); return m ? parseFloat(m[1]) : null; };
+      const asNum = (s: any) => { if (!s) return null; const m = s.match(/(\d+(\.\d+)?)/); return m ? parseFloat(m[1]) : null; };
 
       if (app.requirements.cpu) {
         const req = asNum(app.requirements.cpu);
@@ -186,7 +186,7 @@
   </div>
 </div>
 
-{#snippet compatibilityCard(app)}
+{#snippet compatibilityCard(app: any)}
   {@const borderColor = app.compatible === 'compatible' ? 'rgba(76,183,130,0.20)' : app.compatible === 'marginal' ? 'rgba(242,153,74,0.20)' : 'rgba(235,87,87,0.20)'}
   {@const bgColor = app.compatible === 'compatible' ? 'rgba(76,183,130,0.05)' : app.compatible === 'marginal' ? 'rgba(242,153,74,0.05)' : 'rgba(235,87,87,0.05)'}
   {@const badgeColor = app.compatible === 'compatible' ? 'var(--success)' : app.compatible === 'marginal' ? 'var(--warning)' : 'var(--error)'}

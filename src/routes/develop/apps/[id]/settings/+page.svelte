@@ -38,7 +38,7 @@
 
 	function save() {
 		if (!app) return;
-		backend.updateApp(id, {
+		backend.updateApp(id as string, {
 			name,
 			description,
 			requirements: { cpu: cpuReq, gpu: gpuReq || undefined, ram: ramReq, storage: storageReq, bandwidth: app.requirements?.bandwidth ?? '50 Mbps' },

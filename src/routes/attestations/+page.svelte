@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
   import { minerAvatarDataUri } from '$lib/miner-avatar';
@@ -78,7 +78,7 @@
           class:text-[var(--text-secondary)]={tab !== t}
           onclick={() => (tab = t)}
         >
-          {tabLabels[t]}
+          {(tabLabels as any)[t]}
         </button>
       {/each}
     </div>
@@ -187,13 +187,13 @@
             <div class="font-semibold">Your miner attestation capabilities</div>
             <div class="text-sm text-[var(--text-secondary)] mt-2">
               Miner:
-              <img src={minerAvatarDataUri(minerId)} alt="" class="inline-block w-[16px] h-[16px] rounded-[3px] align-text-bottom mr-1" />
+              <img src={minerAvatarDataUri(minerId!)} alt="" class="inline-block w-[16px] h-[16px] rounded-[3px] align-text-bottom mr-1" />
               <span class="font-mono">{minerId}</span>
             </div>
             <div class="mt-4 grid md:grid-cols-3 gap-4">
               {#each ['TPM', 'TEE', 'SGX'] as capName}
                 {@const capKey = capName.toLowerCase()}
-                {@const supported = caps?.[capKey] ?? false}
+                {@const supported = (caps as any)?.[capKey] ?? false}
                 <div class="rounded-lg border border-[var(--border-default)] p-4">
                   <div class="text-xs text-[var(--text-secondary)]">{capName}</div>
                   <div class="mt-2 flex items-center gap-2">

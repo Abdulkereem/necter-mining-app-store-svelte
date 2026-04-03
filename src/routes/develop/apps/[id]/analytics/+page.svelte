@@ -44,7 +44,7 @@
   const avgTaskSeconds = $derived((() => {
     const completed = jobs.filter((j) => j.status === 'completed' && j.startedAt && j.completedAt);
     if (completed.length === 0) return null;
-    const ms = completed.reduce((sum, j) => sum + (new Date(j.completedAt).getTime() - new Date(j.startedAt).getTime()), 0) / completed.length;
+    const ms = completed.reduce((sum, j) => sum + (new Date(j.completedAt!).getTime() - new Date(j.startedAt!).getTime()), 0) / completed.length;
     return ms / 1000;
   })());
 

@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
   import { page } from '$app/stores';
   import { backendState, backend } from '$lib/stores/backend';
   import { ArrowLeft, Megaphone, Plus, Trash2, ChevronUp } from 'lucide-svelte';
 
-  const typeConfig = {
+  const typeConfig: Record<string, { label: string; color: string; bg: string }> = {
     update: { label: 'Update', color: 'var(--text-accent)', bg: 'var(--accent-subtle)' },
     maintenance: { label: 'Maintenance', color: 'var(--warning)', bg: 'rgba(242,153,74,0.12)' },
     feature: { label: 'Feature', color: 'var(--success)', bg: 'rgba(76,183,130,0.12)' },
@@ -12,7 +12,7 @@
 
   const typeKeys = /** @type {const} */ (['update', 'maintenance', 'feature', 'alert']);
 
-  const id = $derived($page.params.id);
+  const id = $derived($page.params.id ?? '');
   const announcements = $derived(backend.listAnnouncements(id));
 
   let showForm = $state(false);
@@ -20,17 +20,17 @@
   let content = $state('');
   let type = $state('update');
 
-  function handleSubmit(e) {
+  function handleSubmit(e: any) {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
-    backend.createAnnouncement({ appId: id, title: title.trim(), content: content.trim(), type });
+    backend.createAnnouncement({ appId: id, title: title.trim(), content: content.trim(), type: type as any });
     title = '';
     content = '';
     type = 'update';
     showForm = false;
   }
 
-  function handleDelete(announcementId) {
+  function handleDelete(announcementId: any) {
     backend.deleteAnnouncement(id, announcementId);
   }
 </script>

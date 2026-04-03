@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
   import { backendState } from '$lib/stores/backend';
   import { mockCollateralInfo } from '$lib/mock-data';
   import { AlertCircle, Lock, Unlock } from 'lucide-svelte';
 
-  let selectedCollateral = $state(null);
+  let selectedCollateral: string | null = $state(null);
 
   const totalLocked = mockCollateralInfo.reduce((sum, c) => sum + c.amountLocked, 0);
   const totalRequired = mockCollateralInfo.reduce((sum, c) => sum + c.amountRequired, 0);

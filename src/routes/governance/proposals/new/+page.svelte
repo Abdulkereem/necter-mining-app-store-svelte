@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { goto } from '$app/navigation';
   import { backendState, backend } from '$lib/stores/backend';
   import { actor, showConnectModal } from '$lib/stores/wallet';
@@ -24,7 +24,7 @@
     const p = backend.createGovernanceProposal({
       title,
       description,
-      type,
+      type: type as any,
       createdBy: $actor.walletAddress,
       durationDays,
     });

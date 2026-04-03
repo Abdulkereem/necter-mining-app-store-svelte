@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+  import type { App } from '$lib/types';
   import { backendState, backend } from '$lib/stores/backend';
   import { wallet, actor, showConnectModal, disconnectWallet } from '$lib/stores/wallet';
   import { showToast, showError } from '$lib/stores/toast';
@@ -36,7 +37,7 @@
   };
 
   /* ── Badge kind meta ── */
-  const badgeKindMeta = {
+  const badgeKindMeta: Record<string, { color: string; bg: string; label: string }> = {
     milestone: { color: 'var(--text-accent)', bg: 'var(--accent-subtle)', label: 'Milestone' },
     performance: { color: 'var(--success)', bg: 'rgba(76,183,130,0.12)', label: 'Performance' },
     governance: { color: 'var(--info)', bg: 'rgba(110,159,255,0.12)', label: 'Governance' },
@@ -118,11 +119,11 @@
     telegram = enrollment.socialLinks?.telegram ?? '';
   });
 
-  function handleAvatarUpload(e) {
+  function handleAvatarUpload(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => { avatarPreview = reader.result; };
+    reader.onload = () => { avatarPreview = reader.result as any; };
     reader.readAsDataURL(file);
   }
 
@@ -143,7 +144,7 @@
       });
       showToast('Profile saved', 'Your profile has been updated.');
     } catch (err) {
-      showError('Error', err?.message ?? 'Failed to save profile.');
+      showError('Error', (err as any)?.message ?? 'Failed to save profile.');
     } finally {
       saving = false;
     }
@@ -155,12 +156,12 @@
   /* ═══════════════════════════════════════════════════ */
   /*  DEVICES TAB STATE                                  */
   /* ═══════════════════════════════════════════════════ */
-  let expandedDevice = $state(null);
-  let editingName = $state(null);
+  let expandedDevice: string | null = $state(null);
+  let editingName: string | null = $state(null);
   let editNameValue = $state('');
   let showAddDevice = $state(false);
   let newDeviceName = $state('');
-  let newDeviceType = $state('desktop');
+  let newDeviceType: string = $state('desktop');
 
   const devices = $derived.by(() => {
     // force reactivity on state changes
@@ -175,13 +176,13 @@
 
   function addDevice() {
     if (!minerId || !newDeviceName.trim()) return;
-    backend.addDevice({ minerId, name: newDeviceName.trim(), type: newDeviceType, hardware: {} });
+    backend.addDevice({ minerId, name: newDeviceName.trim(), type: newDeviceType as any, hardware: {} });
     newDeviceName = '';
     showAddDevice = false;
     showToast('Device added');
   }
 
-  function lastSeenText(device) {
+  function lastSeenText(device: any) {
     if (device.status === 'online') return 'Now';
     const sec = Math.floor((Date.now() - new Date(device.lastSeenAt).getTime()) / 1000);
     if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
@@ -209,7 +210,7 @@
 
   const recentWithdrawals = $derived(minerWithdrawals.slice(0, 5));
 
-  const withdrawalStatusConfig = {
+  const withdrawalStatusConfig: Record<string, { label: string; color: string; bg: string }> = {
     completed: { label: 'Completed', color: 'var(--success)', bg: 'rgba(76,183,130,0.12)' },
     pending: { label: 'Pending', color: 'var(--warning)', bg: 'rgba(242,153,74,0.12)' },
     processing: { label: 'Processing', color: 'var(--info)', bg: 'rgba(110,159,255,0.12)' },
@@ -248,7 +249,7 @@
     newWithdrawalAddress = '';
   }
 
-  function removeAddress(addr) {
+  function removeAddress(addr: string) {
     if (!minerId) return;
     backend.removeWithdrawalAddress({ minerId, walletAddress: addr });
   }
@@ -270,7 +271,7 @@
     if (!minerId) return [];
     const subs = ($backendState.subscriptions ?? []).filter(s => s.minerId === minerId);
     const appMap = new Map(($backendState.apps ?? []).map(a => [a.id, a]));
-    return subs.map(s => appMap.get(s.appId)).filter(Boolean);
+    return subs.map(s => appMap.get(s.appId)).filter((a): a is App => Boolean(a));
   });
 
   let deliveryMethod = $state('in-app');
@@ -694,9 +695,9 @@
                                     max="100"
                                     value="50"
                                     class="flex-1 h-1.5 cursor-pointer [accent-color:var(--accent-base)]"
-                                    oninput={(e) => {
-                                      const span = e.target.nextElementSibling;
-                                      if (span) span.textContent = `${e.target.value}%`;
+                                    oninput={(e: any) => {
+                                      const span = e.target?.nextElementSibling;
+                                      if (span) span.textContent = `${e.target?.value}%`;
                                     }}
                                   />
                                   <span class="text-[11px] font-mono text-[var(--text-primary)] w-8 text-right">50%</span>
@@ -1089,9 +1090,9 @@
                           <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[10px] font-medium tracking-[0.02em]" style="background: {meta.bg}; color: {meta.color};">
                             {meta.label}
                           </span>
-                          {#if b.mintedAt}
+                          {#if (b as any).mintedAt}
                             <span class="text-[10px] text-[var(--text-tertiary)]">
-                              {new Date(b.mintedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {new Date((b as any).mintedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
                           {/if}
                         {:else}
