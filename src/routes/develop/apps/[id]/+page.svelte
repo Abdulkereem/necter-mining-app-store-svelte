@@ -6,7 +6,7 @@
   import { minerAvatarDataUri } from '$lib/miner-avatar';
   import {
     ArrowLeft, Send, ExternalLink, CheckCircle2, Circle, Clock,
-    Shield, DollarSign, Package, BarChart3, Users, Settings, Eye, Megaphone, Save,
+    Shield, DollarSign, Package, BarChart3, Users, Settings, Eye, Megaphone,
   } from 'lucide-svelte';
   import AreaChart from '$lib/components/AreaChart.svelte';
 
@@ -90,45 +90,6 @@
   const pendingCount = $derived(proofs.filter((p) => p.status === 'pending').length);
   const rejectedCount = $derived(proofs.filter((p) => p.status === 'rejected').length);
 
-  // Inline settings state
-  let settingsName = $state('');
-  let settingsDescription = $state('');
-  let settingsFeaturesStr = $state('');
-  let settingsTagsStr = $state('');
-  let settingsGpuReq = $state('');
-  let settingsRamReq = $state('');
-  let settingsEscrowBalance = $state(0);
-  let settingsDailyEmission = $state(0);
-  let settingsBaseReward = $state(0.5);
-
-  $effect(() => {
-    if (!app) return;
-    settingsName = app.name;
-    settingsDescription = app.description;
-    settingsFeaturesStr = Array.isArray(app.features) ? app.features.join('\n') : '';
-    settingsTagsStr = Array.isArray(app.tags) ? app.tags.join(', ') : '';
-    settingsGpuReq = app.requirements?.gpu ?? '';
-    settingsRamReq = app.requirements?.ram ?? '';
-    settingsEscrowBalance = typeof app.escrowBalance === 'number' ? app.escrowBalance : 0;
-    settingsDailyEmission = typeof app.dailyEmission === 'number' ? app.dailyEmission : 0;
-    settingsBaseReward = typeof app.baseRewardPerTask === 'number' ? app.baseRewardPerTask : 0.5;
-  });
-
-  function handleSettingsSave() {
-    if (!app) return;
-    try {
-      backend.updateApp(id!, {
-        name: settingsName, description: settingsDescription,
-        features: settingsFeaturesStr.split('\n').map((f) => f.trim()).filter(Boolean),
-        tags: settingsTagsStr.split(',').map((t) => t.trim()).filter(Boolean),
-        requirements: { ...app.requirements, gpu: settingsGpuReq || undefined, ram: settingsRamReq || undefined },
-        escrowBalance: settingsEscrowBalance, dailyEmission: settingsDailyEmission, baseRewardPerTask: settingsBaseReward,
-      });
-    } catch (e) {
-      console.error('Settings save failed:', e);
-    }
-  }
-
   // Announcement form
   let announcementText = $state('');
   function handlePostAnnouncement() {
@@ -136,7 +97,6 @@
     announcementText = '';
   }
 
-  const inp = 'n-input';
 </script>
 
 {#if !app}
@@ -473,76 +433,34 @@
 
       <!-- SETTINGS TAB -->
       {#if activeTab === 'settings'}
-        <div class="flex flex-col gap-4">
-          <!-- General -->
-          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3.5">General</h3>
-            <div class="flex flex-col gap-3">
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Project Name</label>
-                <input type="text" bind:value={settingsName} class={inp} />
-              </div>
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Description</label>
-                <textarea bind:value={settingsDescription} rows="3" class="n-textarea"></textarea>
-              </div>
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Features</label>
-                <textarea bind:value={settingsFeaturesStr} rows="3" placeholder="One feature per line" class="n-textarea font-mono"></textarea>
-                <p class="text-[11px] text-[var(--text-tertiary)] mt-1">One per line. Shown on the app detail page.</p>
-              </div>
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Tags</label>
-                <input type="text" bind:value={settingsTagsStr} placeholder="IoT, DePIN, Wireless" class={inp} />
-                <p class="text-[11px] text-[var(--text-tertiary)] mt-1">Comma-separated. Used for search and filtering.</p>
-              </div>
+        <div class="flex flex-col gap-3">
+          <!-- Quick summary of current config -->
+          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-[14px] font-semibold text-[var(--text-primary)]">Project Configuration</h3>
+              <a href="/develop/apps/{id}/settings" class="h-8 px-4 rounded-[6px] text-[12px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] no-underline flex items-center gap-1.5">
+                <Settings size={12} strokeWidth={2} /> Edit Settings
+              </a>
+            </div>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+              {#each [
+                { label: 'Name', value: app.name },
+                { label: 'Category', value: app.category },
+                { label: 'Tags', value: (app.tags ?? []).join(', ') || '—' },
+                { label: 'Features', value: `${(app.features ?? []).length} listed` },
+                { label: 'Screenshots', value: `${(app.screenshots ?? []).length} uploaded` },
+                { label: 'GPU', value: app.requirements?.gpu || 'Not required' },
+                { label: 'RAM', value: app.requirements?.ram || '—' },
+                { label: 'Reward', value: app.baseRewardPerTask ? `$${app.baseRewardPerTask}/task` : `$${app.avgEarningsPerDay}/day avg` },
+              ] as row}
+                <div class="flex justify-between py-1.5 border-b border-[var(--border-default)]">
+                  <span class="text-[12px] text-[var(--text-tertiary)]">{row.label}</span>
+                  <span class="text-[12px] font-medium text-[var(--text-primary)] text-right">{row.value}</span>
+                </div>
+              {/each}
             </div>
           </div>
-
-          <!-- Economics -->
-          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3.5">Economics</h3>
-            <div class="grid grid-cols-3 gap-3">
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Base Reward / Task</label>
-                <input type="number" bind:value={settingsBaseReward} class={inp} />
-              </div>
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Escrow Balance</label>
-                <input type="number" bind:value={settingsEscrowBalance} class={inp} />
-              </div>
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">Daily Emission</label>
-                <input type="number" bind:value={settingsDailyEmission} class={inp} />
-              </div>
-            </div>
-          </div>
-
-          <!-- Hardware -->
-          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3.5">Hardware Requirements</h3>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">GPU</label>
-                <input type="text" bind:value={settingsGpuReq} placeholder="e.g. NVIDIA RTX 3080+" class={inp} />
-              </div>
-              <div>
-                <label class="text-[11px] text-[var(--text-tertiary)] block mb-1">RAM</label>
-                <input type="text" bind:value={settingsRamReq} placeholder="e.g. 16GB" class={inp} />
-              </div>
-            </div>
-          </div>
-
-          <!-- Save + Advanced -->
-          <div class="flex items-center justify-between">
-            <a href="/develop/apps/{id}/settings" class="text-[12px] text-[var(--text-tertiary)] no-underline">
-              Advanced settings &rarr;
-            </a>
-            <button type="button" onclick={handleSettingsSave}
-              class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5">
-              <Save size={14} strokeWidth={2} /> Save Changes
-            </button>
-          </div>
+          <p class="text-[11px] text-[var(--text-tertiary)]">Edit branding, media, economics, hardware, and package configuration from the settings page.</p>
         </div>
       {/if}
 

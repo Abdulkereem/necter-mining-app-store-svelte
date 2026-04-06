@@ -1,14 +1,23 @@
 <script lang="ts">
 	import { showToast } from '$lib/stores/toast';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import { ArrowLeft, Save, Upload, X, Image as ImageIcon } from 'lucide-svelte';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor } from '$lib/stores/wallet';
-	import { getAppIcon } from '$lib/app-icon';
 
 	const id = $derived($page.params.id);
 	const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
+
+	// ── Section nav ──
+	const sections = [
+		{ id: 'general', label: 'General' },
+		{ id: 'branding', label: 'Branding & Media' },
+		{ id: 'features', label: 'Features & Discovery' },
+		{ id: 'hardware', label: 'Hardware' },
+		{ id: 'economics', label: 'Economics' },
+		{ id: 'package', label: 'NDSR Package' },
+	];
+	let activeSection = $state('general');
 
 	// ── General ──
 	let name = $state('');
@@ -114,8 +123,14 @@
 		showToast('Settings saved');
 	}
 
-	const inputClass = 'w-full h-9 px-3 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] outline-none';
-	const labelClass = 'text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5';
+	function scrollToSection(sectionId: string) {
+		activeSection = sectionId;
+		const el = document.getElementById(`section-${sectionId}`);
+		if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}
+
+	const inp = 'w-full h-9 px-3 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] outline-none focus:border-[var(--border-hover)] transition-colors';
+	const lbl = 'text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5';
 </script>
 
 {#if !app}
@@ -124,253 +139,287 @@
 		<a href="/develop" class="text-[var(--text-accent)] text-[13px]">Back to portal</a>
 	</div>
 {:else}
-	<div class="px-8 pt-8 pb-12" style="max-width: 720px;">
-		<a href="/develop/apps/{id}" class="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors mb-6 no-underline">
-			<ArrowLeft class="h-3.5 w-3.5" />
-			Back to {app.name}
-		</a>
-
-		<h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight mb-6">Settings</h1>
-
-		<div class="space-y-8">
-			<!-- General -->
-			<section>
-				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">General</h2>
-				<div class="space-y-4">
+	<div class="px-6 pt-6 pb-16">
+		<div class="max-w-[960px] mx-auto">
+			<!-- Header -->
+			<div class="flex items-center justify-between mb-6">
+				<div class="flex items-center gap-3">
+					<a href="/develop/apps/{id}" class="w-7 h-7 flex items-center justify-center rounded-[5px] no-underline hover:bg-[var(--surface-2)] transition-colors">
+						<ArrowLeft class="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
+					</a>
 					<div>
-						<label class={labelClass}>Project Name</label>
-						<input class={inputClass} bind:value={name} />
-					</div>
-					<div>
-						<label class={labelClass}>Description</label>
-						<textarea class="{inputClass} h-auto py-2" rows="4" bind:value={description}></textarea>
+						<h1 class="text-[18px] font-semibold text-[var(--text-primary)] tracking-tight">Settings</h1>
+						<p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">{app.name}</p>
 					</div>
 				</div>
-			</section>
+				<button onclick={save} class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5 hover:brightness-110 transition-all">
+					<Save size={14} strokeWidth={2} /> Save Changes
+				</button>
+			</div>
 
-			<!-- Branding & Media -->
-			<section>
-				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">Branding & Media</h2>
-				<div class="space-y-4">
-					<!-- Icon -->
-					<div>
-						<label class={labelClass}>App Icon</label>
-						<div class="flex items-center gap-3">
-							<div class="w-16 h-16 rounded-[14px] bg-[var(--surface-2)] flex items-center justify-center overflow-hidden shrink-0" style="border:{iconPreview ? 'none' : '2px dashed var(--border-default)'}">
-								{#if iconPreview}
-									<img src={iconPreview} alt="Icon" width="64" height="64" class="rounded-[14px] object-cover" />
-								{:else}
-									<ImageIcon size={24} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
-								{/if}
+			<!-- Layout: sidebar + content -->
+			<div class="flex gap-6">
+				<!-- Sidebar nav -->
+				<nav class="w-[180px] shrink-0 sticky top-6 self-start">
+					<div class="flex flex-col gap-0.5">
+						{#each sections as s}
+							<button
+								type="button"
+								onclick={() => scrollToSection(s.id)}
+								class="text-left px-3 py-2 rounded-[6px] text-[13px] font-medium border-none cursor-pointer transition-colors"
+								style="background:{activeSection === s.id ? 'var(--surface-2)' : 'transparent'};color:{activeSection === s.id ? 'var(--text-primary)' : 'var(--text-tertiary)'}"
+							>
+								{s.label}
+							</button>
+						{/each}
+					</div>
+				</nav>
+
+				<!-- Content -->
+				<div class="flex-1 min-w-0 flex flex-col gap-5">
+
+					<!-- General -->
+					<section id="section-general" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">General</h2>
+						<div class="space-y-4">
+							<div>
+								<label class={lbl}>Project Name</label>
+								<input class={inp} bind:value={name} />
 							</div>
 							<div>
-								<label class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[5px] text-[12px] font-medium cursor-pointer bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] transition-colors">
-									<Upload size={12} strokeWidth={1.5} /> Upload Icon
-									<input type="file" accept="image/*" onchange={handleIconUpload} class="hidden" />
-								</label>
-								<p class="text-[11px] text-[var(--text-tertiary)] mt-1">512x512 recommended</p>
+								<label class={lbl}>Description</label>
+								<textarea class="{inp} h-auto py-2" rows="4" bind:value={description}></textarea>
 							</div>
 						</div>
-					</div>
+					</section>
 
-					<!-- Screenshots -->
-					<div>
-						<label class={labelClass}>Screenshots ({screenshotPreviews.length}/5)</label>
-						<div class="grid grid-cols-5 gap-2">
-							{#each screenshotPreviews as src, i}
-								<div class="relative aspect-[16/10] rounded-[6px] overflow-hidden border border-[var(--border-default)]">
-									<img {src} alt="Screenshot {i + 1}" class="w-full h-full object-cover" />
-									<button
-										type="button"
-										onclick={() => removeScreenshot(i)}
-										class="absolute top-1 right-1 w-5 h-5 rounded bg-black/70 border-none cursor-pointer flex items-center justify-center"
-									>
-										<X size={12} strokeWidth={2} class="text-white" />
-									</button>
+					<!-- Branding & Media -->
+					<section id="section-branding" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Branding & Media</h2>
+						<div class="space-y-5">
+							<!-- Icon -->
+							<div>
+								<label class={lbl}>App Icon</label>
+								<div class="flex items-center gap-3">
+									<div class="w-16 h-16 rounded-[14px] bg-[var(--surface-2)] flex items-center justify-center overflow-hidden shrink-0" style="border:{iconPreview ? 'none' : '2px dashed var(--border-default)'}">
+										{#if iconPreview}
+											<img src={iconPreview} alt="Icon" width="64" height="64" class="rounded-[14px] object-cover" />
+										{:else}
+											<ImageIcon size={24} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
+										{/if}
+									</div>
+									<div>
+										<label class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[5px] text-[12px] font-medium cursor-pointer bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] transition-colors">
+											<Upload size={12} strokeWidth={1.5} /> Upload Icon
+											<input type="file" accept="image/*" onchange={handleIconUpload} class="hidden" />
+										</label>
+										<p class="text-[11px] text-[var(--text-tertiary)] mt-1">512×512 recommended</p>
+									</div>
 								</div>
-							{/each}
-							{#if screenshotPreviews.length < 5}
-								<label class="aspect-[16/10] rounded-[6px] border border-dashed border-[var(--border-default)] bg-[var(--surface-2)] flex flex-col items-center justify-center cursor-pointer gap-1 hover:border-[var(--border-hover)] transition-colors">
-									<Upload size={16} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
-									<span class="text-[10px] text-[var(--text-tertiary)]">Add</span>
-									<input type="file" accept="image/*" multiple onchange={handleScreenshotUpload} class="hidden" />
-								</label>
-							{/if}
-						</div>
-					</div>
+							</div>
 
-					<!-- Tagline -->
-					<div>
-						<label class={labelClass}>Tagline</label>
-						<input class={inputClass} bind:value={brandTagline} placeholder="A short tagline for your project" />
-					</div>
-
-					<!-- Accent Color -->
-					<div>
-						<label class={labelClass}>Accent Color</label>
-						<div class="flex items-center gap-3">
-							<input type="color" bind:value={brandAccentColor} class="w-9 h-9 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] cursor-pointer p-0.5" />
-							<input class={inputClass} bind:value={brandAccentColor} placeholder="#FFC933" style="flex:1" />
-						</div>
-					</div>
-
-					<!-- Logo URL -->
-					<div>
-						<label class={labelClass}>Logo URL</label>
-						<input class={inputClass} bind:value={brandLogoUrl} placeholder="https://example.com/logo.png" />
-					</div>
-
-					<!-- Banner -->
-					<div>
-						<label class={labelClass}>Banner Image URL</label>
-						<input class={inputClass} bind:value={brandBannerUrl} placeholder="https://example.com/banner.png" />
-					</div>
-
-					<!-- Preview -->
-					{#if brandAccentColor || brandLogoUrl}
-						<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-0)] p-4">
-							<span class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-2">Preview</span>
-							<div class="flex items-center gap-3">
-								{#if brandLogoUrl}
-									<img src={brandLogoUrl} alt="Logo preview" class="w-10 h-10 rounded-[8px] object-cover border border-[var(--border-default)]" />
-								{:else}
-									<div class="w-10 h-10 rounded-[8px] border border-[var(--border-default)]" style="background:{brandAccentColor}"></div>
-								{/if}
-								<div>
-									<span class="text-[13px] font-medium text-[var(--text-primary)] block">{name || 'Project Name'}</span>
-									{#if brandTagline}
-										<span class="text-[11px] text-[var(--text-tertiary)]">{brandTagline}</span>
+							<!-- Screenshots -->
+							<div>
+								<label class={lbl}>Screenshots ({screenshotPreviews.length}/5)</label>
+								<div class="grid grid-cols-5 gap-2">
+									{#each screenshotPreviews as src, i}
+										<div class="relative aspect-[16/10] rounded-[6px] overflow-hidden border border-[var(--border-default)]">
+											<img {src} alt="Screenshot {i + 1}" class="w-full h-full object-cover" />
+											<button
+												type="button"
+												onclick={() => removeScreenshot(i)}
+												class="absolute top-1 right-1 w-5 h-5 rounded bg-black/70 border-none cursor-pointer flex items-center justify-center"
+											>
+												<X size={12} strokeWidth={2} class="text-white" />
+											</button>
+										</div>
+									{/each}
+									{#if screenshotPreviews.length < 5}
+										<label class="aspect-[16/10] rounded-[6px] border border-dashed border-[var(--border-default)] bg-[var(--surface-2)] flex flex-col items-center justify-center cursor-pointer gap-1 hover:border-[var(--border-hover)] transition-colors">
+											<Upload size={16} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
+											<span class="text-[10px] text-[var(--text-tertiary)]">Add</span>
+											<input type="file" accept="image/*" multiple onchange={handleScreenshotUpload} class="hidden" />
+										</label>
 									{/if}
 								</div>
-								<div class="ml-auto flex gap-1.5">
-									<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor}"></div>
-									<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.5"></div>
-									<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.2"></div>
+							</div>
+
+							<!-- Tagline -->
+							<div>
+								<label class={lbl}>Tagline</label>
+								<input class={inp} bind:value={brandTagline} placeholder="A short tagline for your project" />
+							</div>
+
+							<!-- Accent Color -->
+							<div>
+								<label class={lbl}>Accent Color</label>
+								<div class="flex items-center gap-3">
+									<input type="color" bind:value={brandAccentColor} class="w-9 h-9 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] cursor-pointer p-0.5" />
+									<input class={inp} bind:value={brandAccentColor} placeholder="#FFC933" style="flex:1" />
+								</div>
+							</div>
+
+							<!-- Logo + Banner -->
+							<div class="grid grid-cols-2 gap-4">
+								<div>
+									<label class={lbl}>Logo URL</label>
+									<input class={inp} bind:value={brandLogoUrl} placeholder="https://example.com/logo.png" />
+								</div>
+								<div>
+									<label class={lbl}>Banner Image URL</label>
+									<input class={inp} bind:value={brandBannerUrl} placeholder="https://example.com/banner.png" />
+								</div>
+							</div>
+
+							<!-- Preview -->
+							{#if brandAccentColor || brandLogoUrl}
+								<div class="rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] p-4">
+									<span class="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-2">Preview</span>
+									<div class="flex items-center gap-3">
+										{#if brandLogoUrl}
+											<img src={brandLogoUrl} alt="Logo" class="w-10 h-10 rounded-[8px] object-cover border border-[var(--border-default)]" />
+										{:else}
+											<div class="w-10 h-10 rounded-[8px] border border-[var(--border-default)]" style="background:{brandAccentColor}"></div>
+										{/if}
+										<div>
+											<span class="text-[13px] font-medium text-[var(--text-primary)] block">{name || 'Project Name'}</span>
+											{#if brandTagline}
+												<span class="text-[11px] text-[var(--text-tertiary)]">{brandTagline}</span>
+											{/if}
+										</div>
+										<div class="ml-auto flex gap-1.5">
+											<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor}"></div>
+											<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.5"></div>
+											<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.2"></div>
+										</div>
+									</div>
+								</div>
+							{/if}
+						</div>
+					</section>
+
+					<!-- Features & Discovery -->
+					<section id="section-features" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Features & Discovery</h2>
+						<div class="space-y-4">
+							<div>
+								<label class={lbl}>Features</label>
+								<textarea class="{inp} h-auto py-2" rows="4" bind:value={featuresStr} placeholder={"Real-time coverage mapping\nAutomatic proof of coverage\nRewards tracking dashboard"}></textarea>
+								<p class="text-[11px] text-[var(--text-tertiary)] mt-1">One per line. Shown on the app detail page.</p>
+							</div>
+							<div>
+								<label class={lbl}>Tags</label>
+								<input class={inp} bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" />
+								<p class="text-[11px] text-[var(--text-tertiary)] mt-1">Comma-separated. Used for search and discovery.</p>
+							</div>
+						</div>
+					</section>
+
+					<!-- Hardware -->
+					<section id="section-hardware" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Hardware Requirements</h2>
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label class={lbl}>CPU</label>
+								<input class={inp} bind:value={cpuReq} placeholder="e.g. 4 cores" />
+							</div>
+							<div>
+								<label class={lbl}>GPU</label>
+								<input class={inp} bind:value={gpuReq} placeholder="e.g. RTX 4090" />
+							</div>
+							<div>
+								<label class={lbl}>RAM</label>
+								<input class={inp} bind:value={ramReq} placeholder="e.g. 16GB" />
+							</div>
+							<div>
+								<label class={lbl}>Storage</label>
+								<input class={inp} bind:value={storageReq} placeholder="e.g. 500GB SSD" />
+							</div>
+						</div>
+					</section>
+
+					<!-- Economics -->
+					<section id="section-economics" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Reward Economics</h2>
+						<div class="space-y-4">
+							<div>
+								<label class={lbl}>Pricing Model</label>
+								<select class={inp} bind:value={rewardPricingModel}>
+									<option value="fixed">Fixed per task</option>
+									<option value="variable">Variable (supply/demand)</option>
+									<option value="marketplace">Marketplace auction</option>
+								</select>
+							</div>
+							<div class="grid grid-cols-3 gap-4">
+								<div>
+									<label class={lbl}>Min Reward</label>
+									<input class={inp} type="number" step="0.01" bind:value={minReward} />
+								</div>
+								<div>
+									<label class={lbl}>Base Reward</label>
+									<input class={inp} type="number" step="0.01" bind:value={baseReward} />
+								</div>
+								<div>
+									<label class={lbl}>Max Reward</label>
+									<input class={inp} type="number" step="0.01" bind:value={maxReward} />
+								</div>
+							</div>
+							<div>
+								<label class={lbl}>Fee Split (Miner / Developer / Treasury)</label>
+								<div class="grid grid-cols-3 gap-4">
+									<div>
+										<input class={inp} type="number" bind:value={feeMiner} />
+										<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Miner %</span>
+									</div>
+									<div>
+										<input class={inp} type="number" bind:value={feeDev} />
+										<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Developer %</span>
+									</div>
+									<div>
+										<input class={inp} type="number" bind:value={feeTreasury} />
+										<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Treasury %</span>
+									</div>
 								</div>
 							</div>
 						</div>
-					{/if}
-				</div>
-			</section>
+					</section>
 
-			<!-- Features & Tags -->
-			<section>
-				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">Features & Discovery</h2>
-				<div class="space-y-4">
-					<div>
-						<label class={labelClass}>Features</label>
-						<textarea class="{inputClass} h-auto py-2" rows="4" bind:value={featuresStr} placeholder={"Real-time coverage mapping\nAutomatic proof of coverage\nRewards tracking dashboard"}></textarea>
-						<p class="text-[11px] text-[var(--text-tertiary)] mt-1">One per line. Shown on the app detail page.</p>
-					</div>
-					<div>
-						<label class={labelClass}>Tags</label>
-						<input class={inputClass} bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" />
-						<p class="text-[11px] text-[var(--text-tertiary)] mt-1">Comma-separated. Used for search and discovery.</p>
-					</div>
-				</div>
-			</section>
-
-			<!-- Hardware Requirements -->
-			<section>
-				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">Hardware Requirements</h2>
-				<div class="grid grid-cols-2 gap-4">
-					<div>
-						<label class={labelClass}>CPU</label>
-						<input class={inputClass} bind:value={cpuReq} placeholder="e.g. 4 cores" />
-					</div>
-					<div>
-						<label class={labelClass}>GPU</label>
-						<input class={inputClass} bind:value={gpuReq} placeholder="e.g. RTX 4090" />
-					</div>
-					<div>
-						<label class={labelClass}>RAM</label>
-						<input class={inputClass} bind:value={ramReq} placeholder="e.g. 16GB" />
-					</div>
-					<div>
-						<label class={labelClass}>Storage</label>
-						<input class={inputClass} bind:value={storageReq} placeholder="e.g. 500GB SSD" />
-					</div>
-				</div>
-			</section>
-
-			<!-- Economics -->
-			<section>
-				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">Reward Economics</h2>
-				<div class="space-y-4">
-					<div>
-						<label class={labelClass}>Pricing Model</label>
-						<select class={inputClass} bind:value={rewardPricingModel}>
-							<option value="fixed">Fixed per task</option>
-							<option value="variable">Variable (supply/demand)</option>
-							<option value="marketplace">Marketplace auction</option>
-						</select>
-					</div>
-					<div class="grid grid-cols-3 gap-4">
-						<div>
-							<label class={labelClass}>Min Reward</label>
-							<input class={inputClass} type="number" step="0.01" bind:value={minReward} />
-						</div>
-						<div>
-							<label class={labelClass}>Base Reward</label>
-							<input class={inputClass} type="number" step="0.01" bind:value={baseReward} />
-						</div>
-						<div>
-							<label class={labelClass}>Max Reward</label>
-							<input class={inputClass} type="number" step="0.01" bind:value={maxReward} />
-						</div>
-					</div>
-
-					<div>
-						<label class={labelClass}>Fee Split (Miner / Developer / Treasury)</label>
-						<div class="grid grid-cols-3 gap-4">
-							<div>
-								<input class={inputClass} type="number" bind:value={feeMiner} />
-								<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Miner %</span>
+					<!-- NDSR Package -->
+					<section id="section-package" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">NDSR Package</h2>
+						<div class="space-y-4">
+							<div class="grid grid-cols-2 gap-4">
+								<div>
+									<label class={lbl}>Package Type</label>
+									<select class={inp} bind:value={pkgKind}>
+										<option value="docker">Docker</option>
+										<option value="vm">Virtual Machine</option>
+										<option value="ndsr">NDSR Native</option>
+									</select>
+								</div>
+								<div>
+									<label class={lbl}>Version</label>
+									<input class={inp} bind:value={pkgVersion} />
+								</div>
 							</div>
 							<div>
-								<input class={inputClass} type="number" bind:value={feeDev} />
-								<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Developer %</span>
-							</div>
-							<div>
-								<input class={inputClass} type="number" bind:value={feeTreasury} />
-								<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Treasury %</span>
+								<label class={lbl}>Image Reference</label>
+								<input class={inp} bind:value={pkgImage} placeholder="e.g. registry.necter.io/mynetwork:latest" />
 							</div>
 						</div>
-					</div>
-				</div>
-			</section>
+					</section>
 
-			<!-- Mining Package -->
-			<section>
-				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">NDSR Package</h2>
-				<div class="space-y-4">
-					<div class="grid grid-cols-2 gap-4">
-						<div>
-							<label class={labelClass}>Package Type</label>
-							<select class={inputClass} bind:value={pkgKind}>
-								<option value="docker">Docker</option>
-								<option value="vm">Virtual Machine</option>
-								<option value="ndsr">NDSR Native</option>
-							</select>
-						</div>
-						<div>
-							<label class={labelClass}>Version</label>
-							<input class={inputClass} bind:value={pkgVersion} />
-						</div>
+					<!-- Bottom save bar -->
+					<div class="flex items-center justify-between pt-2">
+						<a href="/develop/apps/{id}" class="text-[13px] text-[var(--text-tertiary)] no-underline hover:text-[var(--text-secondary)] transition-colors">
+							<ArrowLeft class="inline w-3 h-3 mr-1" strokeWidth={1.5} />Cancel
+						</a>
+						<button onclick={save} class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5 hover:brightness-110 transition-all">
+							<Save size={14} strokeWidth={2} /> Save Changes
+						</button>
 					</div>
-					<div>
-						<label class={labelClass}>Image Reference</label>
-						<input class={inputClass} bind:value={pkgImage} placeholder="e.g. registry.necter.io/mynetwork:latest" />
-					</div>
-				</div>
-			</section>
 
-			<!-- Save -->
-			<div class="flex justify-end gap-3 pt-4 border-t border-[var(--border-default)]">
-				<a href="/develop/apps/{id}" class="btn-secondary no-underline" style="height: 38px; padding: 0 16px; display: inline-flex; align-items: center;">Cancel</a>
-				<button onclick={save} class="btn-subscribe" style="height: 38px; padding: 0 20px;">
-					<Save class="h-3.5 w-3.5" /> Save Changes
-				</button>
+				</div>
 			</div>
 		</div>
 	</div>
