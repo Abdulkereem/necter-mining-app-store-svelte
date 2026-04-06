@@ -84,6 +84,14 @@ export interface App {
   rewardSplitDeveloper?: number
   rewardSplitTreasury?: number
   sla?: SLARequirements
+
+  // Custom branding (developer portal)
+  branding?: {
+    accentColor?: string
+    logoUrl?: string
+    bannerUrl?: string
+    tagline?: string
+  }
 }
 
 export interface Miner {

@@ -2,7 +2,7 @@
 	import { showToast } from '$lib/stores/toast';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, Save } from 'lucide-svelte';
+	import { ArrowLeft, Save, Palette } from 'lucide-svelte';
 	import { backendState, backend } from '$lib/stores/backend';
 	import { actor } from '$lib/stores/wallet';
 
@@ -25,6 +25,10 @@
 	let pkgKind = $state('docker');
 	let pkgVersion = $state('1.0.0');
 	let pkgImage = $state('');
+	let brandAccentColor = $state('#FFC933');
+	let brandLogoUrl = $state('');
+	let brandBannerUrl = $state('');
+	let brandTagline = $state('');
 
 	$effect(() => {
 		if (!app) return;
@@ -34,6 +38,10 @@
 		gpuReq = app.requirements?.gpu ?? '';
 		ramReq = app.requirements?.ram ?? '';
 		storageReq = app.requirements?.storage ?? '';
+		brandAccentColor = app.branding?.accentColor ?? '#FFC933';
+		brandLogoUrl = app.branding?.logoUrl ?? '';
+		brandBannerUrl = app.branding?.bannerUrl ?? '';
+		brandTagline = app.branding?.tagline ?? '';
 	});
 
 	function save() {
@@ -47,6 +55,12 @@
 			rewardSplitMiner: feeMiner,
 			rewardSplitDeveloper: feeDev,
 			rewardSplitTreasury: feeTreasury,
+			branding: {
+				accentColor: brandAccentColor || undefined,
+				logoUrl: brandLogoUrl || undefined,
+				bannerUrl: brandBannerUrl || undefined,
+				tagline: brandTagline || undefined,
+			},
 		});
 		showToast('Settings saved');
 	}
@@ -152,6 +166,55 @@
 							</div>
 						</div>
 					</div>
+				</div>
+			</section>
+
+			<!-- Custom Branding -->
+			<section>
+				<h2 class="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-4">Custom Branding</h2>
+				<div class="space-y-4">
+					<div>
+						<label class={labelClass}>Tagline</label>
+						<input class={inputClass} bind:value={brandTagline} placeholder="A short tagline for your project" />
+					</div>
+					<div>
+						<label class={labelClass}>Accent Color</label>
+						<div class="flex items-center gap-3">
+							<input type="color" bind:value={brandAccentColor} class="w-9 h-9 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] cursor-pointer p-0.5" />
+							<input class={inputClass} bind:value={brandAccentColor} placeholder="#FFC933" style="flex:1" />
+						</div>
+					</div>
+					<div>
+						<label class={labelClass}>Logo URL</label>
+						<input class={inputClass} bind:value={brandLogoUrl} placeholder="https://example.com/logo.png" />
+					</div>
+					<div>
+						<label class={labelClass}>Banner Image URL</label>
+						<input class={inputClass} bind:value={brandBannerUrl} placeholder="https://example.com/banner.png" />
+					</div>
+					{#if brandAccentColor || brandLogoUrl}
+						<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-0)] p-4">
+							<span class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-2">Preview</span>
+							<div class="flex items-center gap-3">
+								{#if brandLogoUrl}
+									<img src={brandLogoUrl} alt="Logo preview" class="w-10 h-10 rounded-[8px] object-cover border border-[var(--border-default)]" />
+								{:else}
+									<div class="w-10 h-10 rounded-[8px] border border-[var(--border-default)]" style="background:{brandAccentColor}"></div>
+								{/if}
+								<div>
+									<span class="text-[13px] font-medium text-[var(--text-primary)] block">{name || 'Project Name'}</span>
+									{#if brandTagline}
+										<span class="text-[11px] text-[var(--text-tertiary)]">{brandTagline}</span>
+									{/if}
+								</div>
+								<div class="ml-auto flex gap-1.5">
+									<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor}"></div>
+									<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.5"></div>
+									<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.2"></div>
+								</div>
+							</div>
+						</div>
+					{/if}
 				</div>
 			</section>
 

@@ -61,7 +61,7 @@
   const operatorMiners = $derived(backend.listOperatorMiners());
   const operatorGroups = $derived(backend.listOperatorGroups());
 
-  const enrollment = $derived(devWalletAddress ? backend.getDeveloperEnrollment(devWalletAddress) : null);
+  const enrollment = $derived(devWalletAddress ? ($backendState.developerEnrollmentByAddress?.[devWalletAddress] ?? null) : null);
   const enrollmentActive = $derived(enrollment?.status === 'active' || enrollment?.status === 'pending');
 
   function getIconSrc(app: any) {
