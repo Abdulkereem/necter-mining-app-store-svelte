@@ -6,8 +6,8 @@
 	import MobileNav from '$lib/components/MobileNav.svelte';
 	import ConnectWalletModal from '$lib/components/ConnectWalletModal.svelte';
 	import { Toaster } from 'svelte-french-toast';
-	import { hydrateBackend } from '$lib/stores/backend';
-	import { hydrateWallet } from '$lib/stores/wallet';
+	import { hydrateBackend, backend } from '$lib/stores/backend';
+	import { hydrateWallet, actor } from '$lib/stores/wallet';
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { navigating } from '$app/stores';
@@ -16,6 +16,16 @@
 
 	afterNavigate(() => {
 		window.scrollTo({ top: 0 });
+	});
+
+	// Sync wallet → backend session so requireSession() works
+	$effect(() => {
+		const a = $actor;
+		if (a) {
+			backend.ensureMiner({ minerId: a.minerId, walletAddress: a.walletAddress });
+		} else {
+			backend.clearSession();
+		}
 	});
 
 	onMount(() => {
