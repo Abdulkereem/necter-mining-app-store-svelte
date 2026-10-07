@@ -130,7 +130,7 @@ async function devFetch(req: Request): Promise<Response> {
 	if (import.meta.env.DEV && MOCK_API) {
 		if (!mockFetch) {
 			const mod = await import('./mock/hub');
-			const hub = mod.createMockHub({ persist: true });
+			const hub = mod.createMockHub({ persist: true, allowDomains: [location.host] });
 			mockFetch = (r) => hub.handle(r);
 		}
 		return mockFetch(req);

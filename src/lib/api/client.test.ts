@@ -9,7 +9,7 @@ import { vaultAddress } from '$lib/protocol/ids';
 import ref from '$lib/protocol/fixtures/reference-python.json';
 import type { Manifest } from './types';
 
-const OWNER_KEY = ('0x' + '00'.repeat(31) + '02') as const;
+const OWNER_KEY = ('0x' + '00'.repeat(31) + '02') as `0x${string}`;
 const owner = privateKeyToAccount(OWNER_KEY);
 const ownerAddr = owner.address.toLowerCase();
 const BASE = 'https://testnet-rpc.necter.network';
@@ -205,16 +205,16 @@ describe('developer publish flow', () => {
 		m.slug = 'owner-oracle';
 		const pid = digestManifest(m).project_id;
 		m.consensus.economics.vault = vaultAddress('0x000000000000000000000000000000000000fac7', '0x0000000000000000000000000000000000001111', pid);
-		const prep = await unwrap(client.POST('/v1/developers/projects/prepare', { body: { manifest: m } }));
+		const prep = await unwrap(client.POST('/v1/developers/projects/prepare', { body: { manifest: m } as never }));
 		expect(prep.problems).toEqual([]);
 		expect(prep.canonical).toBe(digestManifest(m).canonical);
 		const env = await signManifest(m, (hex) => owner.signMessage({ message: { raw: hex } }));
-		const pub = await unwrap(client.POST('/v1/developers/projects', { body: env }));
+		const pub = await unwrap(client.POST('/v1/developers/projects', { body: env as never }));
 		expect(pub.project.listing_status).toBe('pending_review');
 		expect(pub.register_tx.to).toMatch(/^0x[0-9a-f]{40}$/);
 		const v2 = { ...m, version: 2, previous: env.manifest_hash!, listing: { ...m.listing, tagline: 'Updated' } };
 		const env2 = await signManifest(v2, (hex) => owner.signMessage({ message: { raw: hex } }));
-		const res = await unwrap(client.POST('/v1/developers/projects/{project_id}/versions', { params: { path: { project_id: pid } }, body: env2 }));
+		const res = await unwrap(client.POST('/v1/developers/projects/{project_id}/versions', { params: { path: { project_id: pid } }, body: env2 as never }));
 		expect(res.version.tiers_changed).toEqual(['listing']);
 		expect(res.publish_tx).toBeNull();
 	});
@@ -229,6 +229,6 @@ describe('developer publish flow', () => {
 		m.consensus.economics.vault = vaultAddress('0x000000000000000000000000000000000000fac7', '0x0000000000000000000000000000000000001111', digestManifest(m).project_id);
 		const dev = privateKeyToAccount(('0x' + '00'.repeat(31) + '01') as `0x${string}`);
 		const env = await signManifest(m, (hex) => dev.signMessage({ message: { raw: hex } }));
-		await expect(unwrap(client.POST('/v1/developers/projects', { body: env }))).rejects.toMatchObject({ status: 422, code: 'bad_signature' });
+		await expect(unwrap(client.POST('/v1/developers/projects', { body: env as never }))).rejects.toMatchObject({ status: 422, code: 'bad_signature' });
 	});
 });

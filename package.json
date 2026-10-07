@@ -12,13 +12,16 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"gen:api": "node scripts/sync-spec.mjs && openapi-typescript spec/openapi.yaml -o src/lib/api/schema.d.ts",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"dev:mock": "PUBLIC_MOCK_API=1 vite dev",
+		"build:web": "BUILD_TARGET=web vite build",
+		"build:local": "BUILD_TARGET=local PUBLIC_APP_MODE=local vite build",
+		"test:e2e": "playwright test",
+		"mock-hub": "tsx tests/mock-server.ts"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.64.0",
-		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/adapter-static": "^4.0.0",
-		"@sveltejs/adapter-vercel": "^6.3.3",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/vite": "^4.2.2",

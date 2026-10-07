@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Compass, LayoutDashboard, Trophy, Vote, Package, ChevronDown, Search, Bell, BookOpen } from 'lucide-svelte';
-	import { wallet, actor, showConnectModal } from '$lib/stores/wallet';
-	import { backendState, backend } from '$lib/stores/backend';
+	import { Compass, LayoutDashboard, Trophy, Vote, Package, ChevronDown, Search, Bell, BookOpen, Blocks, Cpu } from 'lucide-svelte';
+	import { wallet, signedIn, showConnectModal } from '$lib/stores/wallet';
+	import { balances, nectaOf } from '$lib/stores/balances';
+	import { me } from '$lib/stores/account';
+	import { hub } from '$lib/api/hub';
+	import type { ProjectSummary } from '$lib/api/types';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
-	import { getAppIcon } from '$lib/app-icon';
+	import { CATEGORIES, categoryShort, formatAmount, shortAddress } from '$lib/format';
+	import { APP_MODE } from '$lib/config';
+	import ProjectIcon from './common/ProjectIcon.svelte';
 	import SettingsModal from './SettingsModal.svelte';
 
 	let catOpen = $state(false);
@@ -13,21 +18,15 @@
 	let searchQuery = $state('');
 	let searchOpen = $state(false);
 	let searchInputRef = $state<HTMLInputElement | null>(null);
+	let searchResults = $state<ProjectSummary[]>([]);
 
 	const pathname = $derived($page.url.pathname);
-
-	const categories = [
-		{ name: 'DePIN', slug: 'DePIN' },
-		{ name: 'AI/ML', slug: 'AI%2FML' },
-		{ name: 'IoT', slug: 'IoT' },
-		{ name: 'Storage', slug: 'Storage' },
-		{ name: 'Compute', slug: 'Compute' },
-		{ name: 'Data Sovereignty', slug: 'Data%20Sovereignty' }
-	];
+	const categories = CATEGORIES.slice(0, 6);
 
 	const navItems = [
 		{ name: 'My Mining', href: '/mining', icon: LayoutDashboard },
-		{ name: 'Leaderboards', href: '/leaderboards', icon: Trophy },
+		{ name: 'Explorer', href: '/explorer', icon: Blocks },
+		{ name: 'Leaderboards', href: '/leaderboards', icon: Trophy }
 	];
 
 	function isActive(href: string) {
@@ -39,18 +38,33 @@
 		pathname === '/discover' || pathname === '/' || pathname.startsWith('/category')
 	);
 
-	const searchResults = $derived.by(() => {
-		if (searchQuery.trim().length < 2) return [];
-		const q = searchQuery.toLowerCase();
-		return $backendState.apps
-			.filter(
-				(a) =>
-					a.name.toLowerCase().includes(q) ||
-					a.category.toLowerCase().includes(q) ||
-					a.description.toLowerCase().includes(q)
-			)
-			.slice(0, 5);
+	// Debounced project search against the Hub (`GET /v1/projects?q=`).
+	$effect(() => {
+		const q = searchQuery.trim();
+		if (q.length < 2) {
+			searchResults = [];
+			return;
+		}
+		const t = setTimeout(async () => {
+			try {
+				const res = await hub.projects({ q, limit: 5 });
+				if (searchQuery.trim() === q) searchResults = res.items ?? [];
+			} catch {
+				searchResults = [];
+			}
+		}, 220);
+		return () => clearTimeout(t);
 	});
+
+	function submitSearch(e: KeyboardEvent) {
+		if (e.key === 'Enter' && searchQuery.trim().length >= 2) {
+			goto(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+			searchOpen = false;
+		}
+	}
+
+	const necta = $derived(nectaOf($balances));
+	const unread = $derived($me?.unread_notifications ?? 0);
 
 	// Keyboard shortcut
 	$effect(() => {
@@ -99,7 +113,8 @@
 					bind:value={searchQuery}
 					onfocus={() => (searchOpen = true)}
 					onblur={() => setTimeout(() => (searchOpen = false), 200)}
-					placeholder="Search..."
+					onkeydown={submitSearch}
+					placeholder="Search projects..."
 					class="flex-1 min-w-0 bg-transparent text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none"
 				/>
 				<kbd class="text-[9px] font-mono text-[var(--text-tertiary)] bg-[var(--surface-2)] px-1 py-0.5 rounded-[2px] flex-shrink-0 leading-none">⌘K</kbd>
@@ -110,26 +125,20 @@
 					class="absolute left-0 right-0 top-[34px] z-50 rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-1)] p-1 space-y-[1px]"
 					style="box-shadow: 0 8px 30px rgba(0,0,0,0.4);"
 				>
-					{#each searchResults as app}
+					{#each searchResults as app (app.project_id)}
 						<button
 							type="button"
 							onmousedown={() => {
-								goto(`/apps/${app.id}`);
+								goto(`/apps/${app.project_id}`);
 								searchQuery = '';
 								searchOpen = false;
 							}}
 							class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[5px] text-left hover:bg-[var(--surface-2)] transition-colors bg-transparent border-none cursor-pointer"
 						>
-							<div class="h-6 w-6 rounded-[5px] bg-[var(--surface-3)] flex items-center justify-center flex-shrink-0 overflow-hidden">
-								<img
-									src={getAppIcon(app)}
-									alt=""
-									class="h-6 w-6 rounded-[5px]"
-								/>
-							</div>
+							<ProjectIcon project={app} size={24} rounded="5px" />
 							<div class="flex-1 min-w-0">
 								<p class="text-[12px] font-medium text-[var(--text-primary)] truncate">{app.name}</p>
-								<p class="text-[10px] text-[var(--text-tertiary)]">{app.category}</p>
+								<p class="text-[10px] text-[var(--text-tertiary)]">{categoryShort(app.category)}</p>
 							</div>
 						</button>
 					{/each}
@@ -140,6 +149,17 @@
 
 	<!-- Nav -->
 	<nav class="flex-1 overflow-y-auto px-2 py-3 space-y-[2px]">
+		{#if APP_MODE === 'local'}
+			<a
+				href="/device"
+				class="flex items-center gap-2.5 px-3 h-[32px] rounded-[5px] text-[13px] transition-colors duration-100 no-underline {pathname === '/device'
+					? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium'
+					: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
+			>
+				<Cpu class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+				<span>This device</span>
+			</a>
+		{/if}
 		<!-- Discover with sub-categories -->
 		<div class="flex items-center">
 			<a
@@ -166,14 +186,14 @@
 		{#if catOpen}
 			<div class="ml-[26px] space-y-[1px]">
 				{#each categories as cat}
-					{@const catActive = pathname === `/category/${cat.slug}` || pathname === `/category/${decodeURIComponent(cat.slug)}`}
+					{@const catActive = pathname === `/category/${cat.slug}`}
 					<a
 						href="/category/{cat.slug}"
 						class="block px-3 h-[28px] leading-[28px] rounded-[4px] text-[12px] transition-colors duration-100 no-underline {catActive
 							? 'text-[var(--text-accent)] font-medium'
 							: 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'}"
 					>
-						{cat.name}
+						{cat.short}
 					</a>
 				{/each}
 			</div>
@@ -212,7 +232,8 @@
 				: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
 		>
 			<Vote class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-			<span>Governance</span>
+			<span class="flex-1">Governance</span>
+			<span class="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] bg-[var(--surface-2)] px-1.5 py-[2px] rounded-[3px]">Soon</span>
 		</a>
 
 		<!-- Activity -->
@@ -223,7 +244,10 @@
 				: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'}"
 		>
 			<Bell class="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-			<span>Activity</span>
+			<span class="flex-1">Activity</span>
+			{#if unread > 0}
+				<span class="min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent-base)] text-[#0C0C0E] text-[10px] font-semibold flex items-center justify-center">{unread > 99 ? '99+' : unread}</span>
+			{/if}
 		</a>
 
 		<!-- Help -->
@@ -247,17 +271,21 @@
 				class="w-full flex items-center gap-2.5 px-2 py-2 rounded-[5px] hover:bg-[var(--surface-1)] transition-colors duration-100 text-left bg-transparent border-none cursor-pointer"
 			>
 				<img
-					src={minerAvatarDataUri($actor?.minerId ?? $wallet.address)}
+					src={minerAvatarDataUri($wallet.address)}
 					alt=""
 					class="h-8 w-8 flex-shrink-0 hex-avatar"
 				/>
 				<div class="flex-1 min-w-0">
-					<p class="text-[12px] font-mono text-[var(--text-primary)] truncate">
-						{$wallet.address.slice(0, 6)}...{$wallet.address.slice(-4)}
+					<p class="text-[12px] font-mono text-[var(--text-primary)] truncate" data-testid="wallet-address">
+						{shortAddress($wallet.address)}
 					</p>
-					<p class="text-[11px] font-mono text-[var(--text-accent)]">
-						${($backendState.walletBalancesByAddress?.[$wallet.address] ?? 0).toFixed(2)}
-					</p>
+					{#if $signedIn}
+						<p class="text-[11px] font-mono text-[var(--text-accent)]">
+							{necta ? formatAmount(necta.amount, necta.token.decimals, { maxFrac: 2 }) : '—'} NECTA
+						</p>
+					{:else}
+						<p class="text-[11px] text-[var(--warning)]">Not signed in</p>
+					{/if}
 				</div>
 			</button>
 		{:else}
