@@ -1,0 +1,3367 @@
+openapi: 3.1.0
+info:
+  title: Necter Hub API
+  version: 1.0.0
+  summary: Public JSON API of the Necter testnet (testnet-rpc.necter.network) and its internal admin surface.
+  description: |
+    Normative companion of `spec/PLATFORM.md`. Section references (§a … §k) point there.
+
+    **Conventions**
+    * Every response is `application/json; charset=utf-8` except the two documented binary downloads
+      (`GET /v1/modules/{address}/hbc`, `GET /v1/assets/{sha256}`). Unknown paths → 404 JSON.
+    * Field names are snake_case. Timestamps are unix seconds (`*_at`). Token amounts are decimal strings in
+      base units (wei); token objects carry `decimals`. Hashes, ids and addresses are lowercase `0x` hex.
+    * Lists use cursor pagination: `?limit=1..200` (default 50) and `?cursor=<opaque>`; responses are
+      `{"items": [...], "next_cursor": "…" | null}`.
+    * Errors: `{"error": "<code>", "message": "…", "details": {…}, "request_id": "…"}` with the HTTP status
+      listed per endpoint. `error` codes are stable; `message` is for humans.
+    * Rate limits: every response carries `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`
+      (seconds); 429 adds `Retry-After`. Budgets are per API key, per session wallet, per node key, and per
+      IP for anonymous calls.
+    * Auth:
+      - `session`: bearer token from SIWE (EIP-4361) wallet sign-in (`/v1/auth/*`), 12 h lifetime.
+      - `apiKey`: developer API key `nk_test_<8 char id>_<43 char secret>` as a bearer token, scoped.
+      - `nodeSig`: PROTOCOL.md node request signing (`X-Ndsr-Node`, `X-Ndsr-Public-Key`, `X-Ndsr-Timestamp`,
+        `X-Ndsr-Nonce`, `X-Ndsr-Signature`), signed over the path as sent.
+      - `operator`: operator session on the admin host only.
+    * Legacy node-facing paths of PROTOCOL.md (`/api/nodes/register`, `/api/nodes/heartbeat`,
+      `/api/validators`, `/api/receipts`, `/api/receipt`, `/api/vaults/{module_address}`,
+      `/api/modules/{address}/hbc`, `/api/chains`, `/api/execute`) keep their exact current behaviour on the
+      gateway host and are aliased on this host (tag `node-legacy`; see PROTOCOL.md for their bodies).
+    * The miner relay is a WebSocket at `wss://testnet-rpc.necter.network/v1/relay` (PLATFORM.md §f); it is
+      listed here for discoverability only.
+  license:
+    name: MIT
+servers:
+  - url: https://testnet-rpc.necter.network
+    description: Public RPC host (JSON only)
+tags:
+  - name: network
+  - name: explorer
+  - name: modules
+  - name: projects
+  - name: committees
+  - name: tasks
+  - name: auth
+  - name: accounts
+  - name: devices
+  - name: subscriptions
+  - name: earnings
+  - name: slashing
+  - name: faucet
+  - name: developers
+  - name: nodes
+  - name: node-legacy
+  - name: relay
+  - name: admin
+    description: Served only on https://gateway.testnet.necter.network (404 on the RPC host).
+
+security: []
+
+paths:
+  # ───────────────────────────── network ─────────────────────────────
+  /:
+    get:
+      tags: [network]
+      operationId: getNetworkDescriptor
+      summary: Network descriptor (PLATFORM.md §k)
+      responses:
+        '200':
+          description: Descriptor
+          headers: { Cache-Control: { schema: { type: string, example: 'public, max-age=60' } } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/NetworkDescriptor' } } }
+  /v1/status:
+    get:
+      tags: [network]
+      operationId: getStatus
+      summary: Health of Hub, validators, chain indexer and relay
+      responses:
+        '200': { description: Status, content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } } }
+  /v1/network/params:
+    get:
+      tags: [network]
+      operationId: getNetworkParams
+      summary: Network parameters (PLATFORM.md §0.1) and their hash
+      responses:
+        '200': { description: Params, content: { application/json: { schema: { $ref: '#/components/schemas/NetworkParams' } } } }
+  /v1/network/treasury:
+    get:
+      tags: [network]
+      operationId: getTreasury
+      summary: Treasury address and balances (read-only; governance spend is P4)
+      responses:
+        '200':
+          description: Treasury
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [address, balances]
+                properties:
+                  address: { $ref: '#/components/schemas/Address' }
+                  balances: { type: array, items: { $ref: '#/components/schemas/TokenBalance' } }
+  /v1/validators:
+    get:
+      tags: [network]
+      operationId: listValidators
+      summary: Current validator set (public view of PROTOCOL.md § Validator set)
+      responses:
+        '200':
+          description: Validators
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [validators, count, quorum]
+                properties:
+                  validators: { type: array, items: { $ref: '#/components/schemas/Validator' } }
+                  count: { type: integer }
+                  quorum: { type: integer }
+  /v1/whoami:
+    get:
+      tags: [network]
+      operationId: whoami
+      summary: Caller's public IP as seen by the Hub (used by necter-miner to print its remote dashboard URL)
+      responses:
+        '200':
+          description: Caller
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ip, time]
+                properties:
+                  ip: { type: string, examples: ['203.0.113.7'] }
+                  time: { $ref: '#/components/schemas/UnixTime' }
+  /v1/categories:
+    get:
+      tags: [network]
+      operationId: listCategories
+      responses:
+        '200':
+          description: Categories with listed-project counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [slug, name, projects]
+                      properties:
+                        slug: { $ref: '#/components/schemas/Category' }
+                        name: { type: string }
+                        projects: { type: integer }
+  /v1/collections:
+    get:
+      tags: [network]
+      operationId: listCollections
+      responses:
+        '200':
+          description: Curated collections
+          content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Collection' } } } } } }
+  /v1/collections/{collection_id}:
+    get:
+      tags: [network]
+      operationId: getCollection
+      parameters: [ { name: collection_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Collection, content: { application/json: { schema: { $ref: '#/components/schemas/Collection' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/benchmarks/current:
+    get:
+      tags: [network]
+      operationId: getBenchmarkSuite
+      summary: Benchmark suite with pinned receipt hashes (PLATFORM.md §c.5)
+      responses:
+        '200': { description: Suite, content: { application/json: { schema: { $ref: '#/components/schemas/BenchmarkSuite' } } } }
+  /v1/beacons/{epoch_secs}/{epoch}:
+    get:
+      tags: [committees]
+      operationId: getBeacon
+      summary: Epoch beacon (PLATFORM.md §e.1)
+      parameters:
+        - { name: epoch_secs, in: path, required: true, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Epoch' }
+      responses:
+        '200': { description: Beacon, content: { application/json: { schema: { $ref: '#/components/schemas/Beacon' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/events:
+    get:
+      tags: [network]
+      operationId: listNetworkEvents
+      summary: Public event feed (module events, rounds, listings, settlements); long-poll with `wait`
+      parameters:
+        - { name: after, in: query, schema: { type: string }, description: 'Opaque cursor; return events after it' }
+        - { name: wait, in: query, schema: { type: integer, minimum: 0, maximum: 30, default: 0 }, description: 'Seconds to hold the request when no event is available' }
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: module, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: type, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Events
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, next_cursor]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Event' } }
+                  next_cursor: { type: [string, 'null'] }
+
+  # ───────────────────────────── explorer ─────────────────────────────
+  /v1/explorer/stats:
+    get:
+      tags: [explorer]
+      operationId: getExplorerStats
+      responses:
+        '200':
+          description: Network totals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects_listed: { type: integer }
+                  miners_online: { type: integer }
+                  devices_online: { type: integer }
+                  rounds_24h: { type: integer }
+                  rounds_finalized_24h: { type: integer }
+                  units_24h: { type: integer }
+                  validators: { type: integer }
+                  collateral_bonded: { $ref: '#/components/schemas/Amount' }
+                  updated_at: { $ref: '#/components/schemas/UnixTime' }
+  /v1/explorer/rounds:
+    get:
+      tags: [explorer]
+      operationId: listRounds
+      parameters:
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: module, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: kind, in: query, schema: { type: string, enum: [exec, task, reward, epoch] } }
+        - { name: state, in: query, schema: { type: string, enum: [pending, committee_agreed, finalized, escalated, failed, fallback] } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Rounds, newest first
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/RoundSummary' } } } } ] } } }
+  /v1/explorer/rounds/{round_id}:
+    get:
+      tags: [explorer]
+      operationId: getRound
+      parameters: [ { $ref: '#/components/parameters/RoundId' } ]
+      responses:
+        '200': { description: Round with votes and finality, content: { application/json: { schema: { $ref: '#/components/schemas/Round' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/explorer/receipts/{receipt_hash}:
+    get:
+      tags: [explorer]
+      operationId: getReceipt
+      parameters: [ { name: receipt_hash, in: path, required: true, schema: { $ref: '#/components/schemas/Hash' } } ]
+      responses:
+        '200':
+          description: Execution receipt (with signatures) or reward receipt v1/v2
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [kind, receipt]
+                properties:
+                  kind: { type: string, enum: [execution, reward_v1, reward_v2] }
+                  receipt: { type: object, description: 'PROTOCOL.md execution receipt envelope, § Reward receipt, or PLATFORM.md §h.4' }
+                  rounds: { type: array, items: { type: string } }
+                  settlement: { $ref: '#/components/schemas/Settlement' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/explorer/epochs:
+    get:
+      tags: [explorer]
+      operationId: listEpochs
+      parameters:
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: status, in: query, schema: { type: string, enum: [open, closed, attested, submitted, settled, released, vetoed, underfunded] } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Project epochs, newest first
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/EpochSummary' } } } } ] } } }
+  /v1/explorer/epochs/{project_id}/{epoch}:
+    get:
+      tags: [explorer]
+      operationId: getEpoch
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Epoch' } ]
+      responses:
+        '200':
+          description: Epoch with its attested v2 receipt and on-chain settlement
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/EpochSummary' }
+                  - type: object
+                    properties:
+                      receipt: { $ref: '#/components/schemas/RewardReceiptV2' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/explorer/slashes:
+    get:
+      tags: [explorer]
+      operationId: listSlashes
+      parameters:
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/SlashStatus' } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Slashes
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Slash' } } } } ] } } }
+  /v1/explorer/search:
+    get:
+      tags: [explorer]
+      operationId: explorerSearch
+      summary: Resolve a hash, address, node id, round id or text to explorer objects
+      parameters: [ { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 200 } } ]
+      responses:
+        '200':
+          description: Matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [type, id, label]
+                      properties:
+                        type: { type: string, enum: [project, module, round, receipt, epoch, account, device, slash, tx] }
+                        id: { type: string }
+                        label: { type: string }
+
+  # ───────────────────────────── modules / execute ─────────────────────────────
+  /v1/modules:
+    get:
+      tags: [modules]
+      operationId: listModules
+      parameters:
+        - { name: developer, in: query, schema: { $ref: '#/components/schemas/Address' } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Deployed modules
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Module' } } } } ] } } }
+    post:
+      tags: [modules]
+      operationId: uploadModule
+      summary: Upload a .hbc artifact (address computed and verified server-side, HBC_SPEC §4)
+      security: [ { session: [] }, { apiKey: [modules:write] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hbc_b64]
+              properties:
+                hbc_b64: { type: string, description: 'base64 of the .hbc bytes (≤ 16 MiB decoded)' }
+      responses:
+        '201': { description: Deployed, content: { application/json: { schema: { $ref: '#/components/schemas/Module' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /v1/modules/{address}:
+    get:
+      tags: [modules]
+      operationId: getModule
+      parameters: [ { $ref: '#/components/parameters/ModuleAddress' } ]
+      responses:
+        '200': { description: Module, content: { application/json: { schema: { $ref: '#/components/schemas/Module' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/modules/{address}/hbc:
+    get:
+      tags: [modules]
+      operationId: downloadModule
+      summary: Raw .hbc bytes (binary exception, PLATFORM.md D29). Clients MUST verify the address.
+      parameters: [ { $ref: '#/components/parameters/ModuleAddress' } ]
+      responses:
+        '200':
+          description: Artifact
+          headers:
+            X-Manifest-Address: { schema: { $ref: '#/components/schemas/Hash' } }
+            ETag: { schema: { type: string } }
+          content: { application/octet-stream: { schema: { type: string, contentMediaType: application/octet-stream } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/assets/{sha256}:
+    get:
+      tags: [modules]
+      operationId: getAsset
+      summary: Listing image (binary exception; content-addressed by SHA-256)
+      parameters: [ { name: sha256, in: path, required: true, schema: { type: string, pattern: '^[0-9a-f]{64}$' } } ]
+      responses:
+        '200':
+          description: Image
+          content:
+            image/png: { schema: { type: string, contentMediaType: image/png } }
+            image/jpeg: { schema: { type: string, contentMediaType: image/jpeg } }
+            image/webp: { schema: { type: string, contentMediaType: image/webp } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/execute:
+    post:
+      tags: [modules]
+      operationId: execute
+      summary: Run one validator consensus round (same contract as legacy `/api/execute`)
+      security: [ {}, { apiKey: [tasks:submit] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [module, function, input]
+              properties:
+                module: { $ref: '#/components/schemas/Hash' }
+                function: { type: string, maxLength: 64 }
+                input: { description: 'String (passed byte-for-byte) or JSON value (canonicalized; no floats)' }
+                gas_limit: { type: integer, minimum: 1, default: 1000000 }
+      responses:
+        '200': { description: Finalized round result, content: { application/json: { schema: { $ref: '#/components/schemas/ExecuteResult' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  # ───────────────────────────── projects ─────────────────────────────
+  /v1/projects:
+    get:
+      tags: [projects]
+      operationId: listProjects
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 }, description: 'Full-text over name, tagline, tags' }
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/Category' } }
+        - { name: tag, in: query, schema: { type: string } }
+        - { name: device_class, in: query, schema: { $ref: '#/components/schemas/DeviceClass' } }
+        - { name: developer, in: query, schema: { $ref: '#/components/schemas/Address' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ListingStatus' }, description: 'Default `listed`; other statuses only for the owner or operator' }
+        - { name: sort, in: query, schema: { type: string, enum: [trending, newest, miners, earnings, rating, name], default: trending } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Projects
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/ProjectSummary' } } } } ] } } }
+  /v1/projects/{project_id}:
+    get:
+      tags: [projects]
+      operationId: getProject
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      responses:
+        '200': { description: Project, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/projects/{project_id}/manifest:
+    get:
+      tags: [projects]
+      operationId: getProjectManifest
+      summary: Current signed manifest envelope (PLATFORM.md §a.1)
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      responses:
+        '200': { description: Signed manifest, content: { application/json: { schema: { $ref: '#/components/schemas/SignedManifest' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/projects/{project_id}/versions:
+    get:
+      tags: [projects]
+      operationId: listProjectVersions
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Versions, newest first
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/ProjectVersion' } } } } ] } } }
+  /v1/projects/{project_id}/versions/{version}:
+    get:
+      tags: [projects]
+      operationId: getProjectVersion
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { name: version, in: path, required: true, schema: { type: integer, minimum: 1 } } ]
+      responses:
+        '200':
+          description: Version with its signed manifest
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/ProjectVersion' }
+                  - type: object
+                    properties: { signed_manifest: { $ref: '#/components/schemas/SignedManifest' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/projects/{project_id}/economics:
+    get:
+      tags: [projects]
+      operationId: getProjectEconomics
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      responses:
+        '200': { description: Economics and vault state, content: { application/json: { schema: { $ref: '#/components/schemas/ProjectEconomics' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/projects/{project_id}/stats:
+    get:
+      tags: [projects]
+      operationId: getProjectStats
+      parameters:
+        - { $ref: '#/components/parameters/ProjectId' }
+        - { $ref: '#/components/parameters/Period' }
+      responses:
+        '200': { description: Stats, content: { application/json: { schema: { $ref: '#/components/schemas/ProjectStats' } } } }
+  /v1/projects/{project_id}/miners:
+    get:
+      tags: [projects]
+      operationId: listProjectMiners
+      summary: Public list of subscribed devices (node id, class, units, reputation)
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Period' }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Miners
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/ProjectMiner' } } } } ] } } }
+  /v1/projects/{project_id}/epochs:
+    get:
+      tags: [projects]
+      operationId: listProjectEpochs
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Epochs
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/EpochSummary' } } } } ] } } }
+  /v1/projects/{project_id}/rounds:
+    get:
+      tags: [projects]
+      operationId: listProjectRounds
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Task rounds
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/RoundSummary' } } } } ] } } }
+  /v1/projects/{project_id}/compatibility:
+    post:
+      tags: [projects]
+      operationId: checkCompatibility
+      summary: Hardware compatibility of a device (by node_id) or of an ad-hoc profile
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                node_id: { $ref: '#/components/schemas/NodeId' }
+                class: { $ref: '#/components/schemas/DeviceClass' }
+                engine: { $ref: '#/components/schemas/Engine' }
+                hardware: { $ref: '#/components/schemas/HardwareProfile' }
+                benchmark_score: { type: integer }
+      responses:
+        '200': { description: Result, content: { application/json: { schema: { $ref: '#/components/schemas/Compatibility' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/projects/{project_id}/reviews:
+    get:
+      tags: [projects]
+      operationId: listReviews
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { name: sort, in: query, schema: { type: string, enum: [newest, helpful, rating_high, rating_low], default: newest } }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Reviews
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Page' }
+                  - properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Review' } }
+                      average_rating_x100: { type: integer, description: 'Average rating × 100 (integer)' }
+                      count: { type: integer }
+    put:
+      tags: [projects]
+      operationId: upsertMyReview
+      summary: Create or replace the caller's review (needs ≥ 1 credited round on this project)
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating, comment]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, maxLength: 2000 }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/Review' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [projects]
+      operationId: deleteMyReview
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/projects/{project_id}/reviews/{review_id}/helpful:
+    post:
+      tags: [projects]
+      operationId: markReviewHelpful
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { name: review_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Count, content: { application/json: { schema: { type: object, properties: { helpful: { type: integer } } } } } }
+  /v1/projects/{project_id}/announcements:
+    get:
+      tags: [projects]
+      operationId: listAnnouncements
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Announcements
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Announcement' } } } } ] } } }
+  /v1/projects/{project_id}/reports:
+    post:
+      tags: [projects]
+      operationId: reportProject
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category, severity, reason]
+              properties:
+                category: { type: string, enum: [scam, malware, economics, impersonation, spam, other] }
+                severity: { type: string, enum: [low, medium, high] }
+                reason: { type: string, maxLength: 2000 }
+      responses:
+        '201': { description: Recorded, content: { application/json: { schema: { type: object, properties: { report_id: { type: string } } } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ───────────────────────────── tasks ─────────────────────────────
+  /v1/projects/{project_id}/tasks:
+    post:
+      tags: [tasks]
+      operationId: submitTask
+      summary: Submit a task to a project's committee (PLATFORM.md §b.3); `wait` blocks until final
+      description: Allowed with an API key of the project's developer (`tasks:submit`), or anonymously when the
+        project has `scheduling.public_tasks = true` (rate-limited per IP).
+      security: [ { apiKey: [tasks:submit] }, {} ]
+      parameters:
+        - { $ref: '#/components/parameters/ProjectId' }
+        - { name: wait, in: query, schema: { type: integer, minimum: 0, maximum: 120, default: 0 }, description: 'Seconds to wait for `final` (or `committee_agreed` with `accept=agreed`)' }
+        - { name: accept, in: query, schema: { type: string, enum: [final, agreed], default: final } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [function, input]
+              properties:
+                function: { type: string, description: 'One of consensus.work.functions' }
+                input: { description: 'String (byte-for-byte) or JSON value (canonical JSON, no floats); ≤ 1 MiB' }
+                input_b64: { type: string, description: 'Alternative to `input` for binary input' }
+                gas_limit: { type: integer, minimum: 1, description: 'Default and max: consensus.work.max_gas_limit' }
+                idempotency_key: { type: string, maxLength: 64, description: 'Same key within 24 h returns the same task' }
+      responses:
+        '202': { description: 'Accepted, not final yet', content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+        '200': { description: Final (or agreed) within `wait`, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/tasks/{task_id}:
+    get:
+      tags: [tasks]
+      operationId: getTask
+      parameters:
+        - { name: task_id, in: path, required: true, schema: { type: string } }
+        - { name: wait, in: query, schema: { type: integer, minimum: 0, maximum: 120, default: 0 } }
+      responses:
+        '200': { description: Task, content: { application/json: { schema: { $ref: '#/components/schemas/Task' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────────── committees ─────────────────────────────
+  /v1/committees/{project_id}/{epoch}:
+    get:
+      tags: [committees]
+      operationId: getCommitteeSnapshot
+      summary: Attested miner-set snapshot (PLATFORM.md §e.2); everything needed to recompute committees
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Epoch' } ]
+      responses:
+        '200': { description: Snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/AttestedSnapshot' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '425': { description: Not attested yet, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /v1/committees/{project_id}/{epoch}/{seq}:
+    get:
+      tags: [committees]
+      operationId: getCommittee
+      summary: Draw list of one slot (PLATFORM.md §e.4)
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Epoch' }, { name: seq, in: path, required: true, schema: { type: integer, minimum: 0 } } ]
+      responses:
+        '200': { description: Committee, content: { application/json: { schema: { $ref: '#/components/schemas/Committee' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/bindings/{binding_hash}:
+    get:
+      tags: [committees]
+      operationId: getBinding
+      parameters: [ { name: binding_hash, in: path, required: true, schema: { $ref: '#/components/schemas/Hash' } } ]
+      responses:
+        '200': { description: Binding record (PLATFORM.md §c.2), content: { application/json: { schema: { $ref: '#/components/schemas/Binding' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────────── relay (documentation only) ─────────────────────────────
+  /v1/relay:
+    get:
+      tags: [relay]
+      operationId: relay
+      summary: Miner WebSocket (PLATFORM.md §f). Upgrade with subprotocol `necter-relay.v1`.
+      parameters:
+        - { name: Upgrade, in: header, required: true, schema: { type: string, const: websocket } }
+        - { name: Sec-WebSocket-Protocol, in: header, required: true, schema: { type: string, const: necter-relay.v1 } }
+      responses:
+        '101': { description: Switching protocols }
+        '426': { description: Not a WebSocket upgrade or wrong subprotocol, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  # ───────────────────────────── auth (SIWE) ─────────────────────────────
+  /v1/auth/nonce:
+    post:
+      tags: [auth]
+      operationId: siweNonce
+      summary: Get a single-use SIWE nonce (valid 300 s)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address, domain]
+              properties:
+                address: { $ref: '#/components/schemas/Address' }
+                domain: { type: string, description: 'Allowed: testnet.necter.network, 127.0.0.1:7878, localhost:7878, necter-miner.app (desktop/mobile apps)' }
+      responses:
+        '200':
+          description: Nonce and the exact message to sign
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nonce, issued_at, expires_at, message]
+                properties:
+                  nonce: { type: string, pattern: '^[A-Za-z0-9]{17}$' }
+                  issued_at: { $ref: '#/components/schemas/UnixTime' }
+                  expires_at: { $ref: '#/components/schemas/UnixTime' }
+                  message:
+                    type: string
+                    description: |
+                      EIP-4361 message the wallet signs (EIP-191), e.g.
+                      `testnet.necter.network wants you to sign in with your Ethereum account:\n0xAbC…(EIP-55)\n\nSign in to Necter testnet.\n\nURI: https://testnet.necter.network\nVersion: 1\nChain ID: 11155111\nNonce: <nonce>\nIssued At: 2026-10-07T12:00:00Z\nExpiration Time: 2026-10-08T00:00:00Z`
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /v1/auth/siwe:
+    post:
+      tags: [auth]
+      operationId: siweLogin
+      summary: Exchange a signed SIWE message for a bearer session
+      description: The Hub parses the message strictly (EIP-4361), requires domain/URI from the allow-list, `Chain ID` =
+        11155111, the nonce it issued (single use), `Issued At` within ±300 s, `Expiration Time` ≤ 24 h, the
+        statement `Sign in to Necter testnet.`, and recovers the EIP-191 signer = address. Contract wallets
+        (EIP-1271) are verified with `isValidSignature` on Sepolia.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, signature]
+              properties:
+                message: { type: string, maxLength: 4096 }
+                signature: { $ref: '#/components/schemas/EvmSignature' }
+      responses:
+        '200': { description: Session, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /v1/auth/session:
+    get:
+      tags: [auth]
+      operationId: getSession
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: Session, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      security: [ { session: [] } ]
+      responses:
+        '204': { description: Session revoked }
+
+  # ───────────────────────────── accounts ─────────────────────────────
+  /v1/me:
+    get:
+      tags: [accounts]
+      operationId: getMe
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: Account of the session wallet, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/me/preferences:
+    get:
+      tags: [accounts]
+      operationId: getPreferences
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: Preferences, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+    put:
+      tags: [accounts]
+      operationId: putPreferences
+      security: [ { session: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /v1/me/events:
+    get:
+      tags: [accounts]
+      operationId: listMyEvents
+      security: [ { session: [] } ]
+      parameters:
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: after, in: query, schema: { type: string } }
+        - { name: wait, in: query, schema: { type: integer, minimum: 0, maximum: 30, default: 0 } }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Activity timeline of the wallet (store TimelineEvent)
+          content: { application/json: { schema: { type: object, required: [items, next_cursor], properties: { items: { type: array, items: { $ref: '#/components/schemas/Event' } }, next_cursor: { type: [string, 'null'] } } } } }
+  /v1/me/notifications:
+    get:
+      tags: [accounts]
+      operationId: listNotifications
+      security: [ { session: [] } ]
+      parameters: [ { name: unread, in: query, schema: { type: boolean } }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Notifications
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Notification' } }, unread: { type: integer } } } ] } } }
+  /v1/me/notifications/read:
+    post:
+      tags: [accounts]
+      operationId: markNotificationsRead
+      security: [ { session: [] } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, properties: { ids: { type: array, items: { type: string } }, all: { type: boolean } } } } }
+      responses:
+        '204': { description: Marked }
+  /v1/me/alerts:
+    get:
+      tags: [accounts]
+      operationId: listAlerts
+      security: [ { session: [] } ]
+      responses:
+        '200':
+          description: Active mining alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, type, severity, message, created_at]
+                      properties:
+                        id: { type: string }
+                        type: { type: string, enum: [offline, missed_leases, proof_failure, slashing, low_collateral, jailed, project_paused, update_required] }
+                        severity: { type: string, enum: [warning, critical] }
+                        message: { type: string }
+                        project_id: { $ref: '#/components/schemas/Hash' }
+                        node_id: { $ref: '#/components/schemas/NodeId' }
+                        subscription_id: { $ref: '#/components/schemas/Hash' }
+                        created_at: { $ref: '#/components/schemas/UnixTime' }
+  /v1/accounts/{address}:
+    get:
+      tags: [accounts]
+      operationId: getAccount
+      summary: Public profile of a wallet (miner and/or developer)
+      parameters: [ { $ref: '#/components/parameters/AddressPath' } ]
+      responses:
+        '200': { description: Profile, content: { application/json: { schema: { $ref: '#/components/schemas/AccountProfile' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/accounts/{address}/balances:
+    get:
+      tags: [accounts]
+      operationId: getBalances
+      parameters: [ { $ref: '#/components/parameters/AddressPath' } ]
+      responses:
+        '200':
+          description: On-chain balances (Sepolia ETH, NECTA, reward tokens of subscribed projects) and unclaimed rewards
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [address, balances, unclaimed]
+                properties:
+                  address: { $ref: '#/components/schemas/Address' }
+                  balances: { type: array, items: { $ref: '#/components/schemas/TokenBalance' } }
+                  unclaimed: { type: array, items: { $ref: '#/components/schemas/TokenBalance' } }
+                  collateral_bonded: { $ref: '#/components/schemas/Amount' }
+                  block_number: { type: integer }
+  /v1/leaderboards:
+    get:
+      tags: [accounts]
+      operationId: getLeaderboard
+      parameters:
+        - { name: metric, in: query, required: true, schema: { type: string, enum: [units, earnings, uptime, reputation, devices] } }
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { $ref: '#/components/parameters/Period' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Ranked wallets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [rank, address, value]
+                      properties:
+                        rank: { type: integer }
+                        address: { $ref: '#/components/schemas/Address' }
+                        value: { type: string, description: 'Integer or Amount string' }
+                        devices: { type: integer }
+
+  # ───────────────────────────── devices ─────────────────────────────
+  /v1/devices/bind:
+    post:
+      tags: [devices]
+      operationId: bindDevice
+      summary: Submit a binding record (PLATFORM.md §c.2). Self-authenticating (owner EIP-191 + node ed25519).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Binding' } } } }
+      responses:
+        '200': { description: Bound (or same binding already active), content: { application/json: { schema: { $ref: '#/components/schemas/Device' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /v1/devices/unbind:
+    post:
+      tags: [devices]
+      operationId: unbindDevice
+      summary: Submit an unbind record (signed by owner or node)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Unbinding' } } } }
+      responses:
+        '200': { description: Unbound }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+  /v1/devices/binding-message:
+    post:
+      tags: [devices]
+      operationId: buildBindingMessage
+      summary: Convenience — returns the exact binding text for (owner, node) with a fresh nonce
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [owner, public_key]
+              properties:
+                owner: { $ref: '#/components/schemas/Address' }
+                public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+                unbind: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Message to sign
+          content: { application/json: { schema: { type: object, required: [message, binding_hash], properties: { message: { type: string }, binding_hash: { $ref: '#/components/schemas/Hash' } } } } }
+  /v1/me/devices:
+    get:
+      tags: [devices]
+      operationId: listMyDevices
+      security: [ { session: [] } ]
+      parameters: [ { name: group_id, in: query, schema: { type: string } }, { name: status, in: query, schema: { $ref: '#/components/schemas/DeviceStatus' } }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Devices bound to the session wallet (operator fleet view)
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Device' } } } } ] } } }
+  /v1/devices/{node_id}:
+    get:
+      tags: [devices]
+      operationId: getDevice
+      summary: Device record; public subset unless the caller is the owner
+      security: [ {}, { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/NodeIdPath' } ]
+      responses:
+        '200': { description: Device, content: { application/json: { schema: { $ref: '#/components/schemas/Device' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [devices]
+      operationId: updateDevice
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/NodeIdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label: { type: string, maxLength: 64 }
+                group_id: { type: [string, 'null'] }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Device' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/devices/{node_id}/profile:
+    put:
+      tags: [devices, nodes]
+      operationId: putDeviceProfile
+      summary: Device reports class, platform, versions, hardware and benchmark (node-signed)
+      security: [ { nodeSig: [] } ]
+      parameters: [ { $ref: '#/components/parameters/NodeIdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class, platform, os_version, arch, engine, miner_version, ndsr_version, hardware]
+              properties:
+                class: { $ref: '#/components/schemas/DeviceClass' }
+                platform: { $ref: '#/components/schemas/Platform' }
+                os_version: { type: string, maxLength: 64 }
+                arch: { type: string, maxLength: 32 }
+                engine: { $ref: '#/components/schemas/Engine' }
+                miner_version: { type: string, maxLength: 32 }
+                ndsr_version: { type: string, maxLength: 32 }
+                hardware: { $ref: '#/components/schemas/HardwareProfile' }
+                benchmark: { $ref: '#/components/schemas/BenchmarkResult' }
+      responses:
+        '200': { description: Stored, content: { application/json: { schema: { $ref: '#/components/schemas/Device' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/me/device-groups:
+    get:
+      tags: [devices]
+      operationId: listDeviceGroups
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: Groups, content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/DeviceGroup' } } } } } } }
+    post:
+      tags: [devices]
+      operationId: createDeviceGroup
+      security: [ { session: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, maxLength: 64 }, node_ids: { type: array, items: { $ref: '#/components/schemas/NodeId' } } } } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/DeviceGroup' } } } }
+  /v1/me/device-groups/{group_id}:
+    put:
+      tags: [devices]
+      operationId: updateDeviceGroup
+      security: [ { session: [] } ]
+      parameters: [ { name: group_id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name, node_ids], properties: { name: { type: string }, node_ids: { type: array, items: { $ref: '#/components/schemas/NodeId' } } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/DeviceGroup' } } } }
+    delete:
+      tags: [devices]
+      operationId: deleteDeviceGroup
+      security: [ { session: [] } ]
+      parameters: [ { name: group_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+
+  # ───────────────────────────── subscriptions ─────────────────────────────
+  /v1/subscriptions:
+    post:
+      tags: [subscriptions]
+      operationId: createSubscription
+      summary: Subscription intent for (project, device); returns the gasless bond payloads to sign (PLATFORM.md §d)
+      security: [ { session: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project_id, node_id, collateral]
+              properties:
+                project_id: { $ref: '#/components/schemas/Hash' }
+                node_id: { $ref: '#/components/schemas/NodeId' }
+                collateral: { $ref: '#/components/schemas/Amount' }
+      responses:
+        '201': { description: Intent stored (`pending_collateral`), content: { application/json: { schema: { $ref: '#/components/schemas/SubscriptionIntent' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+  /v1/subscriptions/batch:
+    post:
+      tags: [subscriptions]
+      operationId: createSubscriptionsBatch
+      summary: Fleet deploy — intents for many devices × projects (store OperatorDeployment)
+      security: [ { session: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  maxItems: 200
+                  items:
+                    type: object
+                    required: [project_id, node_id, collateral]
+                    properties:
+                      project_id: { $ref: '#/components/schemas/Hash' }
+                      node_id: { $ref: '#/components/schemas/NodeId' }
+                      collateral: { $ref: '#/components/schemas/Amount' }
+      responses:
+        '201':
+          description: Per-item results and one batched bond payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        project_id: { $ref: '#/components/schemas/Hash' }
+                        node_id: { $ref: '#/components/schemas/NodeId' }
+                        subscription_id: { $ref: '#/components/schemas/Hash' }
+                        error: { type: [string, 'null'] }
+                  bond: { $ref: '#/components/schemas/GaslessPayload' }
+  /v1/me/subscriptions:
+    get:
+      tags: [subscriptions]
+      operationId: listMySubscriptions
+      security: [ { session: [] } ]
+      parameters:
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: node_id, in: query, schema: { $ref: '#/components/schemas/NodeId' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/SubscriptionStatus' } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Subscriptions
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Subscription' } } } } ] } } }
+  /v1/me/collateral:
+    get:
+      tags: [subscriptions]
+      operationId: getMyCollateral
+      security: [ { session: [] } ]
+      responses:
+        '200':
+          description: Collateral summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bonded: { $ref: '#/components/schemas/Amount' }
+                  unbonding: { $ref: '#/components/schemas/Amount' }
+                  withdrawable: { $ref: '#/components/schemas/Amount' }
+                  slashed_total: { $ref: '#/components/schemas/Amount' }
+                  pending_slashes: { type: integer }
+                  necta_balance: { $ref: '#/components/schemas/Amount' }
+                  subscriptions: { type: array, items: { $ref: '#/components/schemas/Subscription' } }
+  /v1/subscriptions/{subscription_id}:
+    get:
+      tags: [subscriptions]
+      operationId: getSubscription
+      parameters: [ { $ref: '#/components/parameters/SubscriptionId' } ]
+      responses:
+        '200': { description: Subscription, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/subscriptions/{subscription_id}/bond:
+    post:
+      tags: [subscriptions]
+      operationId: relayBond
+      summary: Relay a signed gasless bond / top-up (EIP-712 Bond + EIP-2612 permit) to Staking.bondBySig
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/SubscriptionId' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SignedGasless' } } } }
+      responses:
+        '202': { description: Submitted, content: { application/json: { schema: { $ref: '#/components/schemas/TxStatus' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /v1/subscriptions/{subscription_id}/bond-payload:
+    post:
+      tags: [subscriptions]
+      operationId: buildBondPayload
+      summary: Typed data to sign for a top-up of `amount`
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/SubscriptionId' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [amount], properties: { amount: { $ref: '#/components/schemas/Amount' } } } } } }
+      responses:
+        '200': { description: Payload, content: { application/json: { schema: { $ref: '#/components/schemas/GaslessPayload' } } } }
+  /v1/subscriptions/{subscription_id}/pause:
+    post:
+      tags: [subscriptions]
+      operationId: pauseSubscription
+      summary: Hub-side pause (excluded from the next snapshot); collateral stays bonded
+      security: [ { session: [] }, { nodeSig: [] } ]
+      parameters: [ { $ref: '#/components/parameters/SubscriptionId' } ]
+      responses:
+        '200': { description: Paused, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/subscriptions/{subscription_id}/resume:
+    post:
+      tags: [subscriptions]
+      operationId: resumeSubscription
+      security: [ { session: [] }, { nodeSig: [] } ]
+      parameters: [ { $ref: '#/components/parameters/SubscriptionId' } ]
+      responses:
+        '200': { description: Resumed, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/subscriptions/{subscription_id}/unbond:
+    post:
+      tags: [subscriptions]
+      operationId: unbondSubscription
+      summary: Without body → typed data to sign; with signed body → relayed Staking.unbondBySig
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/SubscriptionId' } ]
+      requestBody: { required: false, content: { application/json: { schema: { $ref: '#/components/schemas/SignedGasless' } } } }
+      responses:
+        '200': { description: Payload to sign, content: { application/json: { schema: { $ref: '#/components/schemas/GaslessPayload' } } } }
+        '202': { description: Submitted, content: { application/json: { schema: { $ref: '#/components/schemas/TxStatus' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/subscriptions/{subscription_id}/withdraw:
+    post:
+      tags: [subscriptions]
+      operationId: withdrawCollateral
+      summary: Without body → typed data; with signed body → relayed Staking.withdrawBySig (after release_at)
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/SubscriptionId' } ]
+      requestBody: { required: false, content: { application/json: { schema: { $ref: '#/components/schemas/SignedGasless' } } } }
+      responses:
+        '200': { description: Payload to sign, content: { application/json: { schema: { $ref: '#/components/schemas/GaslessPayload' } } } }
+        '202': { description: Submitted, content: { application/json: { schema: { $ref: '#/components/schemas/TxStatus' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  # ───────────────────────────── earnings / proofs ─────────────────────────────
+  /v1/me/leases:
+    get:
+      tags: [earnings]
+      operationId: listMyLeases
+      security: [ { session: [] } ]
+      parameters:
+        - { name: state, in: query, schema: { type: string, enum: [offered, leased, voted, finalized, missed, cancelled] } }
+        - { name: node_id, in: query, schema: { $ref: '#/components/schemas/NodeId' } }
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Leases (store Task / MiningJob)
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Lease' } } } } ] } } }
+  /v1/me/proofs:
+    get:
+      tags: [earnings]
+      operationId: listMyProofs
+      security: [ { session: [] } ]
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ProofStatus' } }
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: node_id, in: query, schema: { $ref: '#/components/schemas/NodeId' } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Proofs (a miner's vote in a round + outcome)
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Proof' } } } } ] } } }
+  /v1/me/proofs/stats:
+    get:
+      tags: [earnings]
+      operationId: getMyProofStats
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/Period' }, { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } } ]
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  submitted: { type: integer }
+                  verified: { type: integer }
+                  rejected: { type: integer }
+                  missed: { type: integer }
+                  success_bp: { type: integer }
+                  avg_finality_ms: { type: integer }
+                  rejection_reasons: { type: object, additionalProperties: { type: integer } }
+  /v1/proofs/{proof_id}:
+    get:
+      tags: [earnings]
+      operationId: getProof
+      parameters: [ { name: proof_id, in: path, required: true, schema: { $ref: '#/components/schemas/Hash' } } ]
+      responses:
+        '200':
+          description: Proof with the vote, the finality record and committee
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Proof' }
+                  - type: object
+                    properties:
+                      vote: { $ref: '#/components/schemas/TaskVote' }
+                      finality: { $ref: '#/components/schemas/FinalityRecord' }
+                      finality_validators: { type: array, items: { $ref: '#/components/schemas/NodeId' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/me/earnings:
+    get:
+      tags: [earnings]
+      operationId: getMyEarnings
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/Period' }, { name: group_by, in: query, schema: { type: string, enum: [project, device, day], default: project } } ]
+      responses:
+        '200':
+          description: Earnings breakdown (per reward token; amounts never summed across tokens)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period: { type: string }
+                  totals: { type: array, items: { $ref: '#/components/schemas/TokenBalance' } }
+                  units: { type: integer }
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string, description: 'project_id, node_id or YYYY-MM-DD' }
+                        units: { type: integer }
+                        amounts: { type: array, items: { $ref: '#/components/schemas/TokenBalance' } }
+  /v1/me/earnings/epochs:
+    get:
+      tags: [earnings]
+      operationId: listMyEpochPayouts
+      security: [ { session: [] } ]
+      parameters:
+        - { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }
+        - { name: claimed, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Per project-epoch payouts (store Payout)
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/EpochPayout' } } } } ] } } }
+  /v1/me/claims:
+    get:
+      tags: [earnings]
+      operationId: listClaimable
+      summary: Unclaimed, released epoch payouts with Merkle proofs (also works for any address via ?address=)
+      security: [ { session: [] }, {} ]
+      parameters: [ { name: address, in: query, schema: { $ref: '#/components/schemas/Address' } }, { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } } ]
+      responses:
+        '200': { description: Claims, content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Claim' } } } } } } }
+  /v1/me/withdrawals:
+    get:
+      tags: [earnings]
+      operationId: listMyWithdrawals
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Claim and collateral withdrawals (store Withdrawal)
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Withdrawal' } } } } ] } } }
+  /v1/me/withdrawals/claims:
+    post:
+      tags: [earnings]
+      operationId: claimRewards
+      summary: Relay claims for the session wallet (ProjectVault.claimMany; anyone may claim for a miner, funds always go to the miner)
+      security: [ { session: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_ids: { type: array, items: { $ref: '#/components/schemas/Hash' }, description: 'Default: all with claimable amounts' }
+      responses:
+        '202':
+          description: One withdrawal per vault
+          content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Withdrawal' } } } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ───────────────────────────── slashing ─────────────────────────────
+  /v1/me/slashes:
+    get:
+      tags: [slashing]
+      operationId: listMySlashes
+      security: [ { session: [] } ]
+      parameters: [ { name: status, in: query, schema: { $ref: '#/components/schemas/SlashStatus' } }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Slashes against the wallet's subscriptions
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/Slash' } } } } ] } } }
+  /v1/slashes:
+    post:
+      tags: [slashing]
+      operationId: submitEvidence
+      summary: Submit slashing evidence (PLATFORM.md §i.1); anyone may submit, the Hub verifies
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Evidence' } } } }
+      responses:
+        '201': { description: Recorded, content: { application/json: { schema: { $ref: '#/components/schemas/Slash' } } } }
+        '200': { description: Already known, content: { application/json: { schema: { $ref: '#/components/schemas/Slash' } } } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /v1/slashes/{evidence_hash}:
+    get:
+      tags: [slashing]
+      operationId: getSlash
+      parameters: [ { $ref: '#/components/parameters/EvidenceHash' } ]
+      responses:
+        '200':
+          description: Slash with full evidence
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Slash' }, { type: object, properties: { evidence: { $ref: '#/components/schemas/Evidence' } } } ] } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/slashes/{evidence_hash}/disputes:
+    post:
+      tags: [slashing]
+      operationId: disputeSlash
+      summary: Dispute before `executable_at` (owner of the subscription only)
+      security: [ { session: [] } ]
+      parameters: [ { $ref: '#/components/parameters/EvidenceHash' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, maxLength: 4000 }
+                links: { type: array, maxItems: 5, items: { type: string, format: uri } }
+      responses:
+        '201': { description: Filed, content: { application/json: { schema: { $ref: '#/components/schemas/Slash' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  # ───────────────────────────── faucet ─────────────────────────────
+  /v1/faucet:
+    get:
+      tags: [faucet]
+      operationId: getFaucet
+      security: [ { session: [] }, {} ]
+      responses:
+        '200': { description: Faucet terms and caller eligibility, content: { application/json: { schema: { $ref: '#/components/schemas/FaucetStatus' } } } }
+  /v1/faucet/drip:
+    post:
+      tags: [faucet]
+      operationId: faucetDrip
+      summary: Send testnet NECTA (and a little Sepolia ETH if available) to the session wallet
+      security: [ { session: [] } ]
+      responses:
+        '202':
+          description: Drip submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tx_hash, amount, next_eligible_at]
+                properties:
+                  tx_hash: { $ref: '#/components/schemas/Hash' }
+                  amount: { $ref: '#/components/schemas/Amount' }
+                  eth_tx_hash: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+                  eth_amount: { $ref: '#/components/schemas/Amount' }
+                  next_eligible_at: { $ref: '#/components/schemas/UnixTime' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  # ───────────────────────────── developers ─────────────────────────────
+  /v1/developers/{address}:
+    get:
+      tags: [developers]
+      operationId: getDeveloper
+      parameters: [ { $ref: '#/components/parameters/AddressPath' } ]
+      responses:
+        '200': { description: Public developer profile, content: { application/json: { schema: { $ref: '#/components/schemas/Developer' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/developers/me:
+    get:
+      tags: [developers]
+      operationId: getMyDeveloper
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: Developer record incl. enrollment and verification, content: { application/json: { schema: { $ref: '#/components/schemas/Developer' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [developers]
+      operationId: putMyDeveloperProfile
+      security: [ { session: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperProfileInput' } } } }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/Developer' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /v1/developers/me/enrollment:
+    post:
+      tags: [developers]
+      operationId: submitEnrollment
+      summary: 'Submit enrollment (operator-reviewed on testnet); `draft: true` only saves'
+      security: [ { session: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [developer_type, display_name, agreements_accepted]
+              properties:
+                draft: { type: boolean, default: false }
+                developer_type: { type: string, enum: [individual, organization] }
+                display_name: { type: string, maxLength: 64 }
+                email: { type: string, format: email }
+                website: { type: string, format: uri }
+                reason: { type: string, maxLength: 2000 }
+                agreements_accepted: { type: boolean, const: true }
+      responses:
+        '200': { description: Saved / submitted, content: { application/json: { schema: { $ref: '#/components/schemas/Developer' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/developers/me/verification:
+    post:
+      tags: [developers]
+      operationId: requestVerification
+      security: [ { session: [] } ]
+      requestBody: { required: false, content: { application/json: { schema: { type: object, properties: { notes: { type: string, maxLength: 2000 } } } } } }
+      responses:
+        '200': { description: Requested, content: { application/json: { schema: { $ref: '#/components/schemas/Developer' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /v1/developers/me/drafts:
+    get:
+      tags: [developers]
+      operationId: listDrafts
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: Drafts, content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Draft' } } } } } } }
+    post:
+      tags: [developers]
+      operationId: createDraft
+      security: [ { session: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DraftInput' } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Draft' } } } }
+  /v1/developers/me/drafts/{draft_id}:
+    get:
+      tags: [developers]
+      operationId: getDraft
+      security: [ { session: [] } ]
+      parameters: [ { name: draft_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Draft, content: { application/json: { schema: { $ref: '#/components/schemas/Draft' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [developers]
+      operationId: saveDraft
+      security: [ { session: [] } ]
+      parameters: [ { name: draft_id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DraftInput' } } } }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/Draft' } } } }
+        '413': { $ref: '#/components/responses/TooLarge' }
+    delete:
+      tags: [developers]
+      operationId: deleteDraft
+      security: [ { session: [] } ]
+      parameters: [ { name: draft_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+  /v1/developers/assets:
+    post:
+      tags: [developers]
+      operationId: uploadAsset
+      summary: Upload a listing image (PNG/JPEG/WebP, ≤ 2 MiB, ≤ 4096×4096); served at /v1/assets/{sha256}
+      security: [ { session: [] }, { apiKey: [projects:write] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_type, data_b64]
+              properties:
+                content_type: { type: string, enum: [image/png, image/jpeg, image/webp] }
+                data_b64: { type: string }
+      responses:
+        '201': { description: Stored, content: { application/json: { schema: { type: object, required: [sha256, url], properties: { sha256: { type: string }, url: { type: string, format: uri } } } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+  /v1/developers/me/projects:
+    get:
+      tags: [developers]
+      operationId: listMyProjects
+      security: [ { session: [] }, { apiKey: [projects:read] } ]
+      responses:
+        '200': { description: All statuses, content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/ProjectSummary' } } } } } } }
+  /v1/developers/projects/prepare:
+    post:
+      tags: [developers]
+      operationId: prepareManifest
+      summary: Validate an unsigned manifest; returns the exact bytes to sign and derived ids
+      security: [ { session: [] }, { apiKey: [projects:write] } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [manifest], properties: { manifest: { $ref: '#/components/schemas/Manifest' } } } } } }
+      responses:
+        '200':
+          description: Valid (or list of problems)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [valid, problems]
+                properties:
+                  valid: { type: boolean }
+                  problems: { type: array, items: { type: object, required: [path, code, message], properties: { path: { type: string }, code: { type: string }, message: { type: string } } } }
+                  canonical: { type: string, description: 'UTF-8 canonical JSON to pass to personal_sign' }
+                  manifest_hash: { $ref: '#/components/schemas/Hash' }
+                  consensus_hash: { $ref: '#/components/schemas/Hash' }
+                  project_id: { $ref: '#/components/schemas/Hash' }
+                  vault: { $ref: '#/components/schemas/Address' }
+                  tier_changes: { type: array, items: { type: string, enum: [consensus, scheduling, listing] } }
+  /v1/developers/projects:
+    post:
+      tags: [developers]
+      operationId: publishProject
+      summary: Submit a signed version-1 manifest; returns the ProjectRegistry.register transaction to send
+      description: Requires an `active` enrollment and `verified` developer. After the tx confirms the Hub indexes
+        `ProjectRegistered` and the project moves to `pending_review`.
+      security: [ { session: [] }, { apiKey: [projects:write] } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SignedManifest' } } } }
+      responses:
+        '201':
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project, register_tx]
+                properties:
+                  project: { $ref: '#/components/schemas/Project' }
+                  register_tx: { $ref: '#/components/schemas/TxRequest' }
+                  register_by_sig: { $ref: '#/components/schemas/GaslessPayload' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+  /v1/developers/projects/{project_id}/versions:
+    post:
+      tags: [developers]
+      operationId: publishVersion
+      summary: Submit a signed version n > 1. Consensus changes return a publishVersion transaction; listing/scheduling-only changes apply at once.
+      security: [ { session: [] }, { apiKey: [projects:write] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SignedManifest' } } } }
+      responses:
+        '201':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version]
+                properties:
+                  version: { $ref: '#/components/schemas/ProjectVersion' }
+                  publish_tx: { oneOf: [ { $ref: '#/components/schemas/TxRequest' }, { type: 'null' } ] }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+  /v1/developers/projects/{project_id}/analytics:
+    get:
+      tags: [developers]
+      operationId: getProjectAnalytics
+      security: [ { session: [] }, { apiKey: [analytics:read] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Period' } ]
+      responses:
+        '200': { description: Analytics (store DeveloperAnalytics), content: { application/json: { schema: { $ref: '#/components/schemas/ProjectAnalytics' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/developers/projects/{project_id}/health:
+    get:
+      tags: [developers]
+      operationId: getProjectHealth
+      security: [ { session: [] }, { apiKey: [analytics:read] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      responses:
+        '200':
+          description: Health signals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [healthy, degraded, underfunded, paused, fallback] }
+                  eligible_miners: { type: integer }
+                  committee_size: { type: integer }
+                  fallback_rounds_24h: { type: integer }
+                  contested_rounds_24h: { type: integer }
+                  median_finality_ms: { type: integer }
+                  runway_epochs: { type: integer }
+                  issues: { type: array, items: { type: string } }
+  /v1/developers/projects/{project_id}/revenue:
+    get:
+      tags: [developers]
+      operationId: getProjectRevenue
+      security: [ { session: [] }, { apiKey: [analytics:read] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Period' } ]
+      responses:
+        '200':
+          description: Per-epoch gross/miner/developer/treasury totals
+          content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/EpochSummary' } }, totals: { $ref: '#/components/schemas/EpochTotals' } } } } }
+  /v1/developers/projects/{project_id}/proofs:
+    get:
+      tags: [developers]
+      operationId: getProjectProofMonitoring
+      security: [ { session: [] }, { apiKey: [analytics:read] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200':
+          description: Recent rounds with committee outcome
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/Page' }, { properties: { items: { type: array, items: { $ref: '#/components/schemas/RoundSummary' } } } } ] } } }
+  /v1/developers/projects/{project_id}/announcements:
+    post:
+      tags: [developers]
+      operationId: createAnnouncement
+      security: [ { session: [] }, { apiKey: [projects:write] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content, type]
+              properties:
+                title: { type: string, maxLength: 120 }
+                content: { type: string, maxLength: 8000 }
+                type: { type: string, enum: [update, maintenance, feature, alert] }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Announcement' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/developers/projects/{project_id}/announcements/{announcement_id}:
+    delete:
+      tags: [developers]
+      operationId: deleteAnnouncement
+      security: [ { session: [] }, { apiKey: [projects:write] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { name: announcement_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/developers/projects/{project_id}/simulations:
+    get:
+      tags: [developers]
+      operationId: listSimulations
+      security: [ { session: [] }, { apiKey: [projects:read] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      responses:
+        '200': { description: Runs, content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/Simulation' } } } } } } }
+    post:
+      tags: [developers]
+      operationId: runSimulation
+      summary: Run up to 10 sample tasks through validator rounds (works before listing; uses the draft or current manifest)
+      security: [ { session: [] }, { apiKey: [projects:write] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tasks]
+              properties:
+                tasks:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  items: { type: object, required: [function, input], properties: { function: { type: string }, input: {}, gas_limit: { type: integer } } }
+      responses:
+        '202': { description: Started, content: { application/json: { schema: { $ref: '#/components/schemas/Simulation' } } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /v1/developers/projects/{project_id}/simulations/{simulation_id}:
+    get:
+      tags: [developers]
+      operationId: getSimulation
+      security: [ { session: [] }, { apiKey: [projects:read] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { name: simulation_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: Run, content: { application/json: { schema: { $ref: '#/components/schemas/Simulation' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/developers/api-keys:
+    get:
+      tags: [developers]
+      operationId: listApiKeys
+      security: [ { session: [] } ]
+      responses:
+        '200': { description: Keys (secrets never returned again), content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/ApiKey' } } } } } } }
+    post:
+      tags: [developers]
+      operationId: createApiKey
+      security: [ { session: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes]
+              properties:
+                name: { type: string, maxLength: 64 }
+                scopes: { type: array, items: { $ref: '#/components/schemas/ApiScope' } }
+                project_ids: { type: array, items: { $ref: '#/components/schemas/Hash' }, description: 'Restrict to these projects (default: all of the developer)' }
+                expires_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+      responses:
+        '201':
+          description: Created; `secret` is shown once
+          content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/ApiKey' }, { type: object, required: [secret], properties: { secret: { type: string, examples: ['nk_test_ab12cd34_…'] } } } ] } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /v1/developers/api-keys/{key_id}:
+    delete:
+      tags: [developers]
+      operationId: revokeApiKey
+      security: [ { session: [] } ]
+      parameters: [ { name: key_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Revoked }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────────── nodes (new, node-signed) ─────────────────────────────
+  /v1/nodes/epoch-receipts:
+    post:
+      tags: [nodes]
+      operationId: submitEpochReceipt
+      summary: Attested reward receipt v2 (PLATFORM.md §h.5); v1 stays on POST /api/receipt
+      security: [ { nodeSig: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RewardReceiptV2' } } } }
+      responses:
+        '202':
+          description: Queued for settlement
+          content: { application/json: { schema: { type: object, properties: { status: { type: string, const: queued }, receipt_hash: { $ref: '#/components/schemas/Hash' }, attestations_counted: { type: integer }, quorum: { type: integer } } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: Insufficient quorum or unapproved node, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: 'Duplicate (project_id, round) — `{"status": "duplicate"}` settles it', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+  /v1/nodes/committee-sets/{project_id}/{epoch}:
+    get:
+      tags: [nodes]
+      operationId: getPendingSnapshot
+      summary: Unattested snapshot for validators to check and sign (they return signatures via POST /consensus/committee-sets on their own API; this is the pull alternative)
+      security: [ { nodeSig: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Epoch' } ]
+      responses:
+        '200': { description: Snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/Snapshot' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [nodes]
+      operationId: postSnapshotAttestation
+      security: [ { nodeSig: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Epoch' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Attestation' } } } }
+      responses:
+        '200': { description: Counted, content: { application/json: { schema: { $ref: '#/components/schemas/AttestedSnapshot' } } } }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  # ───────────────────────────── node-legacy (PROTOCOL.md, unchanged) ─────────────────────────────
+  /api/nodes/register:
+    post: { tags: [node-legacy], operationId: legacyNodeRegister, summary: 'PROTOCOL.md § Node identity / registration', security: [ { nodeSig: [] } ], responses: { '200': { description: Approved }, '202': { description: Pending } } }
+  /api/nodes/heartbeat:
+    post: { tags: [node-legacy], operationId: legacyNodeHeartbeat, security: [ { nodeSig: [] } ], responses: { '200': { description: OK } } }
+  /api/validators:
+    get: { tags: [node-legacy], operationId: legacyValidators, summary: 'PROTOCOL.md § Validator set', security: [ { nodeSig: [] } ], responses: { '200': { description: Set } } }
+  /api/receipts:
+    post: { tags: [node-legacy], operationId: legacyExecutionReceipt, summary: 'PROTOCOL.md § Execution receipt', security: [ { nodeSig: [] } ], responses: { '200': { description: Ingested } } }
+  /api/receipt:
+    post: { tags: [node-legacy], operationId: legacyRewardReceipt, summary: 'PROTOCOL.md § Reward receipt (v1)', security: [ { nodeSig: [] } ], responses: { '202': { description: Queued }, '409': { description: Duplicate } } }
+  /api/vaults/{module_address}:
+    get: { tags: [node-legacy], operationId: legacyVault, parameters: [ { name: module_address, in: path, required: true, schema: { type: string } } ], responses: { '200': { description: Vault }, '404': { description: No active vault } } }
+  /api/modules/{address}/hbc:
+    get: { tags: [node-legacy], operationId: legacyModuleHbc, security: [ { nodeSig: [] } ], parameters: [ { name: address, in: path, required: true, schema: { type: string } } ], responses: { '200': { description: 'application/octet-stream' } } }
+  /api/chains:
+    get: { tags: [node-legacy], operationId: legacyChains, responses: { '200': { description: Chains } } }
+  /api/execute:
+    post: { tags: [node-legacy], operationId: legacyExecute, summary: 'Alias of POST /v1/execute', responses: { '200': { description: Result } } }
+
+  # ───────────────────────────── admin (gateway host only) ─────────────────────────────
+  /admin/v1/projects/{project_id}/review:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    post:
+      tags: [admin]
+      operationId: adminReviewProject
+      summary: Listing decision; the Hub sends ProjectRegistry.setListingStatus with REVIEWER_ROLE
+      security: [ { operator: [] } ]
+      parameters: [ { $ref: '#/components/parameters/ProjectId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [approve, reject, pause, resume, delist] }
+                reason: { type: string, maxLength: 2000 }
+                conditions: { type: array, items: { type: string } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/v1/review-queue:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    get:
+      tags: [admin]
+      operationId: adminReviewQueue
+      security: [ { operator: [] } ]
+      responses:
+        '200': { description: 'Projects pending review, enrollments, verifications, reports, disputes', content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /admin/v1/developers/{address}/enrollment:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    post:
+      tags: [admin]
+      operationId: adminReviewEnrollment
+      security: [ { operator: [] } ]
+      parameters: [ { $ref: '#/components/parameters/AddressPath' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { type: string, enum: [active, rejected] }, notes: { type: string } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Developer' } } } }
+  /admin/v1/developers/{address}/verification:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    post:
+      tags: [admin]
+      operationId: adminReviewVerification
+      security: [ { operator: [] } ]
+      parameters: [ { $ref: '#/components/parameters/AddressPath' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { type: string, enum: [verified, rejected] }, notes: { type: string } } } } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Developer' } } } }
+  /admin/v1/collections/{collection_id}:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    put:
+      tags: [admin]
+      operationId: adminPutCollection
+      security: [ { operator: [] } ]
+      parameters: [ { name: collection_id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Collection' } } } }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/Collection' } } } }
+    delete:
+      tags: [admin]
+      operationId: adminDeleteCollection
+      security: [ { operator: [] } ]
+      parameters: [ { name: collection_id, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Deleted }
+  /admin/v1/reports:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    get:
+      tags: [admin]
+      operationId: adminListReports
+      security: [ { operator: [] } ]
+      parameters: [ { name: project_id, in: query, schema: { $ref: '#/components/schemas/Hash' } }, { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Cursor' } ]
+      responses:
+        '200': { description: Reports, content: { application/json: { schema: { $ref: '#/components/schemas/Page' } } } }
+  /admin/v1/slashes/{evidence_hash}/resolve:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    post:
+      tags: [admin]
+      operationId: adminResolveDispute
+      summary: ARBITER decision; `cancel` calls Staking.cancelSlash
+      security: [ { operator: [] } ]
+      parameters: [ { $ref: '#/components/parameters/EvidenceHash' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [cancel, uphold] }, notes: { type: string } } } } } }
+      responses:
+        '200': { description: Resolved, content: { application/json: { schema: { $ref: '#/components/schemas/Slash' } } } }
+  /admin/v1/nodes:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    get:
+      tags: [admin]
+      operationId: adminListNodes
+      summary: Validator/node registry (existing /api/nodes)
+      security: [ { operator: [] } ]
+      responses:
+        '200': { description: Nodes, content: { application/json: { schema: { type: array, items: { type: object, additionalProperties: true } } } } }
+  /admin/v1/nodes/{node_id}/{action}:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    post:
+      tags: [admin]
+      operationId: adminNodeAction
+      security: [ { operator: [] } ]
+      parameters:
+        - { $ref: '#/components/parameters/NodeIdPath' }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [approve, revoke, validator, unvalidator, activate, deactivate] } }
+      responses:
+        '200': { description: Updated }
+  /admin/v1/devices/{node_id}/ban:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    post:
+      tags: [admin]
+      operationId: adminBanDevice
+      summary: Ban a miner node key from the relay (close 4003)
+      security: [ { operator: [] } ]
+      parameters: [ { $ref: '#/components/parameters/NodeIdPath' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [banned], properties: { banned: { type: boolean }, reason: { type: string } } } } } }
+      responses:
+        '200': { description: Updated }
+  /admin/v1/faucet:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    put:
+      tags: [admin]
+      operationId: adminFaucetConfig
+      security: [ { operator: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { enabled: { type: boolean }, amount: { $ref: '#/components/schemas/Amount' }, eth_amount: { $ref: '#/components/schemas/Amount' }, cooldown_secs: { type: integer } } } } } }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/FaucetStatus' } } } }
+  /admin/v1/relayer:
+    servers: [ { url: https://gateway.testnet.necter.network } ]
+    get:
+      tags: [admin]
+      operationId: adminRelayerStatus
+      summary: Relayer wallets, nonces, pending settlements/slashes/gasless txs, retry controls
+      security: [ { operator: [] } ]
+      responses:
+        '200': { description: Status, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+
+components:
+  securitySchemes:
+    session:
+      type: http
+      scheme: bearer
+      bearerFormat: 'nsess_<43 char base64url>'
+      description: SIWE session token (POST /v1/auth/siwe), 12 h, revocable.
+    apiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: 'nk_test_<8>_<43>'
+      description: Developer API key; scopes in ApiScope. Stored as SHA-256 on the Hub.
+    nodeSig:
+      type: apiKey
+      in: header
+      name: X-Ndsr-Signature
+      description: PROTOCOL.md node request signing; also requires X-Ndsr-Node, X-Ndsr-Public-Key, X-Ndsr-Timestamp, X-Ndsr-Nonce.
+    operator:
+      type: http
+      scheme: bearer
+      description: Operator session on gateway.testnet.necter.network only.
+
+  headers:
+    RateLimit-Limit: { schema: { type: integer } }
+    RateLimit-Remaining: { schema: { type: integer } }
+    RateLimit-Reset: { schema: { type: integer }, description: Seconds until the window resets }
+    Retry-After: { schema: { type: integer } }
+
+  parameters:
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+    Period: { name: period, in: query, schema: { type: string, enum: [24h, 7d, 30d, all], default: 7d } }
+    ProjectId: { name: project_id, in: path, required: true, schema: { $ref: '#/components/schemas/Hash' } }
+    Epoch: { name: epoch, in: path, required: true, schema: { type: integer, minimum: 0 } }
+    RoundId: { name: round_id, in: path, required: true, schema: { type: string, pattern: '^(exec|task):0x[0-9a-f]{64}$|^(reward|epoch):0x[0-9a-f]{64}:[0-9]+:[0-9]+$' } }
+    ModuleAddress: { name: address, in: path, required: true, schema: { $ref: '#/components/schemas/Hash' } }
+    AddressPath: { name: address, in: path, required: true, schema: { $ref: '#/components/schemas/Address' } }
+    NodeIdPath: { name: node_id, in: path, required: true, schema: { $ref: '#/components/schemas/NodeId' } }
+    SubscriptionId: { name: subscription_id, in: path, required: true, schema: { $ref: '#/components/schemas/Hash' } }
+    EvidenceHash: { name: evidence_hash, in: path, required: true, schema: { $ref: '#/components/schemas/Hash' } }
+
+  responses:
+    BadRequest: { description: 'Malformed request (`bad_request`, `invalid_field`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized: { description: 'Missing/invalid credentials (`unauthorized`, `session_expired`, `bad_signature`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: 'Authenticated but not allowed (`forbidden`, `not_owner`, `not_enrolled`, `not_verified`, `scope_missing`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: '`not_found`', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: '`conflict`, `duplicate`, `already_exists`, `invalid_state`', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unprocessable: { description: 'Semantically invalid (`invalid_manifest`, `invalid_binding`, `invalid_evidence`, `incompatible`, `insufficient_collateral`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    TooLarge: { description: '`too_large`', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    RateLimited:
+      description: '`rate_limited`'
+      headers: { Retry-After: { $ref: '#/components/headers/Retry-After' } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unavailable: { description: '`unavailable`, `no_validators`, `faucet_empty`', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  schemas:
+    # ── primitives ──
+    Address: { type: string, pattern: '^0x[0-9a-f]{40}$', description: Lowercase EVM address }
+    Hash: { type: string, pattern: '^0x[0-9a-f]{64}$' }
+    Amount: { type: string, pattern: '^(0|[1-9][0-9]{0,77})$', description: Token base units }
+    UnixTime: { type: integer, minimum: 0 }
+    NodeId: { type: string, pattern: '^ndsr-[0-9a-f]{16}$' }
+    Ed25519PublicKey: { type: string, pattern: '^0x[0-9a-f]{64}$' }
+    Ed25519Signature: { type: string, pattern: '^0x[0-9a-f]{128}$' }
+    EvmSignature: { type: string, pattern: '^0x[0-9a-f]{130}$' }
+    Category: { type: string, enum: [blockchain, depin, machine-learning, storage, compute, bandwidth, data-sovereignty, iot, hardware-staking, content-delivery] }
+    DeviceClass: { type: string, enum: [phone, tablet, laptop, desktop, server] }
+    Platform: { type: string, enum: [android, ios, macos, windows, linux] }
+    Engine: { type: string, enum: [native, pulley64, pulley32] }
+    DeviceStatus: { type: string, enum: [online, idle, offline, faulty, banned] }
+    ListingStatus: { type: string, enum: [draft, submitted, pending_review, listed, paused, underfunded, rejected, delisted] }
+    SubscriptionStatus: { type: string, enum: [pending_collateral, active, paused, jailed, unbonding, withdrawable, closed] }
+    ProofStatus: { type: string, enum: [pending, verified, rejected, missed] }
+    SlashStatus: { type: string, enum: [recorded, proposed, disputed, cancelled, executed] }
+    ApiScope: { type: string, enum: [tasks:submit, projects:read, projects:write, modules:write, analytics:read] }
+
+    Page:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items: { type: array }
+        next_cursor: { type: [string, 'null'] }
+
+    Error:
+      type: object
+      required: [error, message, request_id]
+      properties:
+        error: { type: string, description: Stable machine code }
+        message: { type: string }
+        details: { type: object, additionalProperties: true }
+        request_id: { type: string }
+
+    # ── network ──
+    NetworkDescriptor:
+      type: object
+      required: [network, protocol, api, runtime, chain, hosts, endpoints, validators, params_hash, versions, features, status, time]
+      properties:
+        network: { type: string, examples: [necter-testnet] }
+        protocol: { type: string, const: necter/1 }
+        api: { type: string, const: v1 }
+        runtime: { type: string, const: hive-wasm-v1 }
+        chain:
+          type: object
+          required: [id, name, registry, token, contracts]
+          properties:
+            id: { type: integer, examples: [11155111] }
+            name: { type: string }
+            registry: { $ref: '#/components/schemas/Address' }
+            token: { $ref: '#/components/schemas/Address' }
+            contracts:
+              type: object
+              properties:
+                necta: { $ref: '#/components/schemas/Address' }
+                faucet: { $ref: '#/components/schemas/Address' }
+                project_registry: { $ref: '#/components/schemas/Address' }
+                vault_factory: { $ref: '#/components/schemas/Address' }
+                staking: { $ref: '#/components/schemas/Address' }
+                treasury: { $ref: '#/components/schemas/Address' }
+            explorer: { type: string, format: uri }
+        hosts:
+          type: object
+          properties: { store: { type: string, format: uri }, rpc: { type: string, format: uri }, relay: { type: string } }
+        endpoints: { type: object, additionalProperties: { type: string } }
+        validators: { type: object, properties: { count: { type: integer }, quorum: { type: integer } } }
+        params_hash: { $ref: '#/components/schemas/Hash' }
+        versions:
+          type: object
+          properties: { hub: { type: string }, ndsr_min: { type: string }, miner_min: { type: string }, miner_latest: { type: string } }
+        features: { type: object, additionalProperties: { type: boolean } }
+        status: { type: string, enum: [ok, degraded, maintenance] }
+        time: { $ref: '#/components/schemas/UnixTime' }
+
+    Status:
+      type: object
+      required: [status, time]
+      properties:
+        status: { type: string, enum: [ok, degraded, maintenance] }
+        time: { $ref: '#/components/schemas/UnixTime' }
+        hub_version: { type: string }
+        validators: { type: array, items: { allOf: [ { $ref: '#/components/schemas/Validator' }, { type: object, properties: { reachable: { type: boolean }, capabilities: { type: object, additionalProperties: true } } } ] } }
+        chain: { type: object, properties: { indexed_block: { type: integer }, head_block: { type: integer }, lag_secs: { type: integer } } }
+        relay: { type: object, properties: { connected_devices: { type: integer }, available_slots: { type: integer } } }
+        committees_enabled: { type: boolean }
+
+    NetworkParams:
+      type: object
+      required: [params, params_hash]
+      properties:
+        params:
+          type: object
+          description: PLATFORM.md §0.1 (all keys present; amounts as strings)
+          additionalProperties: true
+        params_hash: { $ref: '#/components/schemas/Hash' }
+
+    Validator:
+      type: object
+      required: [node_id, public_key]
+      properties:
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+        url: { type: [string, 'null'] }
+        region: { type: [string, 'null'] }
+
+    Token:
+      type: object
+      required: [address, symbol, decimals]
+      properties:
+        address: { $ref: '#/components/schemas/Address' }
+        symbol: { type: string }
+        name: { type: string }
+        decimals: { type: integer, minimum: 0, maximum: 36 }
+
+    TokenBalance:
+      type: object
+      required: [token, amount]
+      properties:
+        token: { $ref: '#/components/schemas/Token' }
+        amount: { $ref: '#/components/schemas/Amount' }
+
+    Collection:
+      type: object
+      required: [id, kind, title, project_ids]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [editors_picks, dao_curated] }
+        title: { type: string }
+        description: { type: [string, 'null'] }
+        project_ids: { type: array, items: { $ref: '#/components/schemas/Hash' } }
+        updated_at: { $ref: '#/components/schemas/UnixTime' }
+
+    BenchmarkSuite:
+      type: object
+      required: [suite, cases]
+      properties:
+        suite: { type: string, examples: [bench-v1] }
+        cases:
+          type: array
+          items:
+            type: object
+            required: [name, module_address, function, input, gas_limit, receipt_hash]
+            properties:
+              name: { type: string }
+              module_address: { $ref: '#/components/schemas/Hash' }
+              function: { type: string }
+              input: { type: string }
+              gas_limit: { type: integer }
+              receipt_hash: { $ref: '#/components/schemas/Hash' }
+
+    BenchmarkResult:
+      type: object
+      required: [suite, ran_at, engine, cases, mgas_per_s, score]
+      properties:
+        suite: { type: string }
+        ran_at: { $ref: '#/components/schemas/UnixTime' }
+        engine: { $ref: '#/components/schemas/Engine' }
+        cases:
+          type: array
+          items:
+            type: object
+            required: [name, receipt_hash, gas_used, elapsed_us]
+            properties:
+              name: { type: string }
+              receipt_hash: { $ref: '#/components/schemas/Hash' }
+              gas_used: { type: integer }
+              elapsed_us: { type: integer }
+        mgas_per_s: { type: array, items: { type: integer } }
+        score: { type: integer }
+
+    Beacon:
+      type: object
+      required: [epoch_secs, epoch, target_time, block_number, block_hash, value]
+      properties:
+        epoch_secs: { type: integer }
+        epoch: { type: integer }
+        target_time: { $ref: '#/components/schemas/UnixTime' }
+        block_number: { type: integer }
+        block_hash: { $ref: '#/components/schemas/Hash' }
+        value: { $ref: '#/components/schemas/Hash' }
+
+    Event:
+      type: object
+      required: [id, type, created_at]
+      properties:
+        id: { type: string }
+        type:
+          type: string
+          description: |
+            Dotted names. Network: `module.event`, `round.finalized`, `round.escalated`, `epoch.settled`,
+            `project.listed`, `project.paused`, `project.delisted`, `project.version_activated`, `slash.executed`.
+            Account: `device.bound`, `device.unbound`, `device.online`, `device.offline`, `subscription.created`,
+            `subscription.active`, `subscription.paused`, `subscription.resumed`, `subscription.jailed`,
+            `subscription.unbonding`, `lease.offered`, `lease.missed`, `proof.verified`, `proof.rejected`,
+            `slash.proposed`, `slash.disputed`, `slash.cancelled`, `payout.claimable`, `withdrawal.completed`,
+            `developer.enrollment_approved`, `developer.enrollment_rejected`, `developer.verified`,
+            `listing.approved`, `listing.rejected`, `faucet.dripped`.
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        module: { $ref: '#/components/schemas/Hash' }
+        address: { $ref: '#/components/schemas/Address' }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        subscription_id: { $ref: '#/components/schemas/Hash' }
+        round_id: { type: string }
+        tx_hash: { $ref: '#/components/schemas/Hash' }
+        message: { type: string }
+        data: { description: Event-specific JSON }
+
+    Notification:
+      allOf:
+        - { $ref: '#/components/schemas/Event' }
+        - type: object
+          properties:
+            read: { type: boolean }
+            severity: { type: string, enum: [info, warning, critical] }
+
+    # ── rounds / receipts ──
+    RoundSummary:
+      type: object
+      required: [round_id, kind, state, created_at]
+      properties:
+        round_id: { type: string }
+        kind: { type: string, enum: [exec, task, reward, epoch] }
+        state: { type: string, enum: [pending, committee_agreed, finalized, escalated, failed, fallback] }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        module_address: { $ref: '#/components/schemas/Hash' }
+        function: { type: string }
+        epoch: { type: integer }
+        seq: { type: integer }
+        receipt_hash: { $ref: '#/components/schemas/Hash' }
+        gas_used: { type: integer }
+        committee_size: { type: integer }
+        votes: { type: integer }
+        agreeing: { type: integer }
+        audited: { type: boolean }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+        finalized_at: { $ref: '#/components/schemas/UnixTime' }
+
+    Round:
+      allOf:
+        - { $ref: '#/components/schemas/RoundSummary' }
+        - type: object
+          properties:
+            task: { $ref: '#/components/schemas/TaskContext' }
+            committee: { $ref: '#/components/schemas/Committee' }
+            votes_detail: { type: array, items: { $ref: '#/components/schemas/TaskVote' } }
+            finality: { $ref: '#/components/schemas/FinalityRecord' }
+            finality_votes: { type: array, items: { type: object, additionalProperties: true } }
+            exec_votes: { type: array, items: { type: object, additionalProperties: true }, description: 'exec: rounds — PROTOCOL.md votes' }
+
+    TaskContext:
+      type: object
+      description: PLATFORM.md §g.1
+      required: [v, project_id, consensus_hash, epoch, seq, set_hash, module_address, function, input_hash, gas_limit, issued_at]
+      additionalProperties: false
+      properties:
+        v: { type: integer, const: 1 }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        consensus_hash: { $ref: '#/components/schemas/Hash' }
+        epoch: { type: integer }
+        seq: { type: integer }
+        set_hash: { $ref: '#/components/schemas/Hash' }
+        module_address: { $ref: '#/components/schemas/Hash' }
+        function: { type: string }
+        input_hash: { $ref: '#/components/schemas/Hash' }
+        gas_limit: { type: integer }
+        issued_at: { $ref: '#/components/schemas/UnixTime' }
+
+    TaskVote:
+      type: object
+      description: PLATFORM.md §g.2
+      required: [round_id, kind, receipt_hash, node_id, public_key, signature, payout_address, round_signature, task, receipt, committee]
+      properties:
+        round_id: { type: string }
+        kind: { type: string, const: task }
+        receipt_hash: { $ref: '#/components/schemas/Hash' }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+        signature: { $ref: '#/components/schemas/Ed25519Signature' }
+        payout_address: { $ref: '#/components/schemas/Address' }
+        round_signature: { $ref: '#/components/schemas/Ed25519Signature' }
+        task: { $ref: '#/components/schemas/TaskContext' }
+        receipt:
+          type: object
+          required: [v, module_address, function, input_hash, output_hash, events_hash, gas_used, success]
+          properties:
+            v: { type: integer, const: 1 }
+            module_address: { $ref: '#/components/schemas/Hash' }
+            function: { type: string }
+            input_hash: { $ref: '#/components/schemas/Hash' }
+            output_hash: { $ref: '#/components/schemas/Hash' }
+            events_hash: { $ref: '#/components/schemas/Hash' }
+            gas_used: { type: integer }
+            success: { type: boolean }
+        committee: { type: object, required: [position], properties: { position: { type: integer, minimum: 0 } } }
+
+    FinalityRecord:
+      type: object
+      description: PLATFORM.md §g.4
+      required: [v, round_id, project_id, epoch, set_hash, receipt_hash, gas_used, audited, voters]
+      properties:
+        v: { type: integer, const: 1 }
+        round_id: { type: string }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        epoch: { type: integer }
+        set_hash: { $ref: '#/components/schemas/Hash' }
+        receipt_hash: { $ref: '#/components/schemas/Hash' }
+        gas_used: { type: integer }
+        audited: { type: boolean }
+        voters:
+          type: array
+          items: { type: object, required: [public_key, payout_address], properties: { public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }, payout_address: { $ref: '#/components/schemas/Address' } } }
+
+    Settlement:
+      type: object
+      properties:
+        status: { type: string, enum: [queued, signed, sent, settled, released, vetoed, reverted, failed] }
+        tx_hash: { $ref: '#/components/schemas/Hash' }
+        block_number: { type: integer }
+        claimable_at: { $ref: '#/components/schemas/UnixTime' }
+        error: { type: [string, 'null'] }
+
+    EpochTotals:
+      type: object
+      required: [units, gross, miner, developer, treasury]
+      properties:
+        units: { type: integer }
+        gross: { $ref: '#/components/schemas/Amount' }
+        miner: { $ref: '#/components/schemas/Amount' }
+        developer: { $ref: '#/components/schemas/Amount' }
+        treasury: { $ref: '#/components/schemas/Amount' }
+
+    EpochSummary:
+      type: object
+      required: [project_id, epoch, status]
+      properties:
+        project_id: { $ref: '#/components/schemas/Hash' }
+        epoch: { type: integer }
+        epoch_secs: { type: integer }
+        starts_at: { $ref: '#/components/schemas/UnixTime' }
+        ends_at: { $ref: '#/components/schemas/UnixTime' }
+        status: { type: string, enum: [open, closed, attested, submitted, settled, released, vetoed, underfunded] }
+        rounds: { type: integer }
+        fallback_rounds: { type: integer }
+        miners: { type: integer }
+        token: { $ref: '#/components/schemas/Token' }
+        totals: { $ref: '#/components/schemas/EpochTotals' }
+        receipt_hash: { $ref: '#/components/schemas/Hash' }
+        merkle_root: { $ref: '#/components/schemas/Hash' }
+        settlement: { $ref: '#/components/schemas/Settlement' }
+
+    RewardReceiptV2:
+      type: object
+      description: PLATFORM.md §h.4
+      required: [v, chain_id, vault_address, project_id, consensus_hash, round, epoch_secs, reward_token, reward_model, compute_units, totals, merkle_root, receipt_hash, attestations]
+      properties:
+        v: { type: integer, const: 2 }
+        chain_id: { type: integer }
+        vault_address: { $ref: '#/components/schemas/Address' }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        consensus_hash: { $ref: '#/components/schemas/Hash' }
+        round: { type: integer }
+        epoch_secs: { type: integer }
+        reward_token: { $ref: '#/components/schemas/Address' }
+        reward_model: { type: string, enum: [per-unit, epoch-pool] }
+        compute_units:
+          type: array
+          items:
+            type: object
+            required: [miner, units, amount]
+            properties: { miner: { $ref: '#/components/schemas/Address' }, units: { type: integer, minimum: 1 }, amount: { $ref: '#/components/schemas/Amount' } }
+        totals: { $ref: '#/components/schemas/EpochTotals' }
+        merkle_root: { $ref: '#/components/schemas/Hash' }
+        receipt_hash: { $ref: '#/components/schemas/Hash' }
+        attestations: { type: array, items: { $ref: '#/components/schemas/Attestation' } }
+
+    Attestation:
+      type: object
+      required: [node_id, public_key, signature]
+      properties:
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+        signature: { $ref: '#/components/schemas/Ed25519Signature' }
+
+    # ── modules / execute ──
+    Module:
+      type: object
+      required: [manifest_address, name, language, functions, hbc_size, deployed_at]
+      properties:
+        manifest_address: { $ref: '#/components/schemas/Hash' }
+        name: { type: string }
+        language: { type: string }
+        functions: { type: array, items: { type: string } }
+        manifest: { type: object, additionalProperties: true, description: HBC manifest }
+        hbc_size: { type: integer }
+        stateless: { type: boolean, description: 'No storage.* / hive.call imports (eligible as committee worker)' }
+        uploader: { oneOf: [ { $ref: '#/components/schemas/Address' }, { type: 'null' } ] }
+        exec_count: { type: integer }
+        deployed_at: { $ref: '#/components/schemas/UnixTime' }
+
+    ExecuteResult:
+      type: object
+      required: [round_id, success, output, receipt_hash, gas_used, consensus]
+      properties:
+        round_id: { type: string }
+        success: { type: boolean }
+        output: { type: string }
+        receipt_hash: { $ref: '#/components/schemas/Hash' }
+        gas_used: { type: integer }
+        events: { type: array, items: { type: object, properties: { name: { type: string }, data: {} } } }
+        consensus: { type: object, properties: { state: { type: string }, votes: { type: integer }, quorum: { type: integer } } }
+        error: { type: [string, 'null'] }
+
+    # ── projects ──
+    ProjectSummary:
+      type: object
+      required: [project_id, slug, developer, name, category, icon, listing_status, token]
+      properties:
+        project_id: { $ref: '#/components/schemas/Hash' }
+        slug: { type: string }
+        developer: { $ref: '#/components/schemas/Address' }
+        developer_name: { type: [string, 'null'] }
+        developer_verified: { type: boolean }
+        name: { type: string }
+        tagline: { type: [string, 'null'] }
+        category: { $ref: '#/components/schemas/Category' }
+        tags: { type: array, items: { type: string } }
+        icon: { type: string, format: uri }
+        accent_color: { type: [string, 'null'] }
+        listing_status: { $ref: '#/components/schemas/ListingStatus' }
+        device_classes: { type: array, items: { $ref: '#/components/schemas/DeviceClass' } }
+        token: { $ref: '#/components/schemas/Token' }
+        reward_model: { type: string, enum: [per-unit, epoch-pool] }
+        min_collateral: { $ref: '#/components/schemas/Amount' }
+        miners: { type: integer }
+        avg_daily_reward_per_miner: { $ref: '#/components/schemas/Amount' }
+        average_rating_x100: { type: [integer, 'null'] }
+        review_count: { type: integer }
+        trending: { type: boolean }
+        featured: { type: boolean }
+        listed_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+
+    Project:
+      allOf:
+        - { $ref: '#/components/schemas/ProjectSummary' }
+        - type: object
+          required: [version, manifest_hash, consensus_hash, consensus, scheduling, listing]
+          properties:
+            version: { type: integer }
+            manifest_hash: { $ref: '#/components/schemas/Hash' }
+            consensus_hash: { $ref: '#/components/schemas/Hash' }
+            pending_version: { oneOf: [ { $ref: '#/components/schemas/ProjectVersion' }, { type: 'null' } ] }
+            consensus: { $ref: '#/components/schemas/ManifestConsensus' }
+            scheduling: { $ref: '#/components/schemas/ManifestScheduling' }
+            listing: { $ref: '#/components/schemas/ManifestListing' }
+            vault: { $ref: '#/components/schemas/Address' }
+            registry_tx: { $ref: '#/components/schemas/Hash' }
+            review: { type: object, properties: { status: { type: string }, reason: { type: [string, 'null'] }, conditions: { type: array, items: { type: string } }, decided_at: { type: [integer, 'null'] } } }
+            stats: { $ref: '#/components/schemas/ProjectStats' }
+            economics: { $ref: '#/components/schemas/ProjectEconomics' }
+            created_at: { $ref: '#/components/schemas/UnixTime' }
+
+    Manifest:
+      type: object
+      description: PLATFORM.md §a.1/§a.3 (normative rules there)
+      additionalProperties: false
+      required: [v, network, chain_id, developer, slug, version, previous, consensus, scheduling, listing]
+      properties:
+        v: { type: integer, const: 1 }
+        network: { type: string }
+        chain_id: { type: integer }
+        developer: { $ref: '#/components/schemas/Address' }
+        slug: { type: string, pattern: '^[a-z0-9][a-z0-9-]{1,46}[a-z0-9]$' }
+        version: { type: integer, minimum: 1 }
+        previous: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        consensus: { $ref: '#/components/schemas/ManifestConsensus' }
+        scheduling: { $ref: '#/components/schemas/ManifestScheduling' }
+        listing: { $ref: '#/components/schemas/ManifestListing' }
+
+    ManifestConsensus:
+      type: object
+      additionalProperties: false
+      required: [modules, work, economics]
+      properties:
+        modules:
+          type: object
+          additionalProperties: false
+          required: [worker, verifier]
+          properties:
+            worker: { $ref: '#/components/schemas/Hash' }
+            verifier: { type: 'null' }
+        work:
+          type: object
+          additionalProperties: false
+          required: [class, verification, execution, functions, task_source, max_gas_limit, committee, round_secs, lease_secs, epoch_secs, dispute_window_secs]
+          properties:
+            class: { type: string, const: deterministic }
+            verification: { type: string, const: redundant-execution }
+            execution: { type: string, const: committee }
+            functions: { type: array, minItems: 1, maxItems: 64, items: { type: string } }
+            task_source:
+              oneOf:
+                - { type: object, additionalProperties: false, required: [kind], properties: { kind: { const: api } } }
+                - { type: object, additionalProperties: false, required: [kind, function, interval_secs, gas_limit], properties: { kind: { const: schedule }, function: { type: string }, interval_secs: { type: integer, minimum: 10, maximum: 3600 }, gas_limit: { type: integer, minimum: 1 } } }
+            max_gas_limit: { type: integer, minimum: 1, maximum: 10000000000 }
+            committee:
+              type: object
+              additionalProperties: false
+              required: [size, backups, min_size, selection, weight_cap_multiple]
+              properties:
+                size: { type: integer, minimum: 3, maximum: 31 }
+                backups: { type: integer, minimum: 0, maximum: 16 }
+                min_size: { type: integer, minimum: 3, maximum: 31 }
+                selection: { type: string, const: collateral-reputation-sortition-v1 }
+                weight_cap_multiple: { type: integer, minimum: 1, maximum: 100 }
+            round_secs: { type: integer, minimum: 10, maximum: 600 }
+            lease_secs: { type: integer, minimum: 5, maximum: 600 }
+            epoch_secs: { type: integer, enum: [3600, 7200, 10800, 14400, 21600, 28800, 43200, 86400] }
+            dispute_window_secs: { type: integer, minimum: 3600, maximum: 604800 }
+        economics:
+          type: object
+          additionalProperties: false
+          required: [reward_token, vault, reward_model, reward_per_unit, daily_emission, fee_split_bp, max_units_per_epoch, max_recipients_per_epoch, min_collateral, slashing_bp]
+          properties:
+            reward_token: { $ref: '#/components/schemas/Address' }
+            vault: { $ref: '#/components/schemas/Address' }
+            reward_model: { type: string, enum: [per-unit, epoch-pool] }
+            reward_per_unit: { $ref: '#/components/schemas/Amount' }
+            daily_emission: { $ref: '#/components/schemas/Amount' }
+            fee_split_bp:
+              type: object
+              additionalProperties: false
+              required: [miner, developer, treasury]
+              properties:
+                miner: { type: integer, minimum: 5000, maximum: 10000 }
+                developer: { type: integer, minimum: 0, maximum: 5000 }
+                treasury: { type: integer, minimum: 0, maximum: 5000 }
+            max_units_per_epoch: { type: integer, minimum: 1, maximum: 1000000000 }
+            max_recipients_per_epoch: { type: integer, minimum: 1, maximum: 10000 }
+            min_collateral: { $ref: '#/components/schemas/Amount' }
+            slashing_bp:
+              type: object
+              additionalProperties: false
+              required: [invalid_result, missed_sla]
+              properties:
+                invalid_result: { type: integer, minimum: 0, maximum: 5000 }
+                missed_sla: { type: integer, minimum: 0, maximum: 500 }
+
+    ManifestScheduling:
+      type: object
+      additionalProperties: false
+      required: [requirements, sla, public_tasks]
+      properties:
+        requirements:
+          type: object
+          additionalProperties: false
+          required: [device_classes, cpu_cores, ram_mb, storage_mb, gpu, min_benchmark, engines, attestation]
+          properties:
+            device_classes: { type: array, minItems: 1, items: { $ref: '#/components/schemas/DeviceClass' } }
+            cpu_cores: { type: integer, minimum: 0 }
+            ram_mb: { type: integer, minimum: 0 }
+            storage_mb: { type: integer, minimum: 0 }
+            gpu: { type: 'null' }
+            min_benchmark: { type: integer, minimum: 0 }
+            engines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Engine' } }
+            attestation: { type: array, maxItems: 0 }
+        sla:
+          type: object
+          additionalProperties: false
+          required: [max_latency_ms, min_uptime_bp]
+          properties:
+            max_latency_ms: { type: integer, minimum: 100, maximum: 600000 }
+            min_uptime_bp: { type: integer, minimum: 0, maximum: 10000 }
+        public_tasks: { type: boolean }
+
+    ManifestListing:
+      type: object
+      additionalProperties: false
+      required: [name, tagline, description, category, tags, icon, banner, screenshots, video, website, docs, support, features, accent_color]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 64 }
+        tagline: { type: string, maxLength: 120 }
+        description: { type: string, maxLength: 8000 }
+        category: { $ref: '#/components/schemas/Category' }
+        tags: { type: array, maxItems: 8, items: { type: string, pattern: '^[a-z0-9-]{1,24}$' } }
+        icon: { type: string, format: uri }
+        banner: { type: [string, 'null'], format: uri }
+        screenshots: { type: array, maxItems: 8, items: { type: string, format: uri } }
+        video: { type: [string, 'null'], format: uri }
+        website: { type: [string, 'null'], format: uri }
+        docs: { type: [string, 'null'], format: uri }
+        support: { type: [string, 'null'], format: uri }
+        features: { type: array, maxItems: 12, items: { type: string, maxLength: 120 } }
+        accent_color: { type: [string, 'null'], pattern: '^#[0-9A-F]{6}$' }
+
+    SignedManifest:
+      type: object
+      required: [manifest, sig_type, signature]
+      properties:
+        manifest: { $ref: '#/components/schemas/Manifest' }
+        manifest_hash: { $ref: '#/components/schemas/Hash' }
+        consensus_hash: { $ref: '#/components/schemas/Hash' }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        sig_type: { type: string, const: eip191 }
+        signature: { $ref: '#/components/schemas/EvmSignature' }
+
+    ProjectVersion:
+      type: object
+      required: [version, manifest_hash, consensus_hash, tiers_changed, status, submitted_at]
+      properties:
+        version: { type: integer }
+        manifest_hash: { $ref: '#/components/schemas/Hash' }
+        consensus_hash: { $ref: '#/components/schemas/Hash' }
+        tiers_changed: { type: array, items: { type: string, enum: [consensus, scheduling, listing] } }
+        status: { type: string, enum: [submitted, registered, pending, active, superseded, rejected] }
+        publish_tx: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        published_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        effective_epoch: { type: [integer, 'null'] }
+        submitted_at: { $ref: '#/components/schemas/UnixTime' }
+
+    ProjectEconomics:
+      type: object
+      required: [token, reward_model, reward_per_unit, daily_emission, epoch_cap, fee_split_bp, vault]
+      properties:
+        token: { $ref: '#/components/schemas/Token' }
+        reward_model: { type: string, enum: [per-unit, epoch-pool] }
+        reward_per_unit: { $ref: '#/components/schemas/Amount' }
+        daily_emission: { $ref: '#/components/schemas/Amount' }
+        epoch_secs: { type: integer }
+        epoch_cap: { $ref: '#/components/schemas/Amount' }
+        fee_split_bp: { type: object, properties: { miner: { type: integer }, developer: { type: integer }, treasury: { type: integer } } }
+        min_collateral: { $ref: '#/components/schemas/Amount' }
+        slashing_bp: { type: object, properties: { invalid_result: { type: integer }, missed_sla: { type: integer } } }
+        dispute_window_secs: { type: integer }
+        vault:
+          type: object
+          properties:
+            address: { $ref: '#/components/schemas/Address' }
+            deployed: { type: boolean }
+            config_matches_manifest: { type: boolean }
+            balance: { $ref: '#/components/schemas/Amount' }
+            reserved: { $ref: '#/components/schemas/Amount' }
+            runway_epochs: { type: integer }
+            runway_days: { type: integer }
+            total_paid: { $ref: '#/components/schemas/Amount' }
+            pending_withdrawal: { $ref: '#/components/schemas/Amount' }
+
+    ProjectStats:
+      type: object
+      properties:
+        period: { type: string }
+        miners_subscribed: { type: integer }
+        miners_active: { type: integer }
+        devices_by_class: { type: object, additionalProperties: { type: integer } }
+        rounds: { type: integer }
+        rounds_finalized: { type: integer }
+        rounds_fallback: { type: integer }
+        units: { type: integer }
+        paid_to_miners: { $ref: '#/components/schemas/Amount' }
+        avg_daily_reward_per_miner: { $ref: '#/components/schemas/Amount' }
+        median_finality_ms: { type: integer }
+        uptime_bp: { type: integer }
+        slashes: { type: integer }
+        growth_bp: { type: integer, description: 'Change in active miners vs previous period, signed bp' }
+
+    ProjectMiner:
+      type: object
+      required: [node_id, class, units]
+      properties:
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        owner: { $ref: '#/components/schemas/Address' }
+        class: { $ref: '#/components/schemas/DeviceClass' }
+        status: { $ref: '#/components/schemas/DeviceStatus' }
+        units: { type: integer }
+        reputation: { type: integer }
+        uptime_bp: { type: integer }
+        since: { $ref: '#/components/schemas/UnixTime' }
+
+    Compatibility:
+      type: object
+      required: [compatible, tier, match_bp, missing, warnings]
+      properties:
+        compatible: { type: boolean }
+        tier: { type: string, enum: [compatible, marginal, incompatible] }
+        match_bp: { type: integer }
+        missing: { type: array, items: { type: string } }
+        warnings: { type: array, items: { type: string } }
+        performance: { type: string, enum: [excellent, good, fair, poor] }
+        est_monthly_reward: { $ref: '#/components/schemas/Amount' }
+
+    HardwareProfile:
+      type: object
+      properties:
+        cpu_model: { type: string }
+        cpu_cores: { type: integer }
+        cpu_threads: { type: integer }
+        ram_mb: { type: integer }
+        storage_free_mb: { type: integer }
+        gpu: { oneOf: [ { type: 'null' }, { type: object, properties: { vendor: { type: string }, model: { type: string }, vram_mb: { type: integer } } } ] }
+        network: { type: string, enum: [wifi, ethernet, cellular, none] }
+        battery: { type: boolean }
+        os: { type: string }
+        arch: { type: string }
+
+    Review:
+      type: object
+      required: [review_id, project_id, author, rating, comment, created_at]
+      properties:
+        review_id: { type: string }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        author: { $ref: '#/components/schemas/Address' }
+        author_name: { type: [string, 'null'] }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string }
+        helpful: { type: integer }
+        verified_miner: { type: boolean }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+        updated_at: { $ref: '#/components/schemas/UnixTime' }
+
+    Announcement:
+      type: object
+      required: [announcement_id, project_id, title, content, type, created_at]
+      properties:
+        announcement_id: { type: string }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        title: { type: string }
+        content: { type: string }
+        type: { type: string, enum: [update, maintenance, feature, alert] }
+        author: { $ref: '#/components/schemas/Address' }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+
+    Task:
+      type: object
+      required: [task_id, project_id, status, created_at]
+      properties:
+        task_id: { type: string, description: 'Hub id; equals round_id once scheduled' }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        round_id: { type: [string, 'null'] }
+        epoch: { type: [integer, 'null'] }
+        seq: { type: [integer, 'null'] }
+        function: { type: string }
+        input_hash: { $ref: '#/components/schemas/Hash' }
+        status: { type: string, enum: [queued, running, committee_agreed, finalized, escalated, fallback, failed] }
+        success: { type: [boolean, 'null'] }
+        output: { type: [string, 'null'], description: 'UTF-8 output (HBC outputs are UTF-8)' }
+        receipt_hash: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        gas_used: { type: [integer, 'null'] }
+        events: { type: array, items: { type: object, properties: { name: { type: string }, data: {} } } }
+        error: { type: [string, 'null'] }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+        finalized_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+
+    # ── committees ──
+    Snapshot:
+      type: object
+      description: PLATFORM.md §e.2
+      required: [v, network, project_id, epoch, epoch_secs, consensus_hash, params_hash, beacon, min_collateral, weight_cap, entries, excluded]
+      properties:
+        v: { type: integer, const: 1 }
+        network: { type: string }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        epoch: { type: integer }
+        epoch_secs: { type: integer }
+        consensus_hash: { $ref: '#/components/schemas/Hash' }
+        params_hash: { $ref: '#/components/schemas/Hash' }
+        beacon: { type: object, required: [block_number, block_hash, value], properties: { block_number: { type: integer }, block_hash: { $ref: '#/components/schemas/Hash' }, value: { $ref: '#/components/schemas/Hash' } } }
+        min_collateral: { $ref: '#/components/schemas/Amount' }
+        weight_cap: { $ref: '#/components/schemas/Amount' }
+        entries:
+          type: array
+          maxItems: 65536
+          items:
+            type: object
+            required: [node_key, subscription_id, owner, payout_address, collateral, reputation, binding_hash]
+            properties:
+              node_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+              subscription_id: { $ref: '#/components/schemas/Hash' }
+              owner: { $ref: '#/components/schemas/Address' }
+              payout_address: { $ref: '#/components/schemas/Address' }
+              collateral: { $ref: '#/components/schemas/Amount' }
+              reputation: { type: integer, minimum: 1000, maximum: 10000 }
+              binding_hash: { $ref: '#/components/schemas/Hash' }
+        excluded:
+          type: array
+          items:
+            type: object
+            required: [node_key, subscription_id, reason]
+            properties:
+              node_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+              subscription_id: { $ref: '#/components/schemas/Hash' }
+              reason: { type: string, enum: [paused, binding_mismatch, unbound, faulty] }
+
+    AttestedSnapshot:
+      type: object
+      required: [snapshot, set_hash, attestations, valid]
+      properties:
+        snapshot: { $ref: '#/components/schemas/Snapshot' }
+        set_hash: { $ref: '#/components/schemas/Hash' }
+        attestations: { type: array, items: { $ref: '#/components/schemas/Attestation' } }
+        valid: { type: boolean, description: 'Quorum of current validators reached' }
+
+    Committee:
+      type: object
+      required: [project_id, epoch, seq, set_hash, seed, k_eff, b_eff, quorum, draw]
+      properties:
+        project_id: { $ref: '#/components/schemas/Hash' }
+        epoch: { type: integer }
+        seq: { type: integer }
+        set_hash: { $ref: '#/components/schemas/Hash' }
+        seed: { $ref: '#/components/schemas/Hash' }
+        k_eff: { type: integer }
+        b_eff: { type: integer }
+        quorum: { type: integer }
+        fallback: { type: boolean, description: 'k_eff < min_size' }
+        committee_hash: { $ref: '#/components/schemas/Hash' }
+        draw:
+          type: array
+          items:
+            type: object
+            required: [position, role, node_key, weight]
+            properties:
+              position: { type: integer }
+              role: { type: string, enum: [primary, backup] }
+              node_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+              node_id: { $ref: '#/components/schemas/NodeId' }
+              weight: { type: string, description: 'Decimal u128' }
+
+    Binding:
+      type: object
+      description: PLATFORM.md §c.2
+      required: [message, binding_hash, owner, node_id, public_key, issued_at, nonce, owner_signature, node_signature]
+      properties:
+        message: { type: string }
+        binding_hash: { $ref: '#/components/schemas/Hash' }
+        owner: { $ref: '#/components/schemas/Address' }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+        issued_at: { $ref: '#/components/schemas/UnixTime' }
+        nonce: { type: string, pattern: '^[0-9a-f]{32}$' }
+        owner_signature: { $ref: '#/components/schemas/EvmSignature' }
+        node_signature: { $ref: '#/components/schemas/Ed25519Signature' }
+
+    Unbinding:
+      type: object
+      required: [message, binding_hash, owner, node_id, public_key, issued_at, nonce]
+      properties:
+        message: { type: string, description: 'First line "Necter: unbind mining device"' }
+        binding_hash: { $ref: '#/components/schemas/Hash' }
+        owner: { $ref: '#/components/schemas/Address' }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+        issued_at: { $ref: '#/components/schemas/UnixTime' }
+        nonce: { type: string, pattern: '^[0-9a-f]{32}$' }
+        owner_signature: { $ref: '#/components/schemas/EvmSignature' }
+        node_signature: { $ref: '#/components/schemas/Ed25519Signature' }
+
+    # ── accounts ──
+    Session:
+      type: object
+      required: [token, address, expires_at, roles]
+      properties:
+        token: { type: string, description: 'Only returned by POST /v1/auth/siwe' }
+        address: { $ref: '#/components/schemas/Address' }
+        expires_at: { $ref: '#/components/schemas/UnixTime' }
+        roles: { type: array, items: { type: string, enum: [miner, developer, operator] } }
+
+    Me:
+      type: object
+      required: [address, roles]
+      properties:
+        address: { $ref: '#/components/schemas/Address' }
+        roles: { type: array, items: { type: string, enum: [miner, developer, operator] } }
+        devices: { type: integer }
+        subscriptions: { type: integer }
+        developer: { oneOf: [ { $ref: '#/components/schemas/Developer' }, { type: 'null' } ] }
+        unread_notifications: { type: integer }
+        faucet_next_eligible_at: { $ref: '#/components/schemas/UnixTime' }
+
+    Preferences:
+      type: object
+      additionalProperties: false
+      properties:
+        watchlist: { type: array, maxItems: 200, items: { $ref: '#/components/schemas/Hash' } }
+        recent_searches: { type: array, maxItems: 20, items: { type: string, maxLength: 100 } }
+        saved_addresses: { type: array, maxItems: 20, items: { type: object, properties: { address: { $ref: '#/components/schemas/Address' }, label: { type: string, maxLength: 64 } } } }
+        earnings_goal: { oneOf: [ { type: 'null' }, { type: object, properties: { token: { $ref: '#/components/schemas/Address' }, amount: { $ref: '#/components/schemas/Amount' }, period: { type: string, enum: [day, week, month] } } } ] }
+        notifications: { type: object, additionalProperties: { type: boolean } }
+        display_name: { type: [string, 'null'], maxLength: 32 }
+
+    AccountProfile:
+      type: object
+      required: [address]
+      properties:
+        address: { $ref: '#/components/schemas/Address' }
+        display_name: { type: [string, 'null'] }
+        devices_online: { type: integer }
+        devices_total: { type: integer }
+        projects: { type: array, items: { $ref: '#/components/schemas/Hash' } }
+        units_30d: { type: integer }
+        reputation_avg: { type: integer }
+        first_seen_at: { $ref: '#/components/schemas/UnixTime' }
+        developer: { oneOf: [ { $ref: '#/components/schemas/Developer' }, { type: 'null' } ] }
+
+    Device:
+      type: object
+      description: PLATFORM.md §c.3 (owner sees all fields; public view omits hardware details and label)
+      required: [node_id, public_key, status]
+      properties:
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        public_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+        owner: { oneOf: [ { $ref: '#/components/schemas/Address' }, { type: 'null' } ] }
+        binding_hash: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        label: { type: [string, 'null'] }
+        group_id: { type: [string, 'null'] }
+        class: { $ref: '#/components/schemas/DeviceClass' }
+        platform: { $ref: '#/components/schemas/Platform' }
+        os_version: { type: string }
+        arch: { type: string }
+        engine: { $ref: '#/components/schemas/Engine' }
+        miner_version: { type: string }
+        ndsr_version: { type: string }
+        status: { $ref: '#/components/schemas/DeviceStatus' }
+        status_reason: { type: [string, 'null'] }
+        last_seen_at: { $ref: '#/components/schemas/UnixTime' }
+        connected_since: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        hardware: { $ref: '#/components/schemas/HardwareProfile' }
+        benchmark: { oneOf: [ { $ref: '#/components/schemas/BenchmarkResult' }, { type: 'null' } ] }
+        attestation: { type: 'null' }
+        subscriptions: { type: array, items: { $ref: '#/components/schemas/Hash' } }
+        region: { type: [string, 'null'] }
+        uptime_bp_7d: { type: integer }
+        units_7d: { type: integer }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+
+    DeviceGroup:
+      type: object
+      required: [group_id, name, node_ids]
+      properties:
+        group_id: { type: string }
+        name: { type: string }
+        node_ids: { type: array, items: { $ref: '#/components/schemas/NodeId' } }
+        updated_at: { $ref: '#/components/schemas/UnixTime' }
+
+    # ── subscriptions / chain intents ──
+    Eip712TypedData:
+      type: object
+      required: [domain, types, primaryType, message]
+      properties:
+        domain: { type: object, additionalProperties: true }
+        types: { type: object, additionalProperties: true }
+        primaryType: { type: string }
+        message: { type: object, additionalProperties: true }
+
+    GaslessPayload:
+      type: object
+      description: Typed data the owner signs (eth_signTypedData_v4); then POST it back as SignedGasless
+      required: [action, typed_data, expires_at]
+      properties:
+        action: { type: string, enum: [bond, unbond, withdraw, register_project] }
+        typed_data: { $ref: '#/components/schemas/Eip712TypedData' }
+        permit: { oneOf: [ { $ref: '#/components/schemas/Eip712TypedData' }, { type: 'null' } ], description: 'EIP-2612 NECTA permit (bond only)' }
+        direct_tx: { $ref: '#/components/schemas/TxRequest' }
+        expires_at: { $ref: '#/components/schemas/UnixTime' }
+
+    SignedGasless:
+      type: object
+      required: [typed_data, signature]
+      properties:
+        typed_data: { $ref: '#/components/schemas/Eip712TypedData' }
+        signature: { $ref: '#/components/schemas/EvmSignature' }
+        permit: { oneOf: [ { $ref: '#/components/schemas/Eip712TypedData' }, { type: 'null' } ] }
+        permit_signature: { oneOf: [ { $ref: '#/components/schemas/EvmSignature' }, { type: 'null' } ] }
+
+    TxRequest:
+      type: object
+      required: [chain_id, to, data]
+      properties:
+        chain_id: { type: integer }
+        to: { $ref: '#/components/schemas/Address' }
+        data: { type: string, pattern: '^0x([0-9a-f]{2})*$' }
+        value: { $ref: '#/components/schemas/Amount' }
+        description: { type: string }
+
+    TxStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [queued, sent, confirmed, reverted, failed] }
+        tx_hash: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        error: { type: [string, 'null'] }
+
+    SubscriptionIntent:
+      type: object
+      required: [subscription, bond]
+      properties:
+        subscription: { $ref: '#/components/schemas/Subscription' }
+        compatibility: { $ref: '#/components/schemas/Compatibility' }
+        bond: { $ref: '#/components/schemas/GaslessPayload' }
+
+    Subscription:
+      type: object
+      required: [subscription_id, project_id, node_id, owner, status, collateral]
+      properties:
+        subscription_id: { $ref: '#/components/schemas/Hash' }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        project_name: { type: string }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        owner: { $ref: '#/components/schemas/Address' }
+        payout_address: { $ref: '#/components/schemas/Address' }
+        status: { $ref: '#/components/schemas/SubscriptionStatus' }
+        collateral: { $ref: '#/components/schemas/Amount' }
+        min_collateral: { $ref: '#/components/schemas/Amount' }
+        collateral_health: { type: string, enum: [healthy, warning, critical] }
+        release_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        pending_slashes: { type: integer }
+        slashed_total: { $ref: '#/components/schemas/Amount' }
+        reputation: { type: integer }
+        uptime_bp: { type: integer }
+        leases_completed: { type: integer }
+        units_total: { type: integer }
+        earned_total: { $ref: '#/components/schemas/Amount' }
+        token: { $ref: '#/components/schemas/Token' }
+        last_proof_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        started_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+
+    Lease:
+      type: object
+      required: [lease_id, round_id, project_id, node_id, position, role, state, created_at]
+      properties:
+        lease_id: { type: string }
+        offer_id: { type: string }
+        round_id: { type: string }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        position: { type: integer }
+        role: { type: string, enum: [primary, backup] }
+        state: { type: string, enum: [offered, leased, voted, finalized, missed, cancelled] }
+        function: { type: string }
+        deadline: { $ref: '#/components/schemas/UnixTime' }
+        units: { type: [integer, 'null'] }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+        completed_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+
+    Proof:
+      type: object
+      required: [proof_id, round_id, project_id, node_id, status, submitted_at]
+      properties:
+        proof_id: { $ref: '#/components/schemas/Hash' }
+        round_id: { type: string }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        subscription_id: { $ref: '#/components/schemas/Hash' }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        epoch: { type: integer }
+        status: { $ref: '#/components/schemas/ProofStatus' }
+        receipt_hash: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        final_receipt_hash: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        units: { type: integer }
+        expected_amount: { $ref: '#/components/schemas/Amount' }
+        rejection_reason: { type: [string, 'null'], enum: [disagreed, invalid_vote, late, missed, null] }
+        audited: { type: boolean }
+        finality_ms: { type: [integer, 'null'] }
+        slash_id: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        submitted_at: { $ref: '#/components/schemas/UnixTime' }
+        verified_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+
+    EpochPayout:
+      type: object
+      required: [project_id, epoch, miner, units, amount, token, status]
+      properties:
+        project_id: { $ref: '#/components/schemas/Hash' }
+        epoch: { type: integer }
+        miner: { $ref: '#/components/schemas/Address' }
+        units: { type: integer }
+        amount: { $ref: '#/components/schemas/Amount' }
+        token: { $ref: '#/components/schemas/Token' }
+        status: { type: string, enum: [accruing, attested, settled, claimable, claimed, vetoed] }
+        claim_tx: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        claimable_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+
+    Claim:
+      type: object
+      required: [project_id, vault, epoch, account, amount, proof, token]
+      properties:
+        project_id: { $ref: '#/components/schemas/Hash' }
+        vault: { $ref: '#/components/schemas/Address' }
+        epoch: { type: integer }
+        account: { $ref: '#/components/schemas/Address' }
+        amount: { $ref: '#/components/schemas/Amount' }
+        proof: { type: array, items: { $ref: '#/components/schemas/Hash' } }
+        token: { $ref: '#/components/schemas/Token' }
+
+    Withdrawal:
+      type: object
+      required: [withdrawal_id, kind, status, amount, token, requested_at]
+      properties:
+        withdrawal_id: { type: string }
+        kind: { type: string, enum: [claim, collateral] }
+        status: { type: string, enum: [pending, processing, completed, failed] }
+        amount: { $ref: '#/components/schemas/Amount' }
+        token: { $ref: '#/components/schemas/Token' }
+        recipient: { $ref: '#/components/schemas/Address' }
+        epochs: { type: array, items: { type: object, properties: { project_id: { $ref: '#/components/schemas/Hash' }, epoch: { type: integer } } } }
+        subscription_id: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        fee: { $ref: '#/components/schemas/Amount' }
+        tx_hash: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        requested_at: { $ref: '#/components/schemas/UnixTime' }
+        completed_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        error: { type: [string, 'null'] }
+
+    # ── slashing ──
+    Evidence:
+      type: object
+      description: PLATFORM.md §i.1
+      required: [v, kind, project_id, epoch, round_id, subscription_id, node_key, consensus_hash, proof]
+      properties:
+        v: { type: integer, const: 1 }
+        kind: { type: string, enum: [invalid_result, equivocation, missed_sla] }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        epoch: { type: integer }
+        round_id: { type: string }
+        subscription_id: { $ref: '#/components/schemas/Hash' }
+        node_key: { $ref: '#/components/schemas/Ed25519PublicKey' }
+        consensus_hash: { $ref: '#/components/schemas/Hash' }
+        proof: { type: object, additionalProperties: true }
+
+    Slash:
+      type: object
+      required: [evidence_hash, kind, project_id, subscription_id, node_id, status, created_at]
+      properties:
+        evidence_hash: { $ref: '#/components/schemas/Hash' }
+        kind: { type: string, enum: [invalid_result, equivocation, missed_sla] }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        subscription_id: { $ref: '#/components/schemas/Hash' }
+        node_id: { $ref: '#/components/schemas/NodeId' }
+        round_id: { type: string }
+        bp: { type: integer }
+        amount: { $ref: '#/components/schemas/Amount' }
+        status: { $ref: '#/components/schemas/SlashStatus' }
+        propose_tx: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        executable_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        dispute: { oneOf: [ { type: 'null' }, { type: object, properties: { reason: { type: string }, filed_at: { $ref: '#/components/schemas/UnixTime' }, outcome: { type: [string, 'null'], enum: [cancelled, upheld, null] }, resolved_at: { type: [integer, 'null'] } } } ] }
+        recovery: { type: [string, 'null'] }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
+
+    # ── faucet ──
+    FaucetStatus:
+      type: object
+      required: [enabled, token, amount, cooldown_secs]
+      properties:
+        enabled: { type: boolean }
+        token: { $ref: '#/components/schemas/Token' }
+        amount: { $ref: '#/components/schemas/Amount' }
+        eth_amount: { $ref: '#/components/schemas/Amount' }
+        cooldown_secs: { type: integer }
+        eligible: { type: boolean }
+        next_eligible_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+
+    # ── developers ──
+    Developer:
+      type: object
+      required: [address, enrollment, verification]
+      properties:
+        address: { $ref: '#/components/schemas/Address' }
+        display_name: { type: [string, 'null'] }
+        developer_type: { type: [string, 'null'], enum: [individual, organization, null] }
+        bio: { type: [string, 'null'] }
+        website: { type: [string, 'null'] }
+        logo: { type: [string, 'null'] }
+        location: { type: [string, 'null'] }
+        social: { type: object, properties: { twitter: { type: string }, discord: { type: string }, github: { type: string }, telegram: { type: string } } }
+        email: { type: [string, 'null'], description: 'Owner and operator only' }
+        enrollment: { type: object, properties: { status: { type: string, enum: [none, draft, pending, active, rejected] }, submitted_at: { type: [integer, 'null'] }, reviewed_at: { type: [integer, 'null'] }, notes: { type: [string, 'null'] } } }
+        verification: { type: object, properties: { status: { type: string, enum: [unverified, pending, verified, rejected] }, requested_at: { type: [integer, 'null'] }, reviewed_at: { type: [integer, 'null'] } } }
+        projects: { type: integer }
+        miners: { type: integer }
+        joined_at: { $ref: '#/components/schemas/UnixTime' }
+
+    DeveloperProfileInput:
+      type: object
+      additionalProperties: false
+      properties:
+        display_name: { type: string, maxLength: 64 }
+        bio: { type: string, maxLength: 2000 }
+        website: { type: string, format: uri }
+        logo: { type: string, format: uri }
+        location: { type: string, maxLength: 64 }
+        email: { type: string, format: email }
+        social: { type: object, additionalProperties: false, properties: { twitter: { type: string }, discord: { type: string }, github: { type: string }, telegram: { type: string } } }
+
+    DraftInput:
+      type: object
+      required: [current_step, data]
+      properties:
+        current_step: { type: integer, minimum: 0 }
+        project_id: { oneOf: [ { $ref: '#/components/schemas/Hash' }, { type: 'null' } ] }
+        data: { type: object, additionalProperties: true, description: 'Wizard state, ≤ 256 KiB' }
+
+    Draft:
+      allOf:
+        - { $ref: '#/components/schemas/DraftInput' }
+        - type: object
+          required: [draft_id, created_at, updated_at]
+          properties:
+            draft_id: { type: string }
+            created_at: { $ref: '#/components/schemas/UnixTime' }
+            updated_at: { $ref: '#/components/schemas/UnixTime' }
+
+    ProjectAnalytics:
+      type: object
+      properties:
+        period: { type: string }
+        miners_total: { type: integer }
+        miners_active: { type: integer }
+        tasks_submitted: { type: integer }
+        tasks_finalized: { type: integer }
+        tasks_failed: { type: integer }
+        tasks_fallback: { type: integer }
+        avg_finality_ms: { type: integer }
+        avg_lease_ms: { type: integer }
+        rewards_distributed: { $ref: '#/components/schemas/Amount' }
+        slashing_events: { type: integer }
+        uptime_bp: { type: integer }
+        series: { type: array, items: { type: object, properties: { t: { type: integer }, tasks: { type: integer }, miners: { type: integer }, units: { type: integer } } } }
+
+    Simulation:
+      type: object
+      required: [simulation_id, project_id, status, started_at]
+      properties:
+        simulation_id: { type: string }
+        project_id: { $ref: '#/components/schemas/Hash' }
+        status: { type: string, enum: [running, passed, failed] }
+        results: { type: array, items: { $ref: '#/components/schemas/ExecuteResult' } }
+        logs: { type: array, items: { type: string } }
+        started_at: { $ref: '#/components/schemas/UnixTime' }
+        completed_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+
+    ApiKey:
+      type: object
+      required: [key_id, name, prefix, scopes, created_at]
+      properties:
+        key_id: { type: string }
+        name: { type: string }
+        prefix: { type: string, examples: ['nk_test_ab12cd34'] }
+        scopes: { type: array, items: { $ref: '#/components/schemas/ApiScope' } }
+        project_ids: { type: array, items: { $ref: '#/components/schemas/Hash' } }
+        last_used_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        expires_at: { oneOf: [ { $ref: '#/components/schemas/UnixTime' }, { type: 'null' } ] }
+        created_at: { $ref: '#/components/schemas/UnixTime' }
