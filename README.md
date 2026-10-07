@@ -1,50 +1,91 @@
-# Necter Mining App Store — SvelteKit
+# Necter Mining App Store
 
-SvelteKit 2 + Svelte 5 port of the Necter Mining App Store. A decentralized mining marketplace for the Necter Network.
+SvelteKit 2 + Svelte 5 store for the Necter mining platform: discover projects, subscribe devices with gasless
+collateral, follow proofs and payouts, publish projects, and explore rounds and epochs. All data comes from the
+Hub JSON API (`spec/openapi.yaml`, served at `https://testnet-rpc.necter.network`); the store has no API of its own.
 
-## Live Demo
+## Tech stack
 
-**[mining-app-store-svelte.vercel.app](https://mining-app-store-svelte.vercel.app)**
+- SvelteKit 2 + Svelte 5 runes, Tailwind CSS 4 (design tokens in `src/app.css`), lucide icons, svelte-french-toast
+- Typed Hub client: `openapi-typescript` types generated from `spec/openapi.yaml` + `openapi-fetch` (`src/lib/api`)
+- Wallet: EIP-1193 via `viem` — injected wallets discovered with EIP-6963, optional WalletConnect v2; SIWE
+  (EIP-4361) sign-in gives a bearer session (`src/lib/stores/wallet.ts`)
+- Protocol helpers (`src/lib/protocol`): canonical JSON, `project_id` / `subscription_id` / vault address,
+  manifest validation + EIP-191 signing, SIWE and EIP-712 payload checks
 
-## Tech Stack
-
-- **Framework**: SvelteKit 2 + Svelte 5 (runes: $state, $derived, $effect)
-- **Styling**: Tailwind CSS 4 with CSS variables
-- **Language**: TypeScript 5
-- **State**: Mock backend store (shared with Next.js version)
-- **Charts**: HTML/CSS bar charts (no Chart.js dependency)
-- **Toasts**: svelte-french-toast
-- **Icons**: lucide-svelte
-- **Fonts**: Inter + JetBrains Mono
-
-## Getting Started
+## Getting started
 
 ```bash
 pnpm install
-pnpm dev
+pnpm dev            # talks to PUBLIC_RPC_URL (default https://testnet-rpc.necter.network)
+pnpm dev:mock       # dev-only in-browser mock Hub with sample data (never in production builds)
+pnpm test           # vitest: API client, SIWE, manifest signing, key stores, protocol cross-checks
+pnpm test:e2e       # Playwright smoke test against tests/mock-server.ts
+pnpm check          # svelte-check
+pnpm gen:api        # regenerate src/lib/api/schema.d.ts from spec/openapi.yaml
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+## Configuration (`PUBLIC_*`, build time)
 
-## Pages
+| Variable | Default | Meaning |
+|---|---|---|
+| `PUBLIC_RPC_URL` | `https://testnet-rpc.necter.network` (web), `/rpc` (local) | Hub API base URL |
+| `PUBLIC_APP_MODE` | `web` | `local` = store embedded in necter-miner / Tauri app |
+| `PUBLIC_MINER_API_URL` | `` (local, same origin) | necter-miner local API origin |
+| `PUBLIC_SIWE_DOMAIN`, `PUBLIC_SIWE_URI` | page host / origin | SIWE domain + URI (must be on the Hub allow-list) |
+| `PUBLIC_WALLETCONNECT_PROJECT_ID` | unset | enables the WalletConnect option |
+| `PUBLIC_CHAIN_ID`, `PUBLIC_CHAIN_RPC`, `PUBLIC_CHAIN_EXPLORER` | Sepolia | settlement chain |
+| `PUBLIC_MINER_DL_MACOS` / `_WINDOWS` / `_LINUX` / `_ANDROID` / `_IOS` | unset ("Soon") | miner download links |
+| `PUBLIC_MOCK_API` | unset | `1` with `vite dev` only: in-browser mock Hub |
 
-- **Discover** — Hero carousel, story cards, curated collections, trending
-- **App Detail** — 4 tabs (Overview, Economics, Requirements, Reviews)
-- **My Mining** — Dashboard, earnings, proofs with mobile/desktop layouts
-- **Leaderboards** — Projects, earners, uptime rankings
-- **Governance** — Vote on proposals, review listings, create proposals
-- **Activity** — Event feed with filters and day grouping
-- **Settings** — Profile, devices, wallet, notifications, badges
-- **Search** — Live search with suggested projects
-- **Withdraw** — Earnings summary and withdrawal form
+## Build targets
 
-## Mobile
+Both targets are client-rendered SPAs built with `@sveltejs/adapter-static` (`index.html` fallback for deep links).
 
-Full mobile responsive design with:
-- Bottom tab navigation (Discover, Mining, Leaderboard, Governance, Search)
-- Top bar with profile avatar, logo, help + notifications
-- Bottom sheet modals
-- Separate mobile/desktop layouts where needed
+### Web store — `testnet.necter.network`
+
+```bash
+pnpm build:web          # → build/web
+```
+
+Static files only. Serve them with any static host that falls back to `index.html` for unknown paths and adds the
+security headers. A ready image for DockHive app hosting (or any container host) is in `Dockerfile`:
+
+```bash
+docker build -t necter-store .     # builds build/web and serves it with nginx on :8080
+```
+
+`deploy/nginx.conf` sets the SPA fallback, long-lived caching for `/_app/immutable/*`, and a CSP that only allows
+API calls to the Hub host. The previous Vercel adapter was removed.
+
+### Local mode — necter-miner (127.0.0.1:7878) and the Tauri desktop app
+
+```bash
+pnpm build:local        # → build/local  (PUBLIC_APP_MODE=local, PUBLIC_RPC_URL=/rpc)
+```
+
+necter-miner embeds `build/local` and serves it at `http://127.0.0.1:7878` (miner-core.md §7.4); the Tauri app
+loads the same URL. In this mode the store:
+
+- reads the Hub through the miner's same-origin `/rpc/*` proxy (no CORS, the miner adds its Hub session),
+- uses the miner's local API (`/api/v1/*`) for device panels: **This device** (status, start/stop, binding, wallet,
+  sign requests) and the hardware checker (real hardware profile + benchmark),
+- logs into the local API with the `#login=<token>` fragment opened by `necter-miner ui` (session cookie),
+  or a password on remote dashboards,
+- can use the miner's own wallet (embedded wallet) instead of a browser wallet.
+
+## Project layout
+
+| Path | Purpose |
+|---|---|
+| `src/lib/api/` | generated schema, typed client (`http.ts`), endpoint wrappers (`hub.ts`), session store, query helper, dev mock Hub |
+| `src/lib/protocol/` | canonical JSON, ids, manifest, SIWE, EIP-712 payload checks (+ Python reference fixtures) |
+| `src/lib/stores/` | wallet/session, account (me + preferences), balances, network descriptor |
+| `src/lib/flows.ts` | subscribe / top-up / unbond / withdraw / claims / publish flows |
+| `src/lib/local/miner.ts` | necter-miner local API client |
+| `src/lib/components/common/` | empty / error / loading / coming-soon / sign-in components (brand illustrations) |
+| `tests/` | Playwright smoke test + mock Hub server |
+| `spec/openapi.yaml` | vendored copy of the binding API spec (`pnpm gen:api` re-syncs from `../spec`) |
 
 ## License
 
