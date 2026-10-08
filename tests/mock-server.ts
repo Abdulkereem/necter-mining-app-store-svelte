@@ -14,9 +14,9 @@ const allowDomains = (process.env.STORE_ORIGIN_HOSTS ?? '127.0.0.1:4518,localhos
 const hub = createMockHub({ allowDomains, empty: process.env.MOCK_EMPTY === '1' });
 
 const cors = {
-	'Access-Control-Allow-Origin': '*',
-	'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept',
-	'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+	'access-control-allow-origin': '*',
+	'access-control-allow-headers': 'Authorization, Content-Type, Accept',
+	'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
 };
 
 createServer(async (req, res) => {
