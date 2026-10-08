@@ -7,7 +7,7 @@ import { projectId, subscriptionId, vaultAddress, nodeIdFromPublicKey, SLUG_RE }
 import { digestManifest, signManifest, verifySignedManifest, validateManifest, normalizeSignature, tiersChanged, nextVersion } from './manifest';
 import type { Manifest } from '$lib/api/types';
 
-const DEV_KEY = ('0x' + '00'.repeat(31) + '01') as const;
+const DEV_KEY = ('0x' + '00'.repeat(31) + '01') as `0x${string}`;
 const dev = privateKeyToAccount(DEV_KEY);
 
 describe('canonical JSON (matches Python json.dumps sort_keys/ensure_ascii=False)', () => {

@@ -579,6 +579,11 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 		routes.push([method, re, names, h]);
 	}
 
+	const needAuthEarly = (h: (acc: Account, ctx: Parameters<Handler>[0]) => Promise<Response> | Response): Handler => (ctx) => {
+		const acc = auth(ctx.req);
+		return acc ? h(acc, ctx) : err(401, 'unauthorized', 'sign in first');
+	};
+
 	// ── network ──
 	const descriptor = (): S['NetworkDescriptor'] => ({
 		network: 'necter-testnet',
@@ -734,9 +739,9 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 			projects_listed: listed().length,
 			miners_online: miners,
 			devices_online: miners + 7,
-			rounds_24h: 12096,
-			rounds_finalized_24h: 12031,
-			units_24h: 60480,
+			rounds_24h: listed().length ? 12096 : 0,
+			rounds_finalized_24h: listed().length ? 12031 : 0,
+			units_24h: listed().length ? 60480 : 0,
 			validators: validators.length,
 			collateral_bonded: (18_500n * E18).toString(),
 			updated_at: now()
@@ -904,6 +909,15 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 		save();
 		return json(200, rev);
 	});
+	route('DELETE', '/v1/projects/{id}/reviews', needAuthEarly((acc, { params }) => {
+		const p = findProject(params.id);
+		if (!p) return err(404, 'not_found', 'project not found');
+		p.reviews = p.reviews.filter((r) => r.author !== acc.address);
+		p.project.review_count = p.reviews.length;
+		p.project.average_rating_x100 = p.reviews.length ? Math.round((p.reviews.reduce((x, r) => x + r.rating, 0) * 100) / p.reviews.length) : null;
+		save();
+		return json(204, null);
+	}));
 	route('POST', '/v1/projects/{id}/reviews/{rid}/helpful', ({ params }) => {
 		const p = findProject(params.id);
 		const r = p?.reviews.find((x) => x.review_id === params.rid);

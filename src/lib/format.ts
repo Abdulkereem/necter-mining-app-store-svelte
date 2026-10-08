@@ -144,6 +144,7 @@ export function formatDuration(secs: number | null | undefined): string {
 		return `${Number.isInteger(h) ? h : h.toFixed(1)} h`;
 	}
 	const d = secs / 86400;
+	if (d === 1) return '24 h';
 	return `${Number.isInteger(d) ? d : d.toFixed(1)} days`;
 }
 
