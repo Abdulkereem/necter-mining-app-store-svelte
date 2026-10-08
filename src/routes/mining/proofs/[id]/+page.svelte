@@ -1,387 +1,126 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { backendState, backend } from '$lib/stores/backend';
-	import { actor, showConnectModal } from '$lib/stores/wallet';
-	import { showToast } from '$lib/stores/toast';
-	import { CheckCircle2, Clock, AlertCircle, Copy, ArrowLeft } from 'lucide-svelte';
+	import { CheckCircle2, Clock, AlertCircle, ArrowLeft, XCircle } from 'lucide-svelte';
+	import { hub } from '$lib/api/hub';
+	import { useQuery } from '$lib/api/query.svelte';
+	import { formatDateTime, formatMs, formatToken, formatNumber } from '$lib/format';
+	import { proofStatus, REJECTION_REASON } from '$lib/components/mining/labels';
+	import { projectRef } from '$lib/components/mining/projects.svelte';
+	import CopyText from '$lib/components/common/CopyText.svelte';
+	import EmptyState from '$lib/components/common/EmptyState.svelte';
+	import ErrorState from '$lib/components/common/ErrorState.svelte';
+	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 
-	let id = $derived(page.params.id);
-
-	let copied = $state(false);
-	let disputeReason = $state('');
-
-	let detail = $derived(
-		$backendState.proofDetails.find(
-			(p) => p.id === id || p.id === `detail_${id}` || p.proofData === id
-		) ?? null
-	);
-	let submission = $derived($backendState.proofs.find((p) => p.id === id) ?? null);
-
-	let proof = $derived.by(() => {
-		if (!detail) return null;
-		return {
-			id: submission?.id ?? id,
-			subscriptionId: submission?.subscriptionId ?? detail.subscriptionId,
-			status:
-				submission?.status ??
-				(detail.status === 'verified'
-					? 'verified'
-					: detail.status === 'rejected'
-						? 'rejected'
-						: 'pending'),
-			submittedAt: detail.submittedAt,
-			verifiedAt: detail.verifiedAt,
-			verificationTime: detail.verificationTime,
-			rejectionReason: detail.rejectionReason,
-			proofData: detail.proofData,
-			appId: detail.appId,
-			minerId: detail.minerId,
-			expectedEarning: detail.expectedEarning,
-			actualEarning: detail.actualEarning,
-			verifierNode: detail.verifierNode
-		};
-	});
-
-	const statusConfig = {
-		verified: {
-			label: 'Verified',
-			iconColor: 'text-[var(--success)]',
-			badgeBg: 'bg-[rgba(76,183,130,0.12)]',
-			badgeText: 'text-[var(--success)]'
-		},
-		pending: {
-			label: 'Pending Verification',
-			iconColor: 'text-[var(--warning)]',
-			badgeBg: 'bg-[rgba(242,153,74,0.12)]',
-			badgeText: 'text-[var(--warning)]'
-		},
-		rejected: {
-			label: 'Rejected',
-			iconColor: 'text-[var(--error)]',
-			badgeBg: 'bg-[rgba(235,87,87,0.12)]',
-			badgeText: 'text-[var(--error)]'
-		}
-	} as const;
-
-	let config = $derived(
-		statusConfig[(proof?.status as keyof typeof statusConfig) ?? 'pending']
-	);
-
-	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text);
-		copied = true;
-		setTimeout(() => (copied = false), 2000);
-	}
-
-	function safe(fn: () => void) {
-		try {
-			fn();
-		} catch (e: any) {
-			showToast(e?.message ?? 'Action failed', 'error');
-		}
-	}
+	const id = $derived((page.params.id ?? '').toLowerCase());
+	const q = useQuery(() => hub.proof(id));
+	const ref = $derived(q.data ? projectRef(q.data.project_id) : null);
 </script>
 
-<svelte:head>
-	<title>Proof Detail — Necter Mining App Store</title>
-</svelte:head>
+<svelte:head><title>Proof · Necter</title></svelte:head>
 
-{#if !proof}
-	<div class="min-h-screen bg-[var(--surface-0)]">
-		<div class="max-w-4xl mx-auto px-4 md:px-8 py-12">
-			<p class="text-[13px] text-[var(--text-secondary)]">Proof not found</p>
-		</div>
+{#snippet row(label: string, value: string | null | undefined, mono = true)}
+	<div class="flex items-center justify-between gap-3 p-3 bg-[var(--surface-0)] rounded-[5px]">
+		<span class="text-[13px] text-[var(--text-secondary)]">{label}</span>
+		<span class="text-[12px] text-[var(--text-primary)] text-right {mono ? 'font-mono' : ''}">{value ?? '—'}</span>
 	</div>
-{:else if !$actor}
-	<div class="min-h-screen bg-[var(--surface-0)]">
-		<div class="max-w-4xl mx-auto px-4 md:px-8 py-12">
-			<div class="p-8 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
-				<div class="text-[14px] font-semibold text-[var(--text-primary)]">
-					Connect a wallet to view proof details
-				</div>
-				<div class="text-[13px] text-[var(--text-secondary)] mt-1">
-					Proofs are private to your miner identity.
-				</div>
-				<div class="mt-4">
-					<button type="button" class="btn-pill" onclick={() => showConnectModal.set(true)}>
-						Connect Wallet
-					</button>
-				</div>
+{/snippet}
+
+<div class="min-h-screen bg-[var(--surface-0)] px-4 md:px-6 pt-4 md:pt-6 pb-12">
+	<div style="max-width:720px;margin:0 auto">
+		<a href="/mining" class="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] no-underline mb-4">
+			<ArrowLeft class="h-3 w-3" strokeWidth={1.5} /> Back to My Mining
+		</a>
+
+		{#if q.loading}
+			<LoadingBlock rows={4} height="64px" />
+		{:else if q.error}
+			<ErrorState error={q.error} retry={q.refresh} />
+		{:else if !q.data}
+			<EmptyState illustration="network" title="Proof not found" description="Proofs appear once your miner has voted in a round. The id may be wrong or the round is still being indexed." />
+		{:else}
+			{@const p = q.data}
+			{@const st = proofStatus(p.status)}
+			<div class="flex items-center gap-3 mb-2">
+				{#if p.status === 'verified'}<CheckCircle2 class="h-7 w-7" style="color:{st.color}" />
+				{:else if p.status === 'rejected'}<XCircle class="h-7 w-7" style="color:{st.color}" />
+				{:else if p.status === 'missed'}<AlertCircle class="h-7 w-7" style="color:{st.color}" />
+				{:else}<Clock class="h-7 w-7" style="color:{st.color}" />{/if}
+				<h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">{st.label}</h1>
 			</div>
-		</div>
-	</div>
-{:else if proof.minerId !== $actor.minerId}
-	<div class="min-h-screen bg-[var(--surface-0)]">
-		<div class="max-w-4xl mx-auto px-4 md:px-8 py-12">
-			<a href="/mining?tab=proofs" class="btn-secondary inline-flex items-center gap-2">
-				<ArrowLeft class="h-4 w-4" />
-				Back to Proof Queue
-			</a>
-			<div class="p-8 mt-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
-				<div class="text-[14px] font-semibold text-[var(--text-primary)]">
-					This proof belongs to a different wallet
-				</div>
-				<div class="text-[13px] text-[var(--text-secondary)] mt-1">
-					Connect the wallet for miner <span class="font-mono text-[12px]">{proof.minerId}</span> to
-					view it.
-				</div>
-			</div>
-		</div>
-	</div>
-{:else}
-	<div class="min-h-screen bg-[var(--surface-0)]">
-		<!-- Header -->
-		<div class="px-4 md:px-6 pt-4 md:pt-6">
-			<div style="max-width:720px;margin:0 auto">
-				<a
-					href="/mining?tab=proofs"
-					class="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] no-underline mb-4"
-				>
-					<ArrowLeft class="h-3 w-3" strokeWidth={1.5} />
-					Back to Proofs
-				</a>
-				<div class="flex items-center gap-3 mb-2">
-					{#if proof.status === 'verified'}
-						<CheckCircle2 class="h-6 w-6 md:h-8 md:w-8 {config.iconColor}" />
-					{:else if proof.status === 'rejected'}
-						<AlertCircle class="h-6 w-6 md:h-8 md:w-8 {config.iconColor}" />
-					{:else}
-						<Clock class="h-6 w-6 md:h-8 md:w-8 {config.iconColor}" />
+			<div class="text-[12px] text-[var(--text-tertiary)] mb-5"><CopyText value={p.proof_id} short={false} /></div>
+
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+				<div class="md:col-span-2 space-y-6">
+					<div class="p-4 md:p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
+						<h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Vote and outcome</h2>
+						<div class="space-y-2">
+							{@render row('Submitted', formatDateTime(p.submitted_at))}
+							{@render row('Finalized', p.verified_at ? formatDateTime(p.verified_at) : null)}
+							{@render row('Time to finality', p.finality_ms != null ? formatMs(p.finality_ms) : null)}
+							{@render row('Epoch', p.epoch != null ? String(p.epoch) : null)}
+							{@render row('Audited by validators', p.audited ? 'Yes' : 'No', false)}
+							{#if p.rejection_reason}
+								<div class="p-3 bg-[rgba(235,87,87,0.08)] border border-[rgba(235,87,87,0.20)] rounded-[5px]">
+									<p class="text-[12px] font-medium text-[var(--error)] mb-1">Why it did not count</p>
+									<p class="text-[13px] text-[var(--text-primary)]">{REJECTION_REASON[p.rejection_reason] ?? p.rejection_reason}</p>
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<div class="p-4 md:p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
+						<h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Receipts</h2>
+						<div class="space-y-3">
+							<div>
+								<p class="text-[12px] text-[var(--text-secondary)] mb-1">Your receipt hash</p>
+								{#if p.receipt_hash}<a href="/explorer/receipts/{p.receipt_hash}" class="font-mono text-[12px] break-all text-[var(--text-primary)]">{p.receipt_hash}</a>{:else}<span class="text-[12px] text-[var(--text-tertiary)]">No vote recorded</span>{/if}
+							</div>
+							<div>
+								<p class="text-[12px] text-[var(--text-secondary)] mb-1">Final receipt hash</p>
+								{#if p.final_receipt_hash}<span class="font-mono text-[12px] break-all">{p.final_receipt_hash}</span>
+									{#if p.receipt_hash && p.receipt_hash !== p.final_receipt_hash}<p class="text-[11px] text-[var(--error)] mt-1">Your result differs from the finalized one.</p>{/if}
+								{:else}<span class="text-[12px] text-[var(--text-tertiary)]">Not final yet</span>{/if}
+							</div>
+							<div>
+								<p class="text-[12px] text-[var(--text-secondary)] mb-1">Round</p>
+								<a href="/explorer/rounds/{encodeURIComponent(p.round_id)}" class="font-mono text-[12px] break-all text-[var(--text-accent)]">{p.round_id}</a>
+							</div>
+						</div>
+					</div>
+
+					{#if p.finality_validators?.length}
+						<div class="p-4 md:p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
+							<h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-3">Finalized by validators</h2>
+							<div class="flex flex-wrap gap-2">
+								{#each p.finality_validators as v (v)}<span class="font-mono text-[11px] px-2 py-1 rounded-[4px] bg-[var(--surface-2)]">{v}</span>{/each}
+							</div>
+						</div>
 					{/if}
-					<h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">
-						{config.label}
-					</h1>
 				</div>
-				<div class="text-[12px] text-[var(--text-tertiary)] flex items-center gap-2 mb-5">
-					<span class="font-mono truncate">{proof.id}</span>
-					<button
-						type="button"
-						class="bg-transparent border-none cursor-pointer p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition"
-						onclick={() => copyToClipboard(proof.id as string)}
-					>
-						{#if copied}
-							<CheckCircle2 class="h-3.5 w-3.5 text-[var(--success)]" />
-						{:else}
-							<Copy class="h-3.5 w-3.5" />
-						{/if}
-					</button>
-				</div>
-			</div>
-		</div>
 
-		<!-- Main Content -->
-		<div class="px-4 md:px-6 pb-12">
-			<div style="max-width:720px;margin:0 auto">
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-					<!-- Left Column - Details -->
-					<div class="md:col-span-2 space-y-6">
-						<!-- Status Card -->
-						<div class="p-4 md:p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
-							<h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Proof Status</h2>
-							<div class="space-y-2">
-								<div
-									class="flex items-center justify-between p-3 bg-[var(--surface-0)] rounded-[5px]"
-								>
-									<span class="text-[13px] text-[var(--text-secondary)]">Current Status</span>
-									<span
-										class="text-[12px] font-medium px-2 py-0.5 rounded-[4px] {config.badgeBg} {config.badgeText}"
-									>
-										{config.label}
-									</span>
-								</div>
-
-								<div
-									class="flex items-center justify-between p-3 bg-[var(--surface-0)] rounded-[5px]"
-								>
-									<span class="text-[13px] text-[var(--text-secondary)]">Submitted</span>
-									<span class="font-mono text-[12px] text-[var(--text-primary)]">
-										{new Date(proof.submittedAt).toLocaleString()}
-									</span>
-								</div>
-
-								{#if proof.verifiedAt}
-									<div
-										class="flex items-center justify-between p-3 bg-[var(--surface-0)] rounded-[5px]"
-									>
-										<span class="text-[13px] text-[var(--text-secondary)]">Verified</span>
-										<span class="font-mono text-[12px] text-[var(--text-primary)]">
-											{new Date(proof.verifiedAt).toLocaleString()}
-										</span>
-									</div>
-									{#if proof.verificationTime}
-										<div
-											class="flex items-center justify-between p-3 bg-[var(--surface-0)] rounded-[5px]"
-										>
-											<span class="text-[13px] text-[var(--text-secondary)]"
-												>Verification Time</span
-											>
-											<span class="font-mono text-[12px] text-[var(--text-primary)]">
-												{(proof.verificationTime / 1000 / 60).toFixed(1)} min
-											</span>
-										</div>
-									{/if}
-								{/if}
-
-								{#if proof.rejectionReason}
-									<div
-										class="p-3 bg-[rgba(235,87,87,0.08)] border border-[rgba(235,87,87,0.20)] rounded-[5px]"
-									>
-										<p class="text-[12px] font-medium text-[var(--error)] mb-1">
-											Rejection Reason
-										</p>
-										<p class="text-[13px] text-[var(--text-primary)]">
-											{proof.rejectionReason}
-										</p>
-									</div>
-								{/if}
-							</div>
-						</div>
-
-						<!-- Proof Data Card -->
-						<div class="p-4 md:p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
-							<h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Proof Data</h2>
-							<div class="space-y-4">
-								<div>
-									<p class="text-[12px] text-[var(--text-secondary)] mb-2">Proof Hash</p>
-									<div
-										class="flex items-center gap-2 p-3 bg-[var(--surface-0)] rounded-[5px] font-mono text-[12px] text-[var(--text-primary)]"
-									>
-										<span class="truncate">{proof.proofData}</span>
-										<button
-											type="button"
-											class="ml-auto bg-transparent border-none cursor-pointer hover:opacity-75 transition text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-											onclick={() => copyToClipboard(proof.proofData)}
-										>
-											{#if copied}
-												<CheckCircle2 class="h-4 w-4 text-[var(--success)]" />
-											{:else}
-												<Copy class="h-4 w-4" />
-											{/if}
-										</button>
-									</div>
-								</div>
-
-								<div class="grid grid-cols-2 gap-4">
-									<div>
-										<p class="text-[12px] text-[var(--text-secondary)] mb-2">Expected Earning</p>
-										<p
-											class="text-[16px] md:text-[20px] font-bold text-[var(--text-accent)] font-mono"
-										>
-											${proof.expectedEarning}
-										</p>
-									</div>
-									{#if proof.actualEarning !== undefined}
-										<div>
-											<p class="text-[12px] text-[var(--text-secondary)] mb-2">Actual Earning</p>
-											<p
-												class="text-[16px] md:text-[20px] font-bold text-[var(--text-primary)] font-mono"
-											>
-												${proof.actualEarning}
-											</p>
-										</div>
-									{/if}
-								</div>
-
-								{#if proof.verifierNode}
-									<div>
-										<p class="text-[12px] text-[var(--text-secondary)] mb-2">Verified By</p>
-										<p
-											class="font-mono text-[12px] text-[var(--text-primary)] p-2 bg-[var(--surface-0)] rounded-[5px]"
-										>
-											{proof.verifierNode}
-										</p>
-									</div>
-								{/if}
-							</div>
-						</div>
-
-						<!-- Dispute Section -->
-						{#if proof.status === 'rejected'}
-							<div
-								class="p-6 bg-[var(--surface-1)] border border-[rgba(242,153,74,0.20)] rounded-[8px]"
-							>
-								<h2 class="text-[14px] font-semibold text-[var(--warning)] mb-4">
-									Dispute This Proof
-								</h2>
-								<p class="text-[13px] text-[var(--text-secondary)] mb-4">
-									If you believe this proof was incorrectly rejected, you can file a dispute for
-									human review.
-								</p>
-								<div class="space-y-3">
-									<textarea
-										bind:value={disputeReason}
-										placeholder="Explain why you believe this proof should be verified..."
-										class="w-full px-3 py-2 border border-[var(--border)] rounded-[5px] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-glow)]"
-										rows="4"
-									></textarea>
-									<button
-										type="button"
-										class="btn-subscribe w-full"
-										onclick={() =>
-											safe(() =>
-												backend.fileProofDispute({
-													proofId: proof.id as string,
-													reason: disputeReason
-												})
-											)}
-										disabled={!disputeReason.trim()}
-										style:opacity={!disputeReason.trim() ? 0.4 : 1}
-									>
-										File Dispute
-									</button>
-									<button
-										type="button"
-										class="btn-secondary w-full"
-										onclick={() => safe(() => backend.retryProof(proof.id as string))}
-									>
-										Retry (queue new job)
-									</button>
-								</div>
-							</div>
+				<div class="space-y-4">
+					<div class="p-4 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
+						<p class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide">Project</p>
+						<a href="/apps/{p.project_id}" class="text-[13px] font-medium text-[var(--text-primary)]">{ref?.name ?? p.project_id.slice(0, 12) + '…'}</a>
+						<p class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide mt-3">Device</p>
+						<a href="/miners/{p.node_id}" class="text-[12px] font-mono text-[var(--text-primary)]">{p.node_id}</a>
+						{#if p.subscription_id}
+							<p class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide mt-3">Subscription</p>
+							<a href="/mining/{p.subscription_id}" class="text-[12px] font-mono text-[var(--text-accent)]">Open →</a>
 						{/if}
 					</div>
-
-					<!-- Right Column - Summary -->
-					<div>
-						<div
-							class="p-4 md:p-6 md:sticky md:top-4 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]"
-						>
-							<h3 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Summary</h3>
-							<div class="space-y-4">
-								<div>
-									<p class="text-[12px] text-[var(--text-secondary)] mb-1">Subscription</p>
-									<p class="font-mono text-[12px] text-[var(--text-primary)]">
-										{proof.subscriptionId}
-									</p>
-								</div>
-								<div>
-									<p class="text-[12px] text-[var(--text-secondary)] mb-1">App</p>
-									<p class="font-mono text-[12px] text-[var(--text-primary)]">{proof.appId}</p>
-								</div>
-								<div>
-									<p class="text-[12px] text-[var(--text-secondary)] mb-1">Miner</p>
-									<p class="font-mono text-[12px] text-[var(--text-primary)]">{proof.minerId}</p>
-								</div>
-								<div class="p-3 bg-[var(--accent-subtle)] rounded-[5px]">
-									<p class="text-[12px] text-[var(--text-secondary)] mb-1">Network Status</p>
-									<p class="text-[13px] font-bold text-[var(--text-primary)]">
-										All Systems Normal
-									</p>
-									<p class="text-[11px] text-[var(--text-tertiary)] mt-1">
-										98.9% uptime last 30 days
-									</p>
-								</div>
-								<a
-									href="/apps/{proof.appId}"
-									class="btn-subscribe w-full no-underline block text-center"
-								>
-									View App Details
-								</a>
-							</div>
-						</div>
+					<div class="p-4 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
+						<p class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide">Units</p>
+						<p class="text-[18px] font-semibold font-mono">{formatNumber(p.units ?? 0)}</p>
+						<p class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide mt-3">Expected reward</p>
+						<p class="text-[15px] font-semibold font-mono text-[var(--text-accent)]">{p.expected_amount ? formatToken(p.expected_amount, ref?.token ?? null, { maxFrac: 4 }) : '—'}</p>
+						<p class="text-[10px] text-[var(--text-tertiary)] mt-1">Paid when the epoch settles.</p>
 					</div>
+					{#if p.slash_id}
+						<a href="/mining/{p.subscription_id ?? ''}" class="block p-4 rounded-[8px] border border-[rgba(235,87,87,0.25)] bg-[rgba(235,87,87,0.06)] text-[12px] text-[var(--error)] no-underline">A slash was proposed for this round — review or dispute it on the subscription page.</a>
+					{/if}
 				</div>
 			</div>
-		</div>
+		{/if}
 	</div>
-{/if}
+</div>
