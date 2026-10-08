@@ -1,87 +1,85 @@
 <script lang="ts">
-	import { backendState, backend } from '$lib/stores/backend';
-	import { actor } from '$lib/stores/wallet';
-	import { getAppIcon } from '$lib/app-icon';
+	import { Network, Cpu, Coins, Clock, ShieldCheck, Smartphone, ChevronDown } from 'lucide-svelte';
+	import { hub } from '$lib/api/hub';
+	import { useQuery } from '$lib/api/query.svelte';
+	import type { Period, ProjectSummary, Token } from '$lib/api/types';
+	import { wallet } from '$lib/stores/wallet';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
-	import { Network, TrendingUp, Clock, ArrowUp, ArrowDown, Minus, ChevronDown } from 'lucide-svelte';
+	import { formatAmount, formatToken, formatRating, formatNumber, bpToPercent, shortAddress, CATEGORIES, categoryShort } from '$lib/format';
 	import { Button, Card } from '$lib/components/ui';
+	import EmptyState from '$lib/components/common/EmptyState.svelte';
+	import ErrorState from '$lib/components/common/ErrorState.svelte';
+	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
+	import ProjectIcon from '$lib/components/common/ProjectIcon.svelte';
 
-	type Tab = 'networks' | 'earners' | 'uptime';
-	type Period = 'all' | '30d' | '7d';
+	type Metric = 'units' | 'earnings' | 'uptime' | 'reputation' | 'devices';
+	type Tab = 'projects' | Metric;
 
-	let tab = $state<Tab>('networks');
-	let period = $state<Period>('all');
+	const TABS: { id: Tab; label: string; short: string; icon: typeof Network }[] = [
+		{ id: 'projects', label: 'Top Projects', short: 'Projects', icon: Network },
+		{ id: 'units', label: 'Compute Units', short: 'Units', icon: Cpu },
+		{ id: 'earnings', label: 'Top Earners', short: 'Earners', icon: Coins },
+		{ id: 'uptime', label: 'Best Uptime', short: 'Uptime', icon: Clock },
+		{ id: 'reputation', label: 'Reputation', short: 'Rep.', icon: ShieldCheck },
+		{ id: 'devices', label: 'Most Devices', short: 'Devices', icon: Smartphone }
+	];
+
+	const VALUE_HEADER: Record<Metric, string> = {
+		units: 'Units',
+		earnings: 'Earned',
+		uptime: 'Uptime',
+		reputation: 'Reputation',
+		devices: 'Devices'
+	};
+
+	let tab = $state<Tab>('projects');
+	let period = $state<Period>('7d');
 	let category = $state('all');
-	let isMobile = $state(false);
-
-	$effect(() => {
-		const check = () => (isMobile = window.innerWidth < 768);
-		check();
-		window.addEventListener('resize', check);
-		return () => window.removeEventListener('resize', check);
-	});
+	let projectFilter = $state('');
 
 	const RANK_COLORS: Record<number, string> = { 1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32' };
+	const NECTA = { symbol: 'NECTA', decimals: 18 } as const;
 
-	let bState = $derived($backendState);
-	let currentMinerId = $derived($actor?.minerId ?? null);
-	let periodMultiplier = $derived(period === '7d' ? 0.25 : period === '30d' ? 0.7 : 1);
-
-	let categories = $derived([...new Set(bState.apps.map((a: any) => a.category).filter(Boolean))].sort());
-
-	let minerStats = $derived((() => {
-		const map = new Map<string, { minerId: string; totalEarned: number; uptime: number; uptimeCount: number; networkCount: number }>();
-		for (const sub of bState.subscriptions) {
-			const e = map.get(sub.minerId);
-			if (e) { e.totalEarned += sub.totalEarned; e.uptime += sub.uptime; e.uptimeCount += 1; e.networkCount += 1; }
-			else map.set(sub.minerId, { minerId: sub.minerId, totalEarned: sub.totalEarned, uptime: sub.uptime, uptimeCount: 1, networkCount: 1 });
-		}
-		return Array.from(map.values()).map((m) => ({ ...m, avgUptime: m.uptimeCount > 0 ? m.uptime / m.uptimeCount : 0 }));
-	})());
-
-	let topEarners = $derived(
-		[...minerStats].map((m) => ({ ...m, periodEarned: m.totalEarned * periodMultiplier })).sort((a, b) => b.periodEarned - a.periodEarned).slice(0, 25)
+	const projects = useQuery(() =>
+		hub.projects({ sort: 'miners', limit: 100, ...(category !== 'all' && tab === 'projects' ? { category: category as ProjectSummary['category'] } : {}) })
 	);
-	let bestUptime = $derived([...minerStats].sort((a, b) => b.avgUptime - a.avgUptime).slice(0, 25));
+	// Unfiltered list for the miner-metric project selector.
+	const allProjects = useQuery(() => hub.projects({ sort: 'name', limit: 200 }));
+	const projectsById = $derived(new Map<string, ProjectSummary>((allProjects.data?.items ?? []).map((p) => [p.project_id, p])));
 
-	// Full sorted lists for "your position" pinned row
-	let allEarnersSorted = $derived([...minerStats].sort((a, b) => b.totalEarned - a.totalEarned));
-	let allUptimeSorted = $derived([...minerStats].sort((a, b) => b.avgUptime - a.avgUptime));
-	let currentMinerEarner = $derived(currentMinerId ? allEarnersSorted.find((m) => m.minerId === currentMinerId) : null);
-	let currentMinerEarnerRank = $derived(currentMinerId ? allEarnersSorted.findIndex((m) => m.minerId === currentMinerId) + 1 : null);
-	let currentMinerUptime = $derived(currentMinerId ? allUptimeSorted.find((m) => m.minerId === currentMinerId) : null);
-	let currentMinerUptimeRank = $derived(currentMinerId ? allUptimeSorted.findIndex((m) => m.minerId === currentMinerId) + 1 : null);
-	let isEarnerInTop25 = $derived((currentMinerEarnerRank ?? 999) <= 25);
-	let isUptimeInTop25 = $derived((currentMinerUptimeRank ?? 999) <= 25);
+	const board = useQuery(
+		() => {
+			const metric = tab === 'projects' ? 'units' : tab;
+			return hub.leaderboard({ metric, period, limit: 50, ...(projectFilter ? { project_id: projectFilter } : {}) });
+		},
+		{ enabled: () => tab !== 'projects' }
+	);
 
-	let topNetworks = $derived((() => {
-		let apps = [...bState.apps];
-		if (category !== 'all') apps = apps.filter((a: any) => a.category === category);
-		return apps.sort((a: any, b: any) => b.totalMiners - a.totalMiners || b.totalEarnings - a.totalEarnings).slice(0, 25);
-	})());
+	const me = $derived($wallet?.address?.toLowerCase() ?? null);
+	const items = $derived(board.data?.items ?? []);
+	const earningsToken = $derived<Pick<Token, 'symbol' | 'decimals'>>(
+		(projectFilter ? projectsById.get(projectFilter)?.token : null) ?? NECTA
+	);
 
-	let proofsByApp = $derived((() => {
-		const map = new Map<string, { total: number; verified: number }>();
-		for (const p of bState.proofs) {
-			const e = map.get(p.appId) ?? { total: 0, verified: 0 };
-			e.total++; if (p.status === 'verified') e.verified++;
-			map.set(p.appId, e);
+	function formatValue(metric: Metric, value: string): string {
+		switch (metric) {
+			case 'earnings':
+				return formatToken(value, earningsToken);
+			case 'uptime':
+			case 'reputation': {
+				const bp = Number(value);
+				return Number.isFinite(bp) ? bpToPercent(bp) : '—';
+			}
+			default:
+				// integer strings; grouped without float conversion
+				return formatAmount(value, 0);
 		}
-		return map;
-	})());
-
-	function pseudoTrend(id: string, rank: number) {
-		let hash = 0;
-		for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-		return Math.max(1, rank + ((Math.abs(hash) % 7) - 3));
 	}
 
-	function trendData(cur: number, prev: number) {
-		const diff = prev - cur;
-		if (diff === 0 || prev === 0) return { type: 'neutral' as const, diff: 0 };
-		if (diff > 0) return { type: 'up' as const, diff };
-		return { type: 'down' as const, diff: Math.abs(diff) };
-	}
+	const selectClass =
+		'appearance-none h-[30px] pl-3 pr-8 rounded-[5px] bg-[var(--surface-1)] border border-[var(--border)] text-[11px] text-[var(--text-secondary)] outline-none cursor-pointer';
+	const metricCols = 'grid-template-columns:1fr 150px 80px; gap:0 16px';
+	const projectCols = 'grid-template-columns:1fr 70px 130px 60px; gap:0 20px';
 </script>
 
 <svelte:head>
@@ -91,194 +89,144 @@
 <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
 	<div class="mb-5">
 		<h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">Leaderboards</h1>
-		<p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 hidden md:block">Top miners and projects ranked by performance</p>
+		<p class="text-[12px] text-[var(--text-tertiary)] mt-0.5 hidden md:block">Top miners and projects on the Necter testnet</p>
 	</div>
 
 	<!-- Tabs + Controls -->
 	<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
 		<div class="flex gap-1 overflow-x-auto">
-			{#each [{ id: 'networks', label: 'Top Projects', short: 'Projects', icon: Network }, { id: 'earners', label: 'Top Earners', short: 'Earners', icon: TrendingUp }, { id: 'uptime', label: 'Best Uptime', short: 'Uptime', icon: Clock }] as t}
+			{#each TABS as t (t.id)}
 				<Button
 					variant="ghost"
 					size="sm"
-					onclick={() => (tab = t.id as Tab)}
+					onclick={() => (tab = t.id)}
 					class="gap-1.5 px-4 text-[12px] {tab === t.id ? '!bg-[var(--accent-subtle)] !text-[var(--text-accent)]' : ''}"
 				>
-					<svelte:component this={t.icon} size={14} strokeWidth={1.5} />
+					<t.icon size={14} strokeWidth={1.5} />
 					<span class="hidden md:inline">{t.label}</span>
 					<span class="md:hidden">{t.short}</span>
 				</Button>
 			{/each}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if tab === 'networks'}
+			{#if tab === 'projects'}
 				<div class="relative">
-					<select bind:value={category} class="appearance-none h-[30px] pl-3 pr-8 rounded-[5px] bg-[var(--surface-1)] border border-[var(--border)] text-[11px] text-[var(--text-secondary)] outline-none cursor-pointer">
+					<select bind:value={category} class={selectClass} aria-label="Category">
 						<option value="all">All Categories</option>
-						{#each categories as c}<option value={c}>{c}</option>{/each}
+						{#each CATEGORIES as c (c.slug)}<option value={c.slug}>{c.name}</option>{/each}
 					</select>
 					<ChevronDown size={12} strokeWidth={1.5} class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
 				</div>
+			{:else}
+				<div class="relative">
+					<select bind:value={projectFilter} class="{selectClass} max-w-[200px]" aria-label="Project">
+						<option value="">All projects</option>
+						{#each allProjects.data?.items ?? [] as p (p.project_id)}<option value={p.project_id}>{p.name}</option>{/each}
+					</select>
+					<ChevronDown size={12} strokeWidth={1.5} class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+				</div>
+				<div class="flex gap-[2px] bg-[var(--surface-2)] rounded-[5px] p-[2px]">
+					{#each [{ id: '24h', label: '24H' }, { id: '7d', label: '7D' }, { id: '30d', label: '30D' }, { id: 'all', label: 'All' }] as p (p.id)}
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (period = p.id as Period)}
+							class="!h-[26px] !px-2.5 !rounded-[4px] text-[11px] {period === p.id ? '!bg-[var(--surface-1)] !text-[var(--text-primary)]' : '!text-[var(--text-tertiary)]'}"
+							style={period === p.id ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2)' : ''}
+						>{p.label}</Button>
+					{/each}
+				</div>
 			{/if}
-			<div class="flex gap-[2px] bg-[var(--surface-2)] rounded-[5px] p-[2px]">
-				{#each [{ id: '7d', label: '7D' }, { id: '30d', label: '30D' }, { id: 'all', label: 'All' }] as p}
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={() => (period = p.id as Period)}
-						class="!h-[26px] !px-2.5 !rounded-[4px] text-[11px] {period === p.id ? '!bg-[var(--surface-1)] !text-[var(--text-primary)]' : '!text-[var(--text-tertiary)]'}"
-						style={period === p.id ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2)' : ''}
-					>{p.label}</Button>
-				{/each}
-			</div>
 		</div>
 	</div>
 
-	<!-- Table -->
-	<Card padding="p-0" class="overflow-x-auto [-webkit-overflow-scrolling:touch]">
-		<div class="min-w-[580px]">
-
-		{#if tab === 'networks'}
-			<div class="grid items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]"
-				style="grid-template-columns:{isMobile ? '1fr 55px 75px 55px 40px' : '1fr 70px 90px 75px 65px 50px'}; gap:0 20px">
-				<span>#  Project</span>
-				<span class="text-right">Miners</span>
-				<span class="text-right">Earnings</span>
-				{#if !isMobile}<span class="text-right">Avg/Miner</span>{/if}
-				<span class="text-right">Proofs</span>
-				<span class="text-right">Trend</span>
-			</div>
-			{#each topNetworks as app, i}
-				{@const rank = i + 1}
-				{@const color = RANK_COLORS[rank] ?? 'var(--text-tertiary)'}
-				{@const pd = proofsByApp.get(app.id)}
-				{@const proofRate = pd && pd.total > 0 ? (pd.verified / pd.total) * 100 : 0}
-				{@const avgPer = app.totalMiners > 0 ? app.totalEarnings / app.totalMiners : 0}
-				{@const tr = trendData(rank, pseudoTrend(app.id, rank))}
-				<a href="/apps/{app.id}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--surface-2)] transition-colors no-underline"
-					style="grid-template-columns:{isMobile ? '1fr 55px 75px 55px 40px' : '1fr 70px 90px 75px 65px 50px'}; gap:0 20px">
-					<div class="flex items-center gap-4 min-w-0">
-						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={getAppIcon(app)} alt="" class="w-7 h-7 rounded-[5px] shrink-0" loading="lazy" />
-						<div class="min-w-0"><span class="text-[13px] font-medium text-[var(--text-primary)] truncate block">{app.name}</span><span class="text-[10px] text-[var(--text-tertiary)] truncate block">{app.category}</span></div>
+	{#if tab === 'projects'}
+		{#if projects.loading}
+			<LoadingBlock rows={6} height="52px" />
+		{:else if projects.error}
+			<ErrorState error={projects.error} retry={projects.refresh} />
+		{:else if (projects.data?.items ?? []).length === 0}
+			<EmptyState
+				illustration="platform"
+				title={category === 'all' ? 'No listed projects yet' : 'No projects in this category'}
+				description="Projects show up here once a developer publishes them and they pass review on the testnet."
+			>
+				<a href="/develop" class="btn-secondary">Publish a project</a>
+			</EmptyState>
+		{:else}
+			<Card padding="p-0" class="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+				<div class="min-w-[520px]">
+					<div class="grid items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]" style={projectCols}>
+						<span>#  Project</span>
+						<span class="text-right">Miners</span>
+						<span class="text-right">Avg/Miner/Day</span>
+						<span class="text-right">Rating</span>
 					</div>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{app.totalMiners}</span>
-					<span class="text-right text-[12px] font-medium font-mono" style="color:{color}">${(app.totalEarnings * periodMultiplier).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-					{#if !isMobile}<span class="text-right text-[11px] text-[var(--text-secondary)] font-mono">${avgPer.toFixed(0)}/m</span>{/if}
-					<span class="text-right text-[11px] font-mono" style="color:{proofRate >= 90 ? 'var(--success)' : proofRate >= 70 ? 'var(--warning)' : 'var(--error)'}">{proofRate > 0 ? `${proofRate.toFixed(0)}%` : '—'}</span>
-					<span class="flex justify-end">
-						{#if tr.type === 'neutral'}<Minus size={12} class="text-[var(--text-tertiary)]" />
-						{:else if tr.type === 'up'}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--success)]"><ArrowUp size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{:else}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--error)]"><ArrowDown size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{/if}
-					</span>
-				</a>
-			{/each}
-			{#if topNetworks.length === 0}<div class="py-16 text-center text-[13px] text-[var(--text-tertiary)]">No projects found.</div>{/if}
-		{/if}
-
-		{#if tab === 'earners'}
-			<div class="grid items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px">
-				<span>#  Miner</span><span class="text-right">{period === 'all' ? 'Total' : period === '30d' ? '30-Day' : '7-Day'} Earned</span><span class="text-right">Projects</span><span class="text-right">Uptime</span><span class="text-right">Trend</span>
-			</div>
-			{#each topEarners as miner, i}
-				{@const rank = i + 1}
-				{@const color = RANK_COLORS[rank] ?? 'var(--text-tertiary)'}
-				{@const tr = trendData(rank, pseudoTrend(miner.minerId, rank))}
-				<a href="/miners/{miner.minerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--surface-2)] transition-colors no-underline" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px; {miner.minerId === currentMinerId ? 'background:var(--accent-subtle)' : ''}">
-					<div class="flex items-center gap-4 min-w-0">
-						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
-						<span class="text-[13px] text-[var(--text-primary)] font-mono truncate">{miner.minerId}</span>
-					</div>
-					<span class="text-right text-[13px] font-medium font-mono" style="color:{color}">${miner.periodEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{miner.networkCount}</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{miner.avgUptime.toFixed(1)}%</span>
-					<span class="flex justify-end">
-						{#if tr.type === 'neutral'}<Minus size={12} class="text-[var(--text-tertiary)]" />
-						{:else if tr.type === 'up'}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--success)]"><ArrowUp size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{:else}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--error)]"><ArrowDown size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{/if}
-					</span>
-				</a>
-			{/each}
-			<!-- Pinned "Your position" for earners -->
-			{#if currentMinerId && !isEarnerInTop25 && currentMinerEarner && currentMinerEarnerRank}
-				{@const tr = trendData(currentMinerEarnerRank, pseudoTrend(currentMinerId, currentMinerEarnerRank))}
-				<div class="px-4 py-1.5 border-b border-[var(--border-default)]">
-					<span class="text-[10px] text-[var(--text-tertiary)]">···</span>
+					{#each projects.data?.items ?? [] as app, i (app.project_id)}
+						{@const rank = i + 1}
+						{@const color = RANK_COLORS[rank] ?? 'var(--text-tertiary)'}
+						<a href="/apps/{app.project_id}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] last:border-b-0 hover:bg-[var(--surface-2)] transition-colors no-underline" style={projectCols}>
+							<div class="flex items-center gap-4 min-w-0">
+								<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
+								<ProjectIcon project={app} size={28} rounded="5px" />
+								<div class="min-w-0">
+									<span class="text-[13px] font-medium text-[var(--text-primary)] truncate block">{app.name}</span>
+									<span class="text-[10px] text-[var(--text-tertiary)] truncate block">{categoryShort(app.category)}</span>
+								</div>
+							</div>
+							<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{formatNumber(app.miners)}</span>
+							<span class="text-right text-[12px] font-medium font-mono truncate" style="color:{color}">
+								{app.avg_daily_reward_per_miner ? formatToken(app.avg_daily_reward_per_miner, app.token) : '—'}
+							</span>
+							<span class="text-right text-[11px] text-[var(--text-secondary)] font-mono">{formatRating(app.average_rating_x100)}</span>
+						</a>
+					{/each}
 				</div>
-				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer bg-[var(--accent-subtle)]" style="grid-template-columns:1fr 130px 80px 80px 50px; gap:0 16px">
-					<div class="flex items-center gap-4 min-w-0">
-						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)] tabular-nums">{currentMinerEarnerRank}</span>
-						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
-						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
-					</div>
-					<span class="text-right text-[13px] font-medium font-mono text-[var(--text-accent)] tabular-nums">${(currentMinerEarner.totalEarned * periodMultiplier).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{currentMinerEarner.networkCount}</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{currentMinerEarner.avgUptime.toFixed(1)}%</span>
-					<span class="flex justify-end">
-						{#if tr.type === 'neutral'}<Minus size={12} class="text-[var(--text-tertiary)]" />
-						{:else if tr.type === 'up'}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--success)]"><ArrowUp size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{:else}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--error)]"><ArrowDown size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{/if}
-					</span>
-				</a>
-			{/if}
-			{#if topEarners.length === 0}<div class="py-16 text-center text-[13px] text-[var(--text-tertiary)]">No miner data yet.</div>{/if}
+			</Card>
 		{/if}
-
-		{#if tab === 'uptime'}
-			<div class="grid items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px">
-				<span>#  Miner</span><span class="text-right">Uptime</span><span class="text-right">Projects</span><span class="text-right">Earned</span><span class="text-right">Trend</span>
-			</div>
-			{#each bestUptime as miner, i}
-				{@const rank = i + 1}
-				{@const color = RANK_COLORS[rank] ?? 'var(--text-tertiary)'}
-				{@const tr = trendData(rank, pseudoTrend(miner.minerId + 'uptime', rank))}
-				<a href="/miners/{miner.minerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--surface-2)] transition-colors no-underline" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px; {miner.minerId === currentMinerId ? 'background:var(--accent-subtle)' : ''}">
-					<div class="flex items-center gap-4 min-w-0">
-						<span class="text-[13px] font-semibold font-mono w-5 shrink-0" style="color:{color}">{rank}</span>
-						<img src={minerAvatarDataUri(miner.minerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
-						<span class="text-[13px] text-[var(--text-primary)] font-mono truncate">{miner.minerId}</span>
+	{:else}
+		{@const metric = tab}
+		{#if board.loading}
+			<LoadingBlock rows={8} height="52px" />
+		{:else if board.error}
+			<ErrorState error={board.error} retry={board.refresh} />
+		{:else if items.length === 0}
+			<EmptyState
+				illustration="bee"
+				title="No miners ranked yet"
+				description="Rankings fill in as miners earn compute units in committee rounds. Subscribe a device to a project to get on the board."
+			>
+				<a href="/discover" class="btn-secondary">Browse projects</a>
+			</EmptyState>
+		{:else}
+			<Card padding="p-0" class="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+				<div class="min-w-[420px]">
+					<div class="grid items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]" style={metricCols}>
+						<span>#  Miner</span>
+						<span class="text-right">{VALUE_HEADER[metric]}</span>
+						<span class="text-right">Devices</span>
 					</div>
-					<span class="text-right text-[14px] font-semibold font-mono" style="color:{color}">{miner.avgUptime.toFixed(1)}%</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{miner.networkCount}</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">${miner.totalEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-					<span class="flex justify-end">
-						{#if tr.type === 'neutral'}<Minus size={12} class="text-[var(--text-tertiary)]" />
-						{:else if tr.type === 'up'}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--success)]"><ArrowUp size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{:else}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--error)]"><ArrowDown size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{/if}
-					</span>
-				</a>
-			{/each}
-			<!-- Pinned "Your position" for uptime -->
-			{#if currentMinerId && !isUptimeInTop25 && currentMinerUptime && currentMinerUptimeRank}
-				{@const tr = trendData(currentMinerUptimeRank, pseudoTrend(currentMinerId + 'uptime', currentMinerUptimeRank))}
-				<div class="px-4 py-1.5 border-b border-[var(--border-default)]">
-					<span class="text-[10px] text-[var(--text-tertiary)]">···</span>
+					{#each items as row (row.address)}
+						{@const color = RANK_COLORS[row.rank] ?? 'var(--text-tertiary)'}
+						{@const isMe = me === row.address.toLowerCase()}
+						<a
+							href="/profiles/{row.address.toLowerCase()}"
+							class="grid items-center px-4 py-3 border-b border-[var(--border-default)] last:border-b-0 hover:bg-[var(--surface-2)] transition-colors no-underline"
+							style="{metricCols}; {isMe ? 'background:var(--accent-subtle)' : ''}"
+						>
+							<div class="flex items-center gap-4 min-w-0">
+								<span class="text-[13px] font-semibold font-mono w-5 shrink-0 tabular-nums" style="color:{isMe ? 'var(--text-accent)' : color}">{row.rank}</span>
+								<img src={minerAvatarDataUri(row.address)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
+								<span class="text-[13px] font-mono truncate {isMe ? 'text-[var(--text-accent)]' : 'text-[var(--text-primary)]'}">
+									{shortAddress(row.address)}{#if isMe} <span class="text-[10px] font-sans">(You)</span>{/if}
+								</span>
+							</div>
+							<span class="text-right text-[13px] font-medium font-mono tabular-nums truncate" style="color:{isMe ? 'var(--text-accent)' : color}">{formatValue(metric, row.value)}</span>
+							<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{formatNumber(row.devices)}</span>
+						</a>
+					{/each}
 				</div>
-				<a href="/miners/{currentMinerId}" class="grid items-center px-4 py-3 border-b border-[var(--border-default)] no-underline cursor-pointer bg-[var(--accent-subtle)]" style="grid-template-columns:1fr 100px 80px 100px 50px; gap:0 16px">
-					<div class="flex items-center gap-4 min-w-0">
-						<span class="text-[13px] font-semibold font-mono w-5 shrink-0 text-[var(--text-accent)] tabular-nums">{currentMinerUptimeRank}</span>
-						<img src={minerAvatarDataUri(currentMinerId)} alt="" class="w-7 h-7 shrink-0 hex-avatar" loading="lazy" />
-						<span class="text-[13px] text-[var(--text-accent)] font-mono truncate">{currentMinerId} <span class="text-[10px] font-sans">(You)</span></span>
-					</div>
-					<span class="text-right text-[14px] font-semibold font-mono text-[var(--text-accent)]">{currentMinerUptime.avgUptime.toFixed(1)}%</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">{currentMinerUptime.networkCount}</span>
-					<span class="text-right text-[12px] text-[var(--text-secondary)] font-mono">${currentMinerUptime.totalEarned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-					<span class="flex justify-end">
-						{#if tr.type === 'neutral'}<Minus size={12} class="text-[var(--text-tertiary)]" />
-						{:else if tr.type === 'up'}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--success)]"><ArrowUp size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{:else}<span class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--error)]"><ArrowDown size={10} strokeWidth={2.5} />{tr.diff}</span>
-						{/if}
-					</span>
-				</a>
-			{/if}
-			{#if bestUptime.length === 0}<div class="py-16 text-center text-[13px] text-[var(--text-tertiary)]">No miner data yet.</div>{/if}
+			</Card>
 		{/if}
-
-		</div>
-	</Card>
+	{/if}
 </div>
