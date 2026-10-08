@@ -25,8 +25,8 @@
 
 	const checklist = $derived([
 		{ label: 'Signed manifest submitted', done: true },
-		{ label: 'Registered on-chain (ProjectRegistry.register)', done: !!p.registry_tx },
-		{ label: 'Vault deployed and funded', done: !!p.economics?.vault?.deployed && p.economics?.vault?.balance !== '0' },
+		{ label: 'Registered on-chain (ProjectRegistry, relayed without gas)', done: !!p.registry_tx },
+		{ label: 'Vault deployed and funded (creating the vault needs a little Sepolia ETH)', done: !!p.economics?.vault?.deployed && !!p.economics?.vault?.balance && p.economics.vault.balance !== '0' },
 		{ label: 'Approved by the network operator', done: listed || p.listing_status === 'paused' }
 	]);
 
@@ -63,10 +63,14 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	{#each pendingQ.data ?? [] as pt (pt.draft_id)}
+	{#each (pendingQ.data ?? []).filter((pt) => !(pt.kind === 'register' && p.registry_tx)) as pt (pt.draft_id)}
 		<div class="bg-[var(--surface-1)] border border-[var(--border-accent)] rounded-[8px] p-5">
 			<h3 class="text-[14px] font-semibold mb-1">{pt.kind === 'register' ? 'Finish registration' : `Publish version ${pt.version} on-chain`}</h3>
-			<p class="text-[12px] text-[var(--text-secondary)] mb-3">You skipped sending this transaction earlier. The project stays {pt.kind === 'register' ? 'unregistered' : 'pending'} until it confirms.</p>
+			<p class="text-[12px] text-[var(--text-secondary)] mb-3">
+				{pt.kind === 'register'
+					? 'The gasless registration did not complete. Send the registration from your wallet (needs a little Sepolia ETH); the project stays unregistered until it confirms.'
+					: 'You skipped sending this transaction earlier. The version stays pending until it confirms.'}
+			</p>
 			<TxRequestCard tx={pt.tx} onsent={() => forgetPending(pt.draft_id)} />
 		</div>
 	{/each}

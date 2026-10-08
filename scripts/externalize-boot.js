@@ -12,7 +12,12 @@ import { join } from 'node:path';
 
 const INLINE = /<script>([\s\S]*?)<\/script>/g;
 
+/**
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function htmlFiles(dir) {
+	/** @type {string[]} */
 	const out = [];
 	for (const name of readdirSync(dir)) {
 		const p = join(dir, name);
@@ -22,12 +27,17 @@ function htmlFiles(dir) {
 	return out;
 }
 
-/** Rewrites `dir`'s HTML files in place; returns the number of scripts moved. */
+/**
+ * Rewrites `dir`'s HTML files in place; returns the number of scripts moved.
+ * @param {string} dir
+ * @param {string} [appDir]
+ * @returns {number}
+ */
 export function externalizeBoot(dir, appDir = '_app') {
 	let moved = 0;
 	for (const file of htmlFiles(dir)) {
 		const html = readFileSync(file, 'utf8');
-		const next = html.replace(INLINE, (_m, body) => {
+		const next = html.replace(INLINE, (/** @type {string} */ _m, /** @type {string} */ body) => {
 			if (/import\(\s*["']\.\.?\//.test(body)) {
 				throw new Error(`${file}: boot script uses relative imports; set kit.paths.relative = false`);
 			}
@@ -46,10 +56,16 @@ export function externalizeBoot(dir, appDir = '_app') {
 	return moved;
 }
 
-/** Wraps a SvelteKit adapter so its output is post-processed by `externalizeBoot`. */
+/**
+ * Wraps a SvelteKit adapter so its output is post-processed by `externalizeBoot`.
+ * @param {import('@sveltejs/kit').Adapter} adapter
+ * @param {string} outDir
+ * @returns {import('@sveltejs/kit').Adapter}
+ */
 export function withExternalBoot(adapter, outDir) {
 	return {
 		...adapter,
+		/** @param {import('@sveltejs/kit').Builder} builder */
 		async adapt(builder) {
 			await adapter.adapt(builder);
 			const n = externalizeBoot(outDir);

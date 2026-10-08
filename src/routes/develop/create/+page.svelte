@@ -4,15 +4,15 @@
   import { page } from '$app/state';
   import toast from 'svelte-french-toast';
   import {
-    ArrowLeft, ArrowRight, Cpu, Upload, X, Image as ImageIcon, Package, Check, AlertTriangle, Fuel, Cloud, Lock,
+    ArrowLeft, ArrowRight, Cpu, Upload, X, Image as ImageIcon, Package, Check, AlertTriangle, Fuel, Lock,
   } from 'lucide-svelte';
   import { hub } from '$lib/api/hub';
   import { errorMessage } from '$lib/api/http';
   import { useQuery } from '$lib/api/query.svelte';
-  import type { Category, DeviceClass, Engine, Manifest, Module, TxRequest } from '$lib/api/types';
-  import { account, signedIn, sendTransaction } from '$lib/stores/wallet';
+  import type { Category, DeviceClass, Engine, Manifest, Module } from '$lib/api/types';
+  import { account, signedIn } from '$lib/stores/wallet';
   import { descriptor, loadDescriptor, loadParams } from '$lib/stores/network';
-  import { publishProject, ManifestRejected } from '$lib/flows';
+  import { publishProject, ManifestRejected, type Registration } from '$lib/flows';
   import {
     validateManifest, paramsFromHub, sortedUnique, EPOCH_SECS_ALLOWED, DEVICE_CLASSES, ENGINES, TESTNET_PARAMS,
     type ManifestParams, type ManifestProblem,
@@ -334,9 +334,11 @@
 
   // ── Vault + Hub validation on the review step ──
   let checking = $state(false);
+  let autoChecked = $state<string | null>(null);
   async function checkWithHub() {
     if (!pid) return;
     checking = true;
+    autoChecked = canonical ?? null;
     try {
       if (!vault) {
         const prep = await hub.prepareManifest(built().manifest);
@@ -346,6 +348,8 @@
           const hint = prep.problems.find((p) => p.path === 'consensus.economics.vault')?.message.match(/0x[0-9a-fA-F]{40}/)?.[0];
           v = hint;
         }
+        // A Hub without the vault contracts configured neither names nor checks the vault: keep the manifest's own.
+        if (!v && prep.valid) v = ZERO_ADDRESS;
         if (v) vaultCache = { pid, vault: v.toLowerCase() };
       }
       const m = built().manifest;
@@ -360,7 +364,8 @@
   }
 
   $effect(() => {
-    if (step === LAST && pid && !vault && !checking && enrolled) void checkWithHub();
+    // Once per manifest content: a manifest the Hub rejects must not be re-sent in a loop.
+    if (step === LAST && pid && !vault && !checking && enrolled && autoChecked !== (canonical ?? null)) void checkWithHub();
   });
 
   // ── Drafts ──
@@ -435,10 +440,9 @@
   }
 
   // ── Publish ──
-  let sendNow = $state(true);
   let publishing = $state(false);
   let progress = $state('');
-  let published = $state<{ projectId: string; tx: TxRequest | null; pendingDraft: string | null } | null>(null);
+  let published = $state<{ projectId: string; registration: Registration; pendingDraft: string | null } | null>(null);
 
   const canPublish = $derived(problems.length === 0 && !!vault && !!pid && enrolled && !publishing);
 
@@ -454,25 +458,19 @@
     publishing = true;
     progress = '';
     try {
-      const res = await publishProject(built().manifest, (l) => (progress = l), { sendRegisterTx: false });
+      const res = await publishProject(built().manifest, (l) => (progress = l));
       const projectIdOut = res.project.project_id;
+      const reg = res.registration;
       let pendingDraft: string | null = null;
-      if (res.registerTx) {
-        try { pendingDraft = (await savePendingTx(projectIdOut, 'register', 1, res.registerTx)).draft_id; } catch { /* still shown below */ }
+      // Not registered yet and the Hub offered a wallet transaction: keep it so it can be sent from the dashboard.
+      if (reg.mode === 'pending' && reg.tx) {
+        try { pendingDraft = (await savePendingTx(projectIdOut, 'register', 1, reg.tx)).draft_id; } catch { /* still shown below */ }
       }
       if (draftId) { await hub.deleteDraft(draftId).catch(() => {}); draftId = null; }
-      published = { projectId: projectIdOut, tx: res.registerTx ?? null, pendingDraft };
-      if (sendNow && res.registerTx) {
-        progress = 'Confirm the registry transaction in your wallet';
-        try {
-          const hash = await sendTransaction(res.registerTx);
-          await finishTx(hash);
-        } catch (e) {
-          toast.error(`Manifest submitted, but the transaction was not sent: ${errorMessage(e)}`);
-        }
-      } else {
-        toast.success('Manifest signed and submitted');
-      }
+      published = { projectId: projectIdOut, registration: reg, pendingDraft };
+      if (reg.mode === 'relayed') toast.success('Signed, submitted and registered (gasless)');
+      else if (reg.mode === 'not_required') toast.success('Manifest signed and submitted');
+      else toast.error(reg.error ? `Manifest submitted, but not registered yet: ${reg.error}` : 'Manifest submitted; registration still needed');
     } catch (e) {
       if (e instanceof ManifestRejected) {
         const c = canonical;
@@ -554,16 +552,31 @@
       <div class="flex flex-col gap-4">
         <div class="n-card text-center bg-honeycomb">
           <img src="/brand/3d/mining-platform.png" alt="" class="w-24 h-auto mx-auto mb-3 opacity-90" />
-          <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Manifest signed and submitted</h3>
-          <p class="text-[12px] text-[var(--text-secondary)] max-w-[440px] mx-auto leading-[18px]">
-            Version 1 must be registered on-chain with <span class="font-mono">ProjectRegistry.register</span>. After the transaction confirms, the Hub indexes it and the project moves to operator review.
-          </p>
+          {#if published.registration.mode === 'relayed'}
+            <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Submitted and registered</h3>
+            <p class="text-[12px] text-[var(--text-secondary)] max-w-[440px] mx-auto leading-[18px]">
+              The network relayed <span class="font-mono">ProjectRegistry.registerBySig</span> for you — no ETH spent. Once the transaction is indexed the project moves to operator review.
+            </p>
+            {#if published.registration.status.tx_hash}
+              <p class="text-[11px] text-[var(--text-tertiary)] mt-2 font-mono flex items-center justify-center gap-1.5">tx <CopyText value={published.registration.status.tx_hash} /></p>
+            {/if}
+          {:else if published.registration.mode === 'not_required'}
+            <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Manifest signed and submitted</h3>
+            <p class="text-[12px] text-[var(--text-secondary)] max-w-[440px] mx-auto leading-[18px]">
+              This network registers projects without a chain transaction. The project moves to operator review.
+            </p>
+          {:else}
+            <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1">Submitted — registration still needed</h3>
+            <p class="text-[12px] text-[var(--text-secondary)] max-w-[440px] mx-auto leading-[18px]">
+              Version 1 is not on <span class="font-mono">ProjectRegistry</span> yet{published.registration.error ? ` (${published.registration.error})` : ''}. The project stays unregistered until it is.
+            </p>
+          {/if}
           <p class="text-[11px] text-[var(--text-tertiary)] mt-2 font-mono flex items-center justify-center gap-1.5">project_id <CopyText value={published.projectId} /></p>
         </div>
-        {#if published.tx}
-          <TxRequestCard tx={published.tx} title="Registration transaction" onsent={finishTx} />
+        {#if published.registration.mode === 'pending' && published.registration.tx}
+          <TxRequestCard tx={published.registration.tx} title="Register from your wallet instead" onsent={finishTx} />
           <p class="text-[11px] text-[var(--text-tertiary)]">
-            Not ready to pay gas? It is saved to your private drafts; send it later from the project dashboard.
+            The gasless registration could not be completed. You can send the registration from your own wallet (needs a little Sepolia ETH); it is also saved to your private drafts so you can send it later from the project dashboard.
           </p>
         {/if}
         <div class="flex justify-end">
@@ -1218,26 +1231,12 @@
         <div class="n-card">
           <h3 class="section-title mb-2">Sign & Publish</h3>
           <p class="text-[12px] text-[var(--text-secondary)] leading-[18px] mb-3">
-            Your wallet signs the exact manifest bytes (free). Version 1 is then registered on-chain with <span class="font-mono">ProjectRegistry.register</span>, a transaction from your wallet that needs a little Sepolia ETH for gas.
+            Your wallet signs the exact manifest bytes, then a registration message (both free). The network relays
+            the on-chain registration (<span class="font-mono">ProjectRegistry.registerBySig</span>) for you, so publishing needs no ETH.
           </p>
-          <button
-            type="button"
-            onclick={() => { sendNow = !sendNow; }}
-            class="w-full flex items-center justify-between p-3 rounded-[6px] cursor-pointer text-left mb-3"
-            style="border:{sendNow ? '1px solid var(--border-accent)' : '1px solid var(--border-default)'};background:{sendNow ? 'var(--accent-subtle)' : 'var(--surface-2)'}"
-          >
-            <span class="flex items-center gap-2">
-              <Fuel size={14} strokeWidth={1.5} style="color:{sendNow ? 'var(--text-accent)' : 'var(--text-tertiary)'}" />
-              <span>
-                <span class="block text-[12px] font-semibold" style="color:{sendNow ? 'var(--text-accent)' : 'var(--text-primary)'}">Send the registration transaction now</span>
-                <span class="block text-[11px] text-[var(--text-tertiary)]">Off: sign and submit only; the transaction data is kept so you can send it later.</span>
-              </span>
-            </span>
-            <span class="text-[12px] font-medium" style="color:{sendNow ? 'var(--text-accent)' : 'var(--text-tertiary)'}">{sendNow ? 'On' : 'Off'}</span>
-          </button>
           <div class="flex items-start gap-2 p-3 rounded-[6px] bg-[var(--surface-2)] text-[11px] text-[var(--text-tertiary)] leading-[16px]">
-            <Cloud size={13} strokeWidth={1.5} class="shrink-0 mt-px" />
-            <span>Before miners can be paid, the reward vault is created and funded with {tokenSymbol}. Doing that from the portal is <span class="text-[var(--text-secondary)] font-medium">coming soon</span>.</span>
+            <Fuel size={13} strokeWidth={1.5} class="shrink-0 mt-px" />
+            <span>Before miners can be paid, the reward vault is created and funded with {tokenSymbol}. Creating the vault is a transaction from your wallet and <span class="text-[var(--text-secondary)] font-medium">needs a little Sepolia ETH</span> — it has no gasless path. Doing it from the portal is <span class="text-[var(--text-secondary)] font-medium">coming soon</span>.</span>
           </div>
           {#if progress}
             <p class="text-[12px] text-[var(--text-accent)] mt-3">{progress}…</p>

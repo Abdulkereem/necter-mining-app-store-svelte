@@ -67,6 +67,14 @@ test('SIWE sign-in, faucet and gasless subscribe end to end', async ({ page }) =
 	await expect(page).toHaveURL(/\/mining\/0x[0-9a-f]{64}$/, { timeout: 30_000 });
 	await expect(page.getByText(/Active/).first()).toBeVisible();
 
+	// Errata E10: gasless payout change from the subscription page.
+	const payout = page.getByTestId('payout-address');
+	await payout.getByTestId('payout-edit').click();
+	await payout.getByTestId('payout-input').fill('0x' + 'ab'.repeat(20));
+	await payout.getByTestId('payout-submit').click();
+	await expect(page.getByText(/Payout change submitted|Payout address changed/)).toBeVisible();
+	await expect(payout).toContainText('0xabab');
+
 	await page.goto('/mining/devices');
 	await expect(page.getByText('Pixel 8')).toBeVisible();
 });

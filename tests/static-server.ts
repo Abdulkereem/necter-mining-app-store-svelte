@@ -10,7 +10,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
-// @ts-expect-error plain ESM module without type declarations
 import { localCsp, webCsp } from '../deploy/csp.mjs';
 
 const HUB = process.env.HUB_URL ?? 'http://127.0.0.1:4517';

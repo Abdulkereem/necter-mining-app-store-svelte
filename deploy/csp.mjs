@@ -3,7 +3,11 @@
 
 export const DEFAULT_HUB = 'https://testnet-rpc.necter.network';
 
-/** `https://host[:port]` → `wss://host[:port]` (the Hub relay origin, PLATFORM.md §k). */
+/**
+ * `https://host[:port]` → `wss://host[:port]` (the Hub relay origin, PLATFORM.md §k).
+ * @param {string} hubOrigin
+ * @returns {string}
+ */
 export function relayOrigin(hubOrigin) {
 	return hubOrigin.replace(/^http/, 'ws');
 }
@@ -12,6 +16,9 @@ export function relayOrigin(hubOrigin) {
  * PLATFORM.md errata E8 — the exact header the miner sends with the local build (127.0.0.1:7878 and the desktop
  * app). The local build reaches the Hub through the same-origin `/rpc` proxy, but the policy still names the
  * Hub origins as the spec does.
+ * @param {string} [hubOrigin]
+ * @param {string} [relay]
+ * @returns {string}
  */
 export function localCsp(hubOrigin = DEFAULT_HUB, relay = relayOrigin(hubOrigin)) {
 	return [
@@ -42,6 +49,9 @@ export const WALLETCONNECT_FRAMES = ['https://verify.walletconnect.com', 'https:
  * The web store (testnet.necter.network): the local policy for the web origin — same script/style/font/img rules
  * (no 'unsafe-inline' scripts, self-hosted fonts) — plus the WalletConnect endpoints and the public Sepolia RPC
  * the WalletConnect provider reads from.
+ * @param {string} [hubOrigin]
+ * @param {string} [sepoliaRpc]
+ * @returns {string}
  */
 export function webCsp(hubOrigin = DEFAULT_HUB, sepoliaRpc = 'https://ethereum-sepolia-rpc.publicnode.com') {
 	return [

@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-// @ts-expect-error plain ESM helpers without type declarations
 import { localCsp, webCsp } from '../../deploy/csp.mjs';
-// @ts-expect-error plain ESM helpers without type declarations
 import { externalizeBoot } from '../../scripts/externalize-boot.js';
 
 const root = process.cwd();
