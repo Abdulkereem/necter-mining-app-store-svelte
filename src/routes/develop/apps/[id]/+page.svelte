@@ -1,475 +1,172 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { backendState, backend } from '$lib/stores/backend';
-  import { actor, showConnectModal } from '$lib/stores/wallet';
-  import { getAppIcon } from '$lib/app-icon';
-  import { minerAvatarDataUri } from '$lib/miner-avatar';
-  import {
-    ArrowLeft, Send, ExternalLink, CheckCircle2, Circle, Clock,
-    Shield, DollarSign, Package, BarChart3, Users, Settings, Eye, Megaphone,
-  } from 'lucide-svelte';
-  import AreaChart from '$lib/components/AreaChart.svelte';
+	import toast from 'svelte-french-toast';
+	import { CheckCircle2, Circle, Clock, Play, Loader2 } from 'lucide-svelte';
+	import { hub } from '$lib/api/hub';
+	import { useQuery } from '$lib/api/query.svelte';
+	import { errorMessage } from '$lib/api/http';
+	import { devProject } from '$lib/develop/context';
+	import { pendingTxsFor } from '$lib/develop/pending-tx';
+	import { bpToPercent, formatMs, formatNumber, formatToken, formatRating, formatDateTime, timeAgo } from '$lib/format';
+	import AreaChart from '$lib/components/AreaChart.svelte';
+	import TxRequestCard from '$lib/components/develop/TxRequestCard.svelte';
 
-  // Mock revenue data (30 days)
-  const revenueChartLabels = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (29 - i));
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  });
-  const revenueChartData = Array.from({ length: 30 }, (_, i) => +(12 + Math.sin(i * 0.35) * 6 + Math.random() * 4).toFixed(2));
+	const ctx = devProject();
+	const p = $derived(ctx.project);
+	const pid = $derived(p.project_id);
 
-  // Mock miner growth data (12 weeks)
-  const minerGrowthLabels = Array.from({ length: 12 }, (_, i) => `W${i + 1}`);
-  const minerGrowthData = Array.from({ length: 12 }, (_, i) => Math.floor(8 + i * 3.5 + Math.sin(i * 0.6) * 4 + Math.random() * 3));
+	const healthQ = useQuery(() => hub.health(pid));
+	const analyticsQ = useQuery(() => hub.analytics(pid, '7d'));
+	const pendingQ = useQuery(() => pendingTxsFor(pid));
+	const simsQ = useQuery(() => hub.simulations(pid));
 
-  const id = $derived($page.params.id);
-  const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
-  const listingStatus = $derived($backendState.listingStatusByAppId[id!] ?? 'draft');
-  const devWalletAddress = $derived($actor?.walletAddress ?? null);
+	const s = $derived(p.stats);
+	const series = $derived(analyticsQ.data?.series ?? []);
+	const listed = $derived(p.listing_status === 'listed');
 
-  let activeTab = $state('overview');
+	const checklist = $derived([
+		{ label: 'Signed manifest submitted', done: true },
+		{ label: 'Registered on-chain (ProjectRegistry.register)', done: !!p.registry_tx },
+		{ label: 'Vault deployed and funded', done: !!p.economics?.vault?.deployed && p.economics?.vault?.balance !== '0' },
+		{ label: 'Approved by the network operator', done: listed || p.listing_status === 'paused' }
+	]);
 
-  const iconSrc = $derived(
-    getAppIcon({ id: id!, name: app?.name ?? '', icon: app?.icon, category: app?.category })
-  );
-  const subs = $derived($backendState.subscriptions.filter((s) => s.appId === id));
-  const activeMiners = $derived(subs.filter((s) => s.status === 'active').length);
-  const proofs = $derived($backendState.proofs.filter((p) => p.appId === id));
-  const verifiedProofs = $derived(proofs.filter((p) => p.status === 'verified').length);
-  const totalEarned = $derived(proofs.filter((p) => p.status === 'verified').reduce((s, p) => s + p.reward, 0));
-  const reviews = $derived((app)?.reviews ?? []);
-  const avgRating = $derived(reviews.length > 0 ? (reviews.reduce((s: any, r: any) => s + r.rating, 0) / reviews.length).toFixed(1) : '—');
-  const isDraft = $derived(listingStatus === 'draft');
-  const isReview = $derived(listingStatus === 'pending_governance');
-  const isLive = $derived(listingStatus === 'listed' || listingStatus === 'beta');
+	let fn = $state('');
+	let input = $state('{}');
+	let running = $state(false);
+	$effect(() => {
+		if (!fn) fn = p.consensus.work.functions[0] ?? '';
+	});
 
-  // Draft checklist
-  const hasDescription = $derived((app?.description ?? '').length > 20);
-  const hasIcon = $derived(!!app?.icon && app.icon !== '/placeholder.svg');
-  const hasScreenshots = $derived(Array.isArray(app?.screenshots) && app.screenshots.length > 0);
-  const hasFeatures = $derived(Array.isArray(app?.features) && app.features.length > 0);
-  const hasEconomics = $derived((app?.avgEarningsPerDay ?? 0) > 0);
-  const checklist = $derived([
-    { label: 'Description', done: hasDescription },
-    { label: 'Icon', done: hasIcon },
-    { label: 'Screenshots', done: hasScreenshots },
-    { label: 'Features', done: hasFeatures },
-    { label: 'Economics', done: hasEconomics },
-  ]);
-  const readyCount = $derived(checklist.filter((c) => c.done).length);
+	async function runSim() {
+		running = true;
+		try {
+			let parsed: unknown = input;
+			try {
+				parsed = JSON.parse(input);
+			} catch {
+				/* send as a raw string */
+			}
+			const sim = await hub.runSimulation(pid, [{ function: fn, input: parsed }]);
+			toast.success(sim.status === 'running' ? 'Simulation started' : `Simulation ${sim.status}`);
+			await simsQ.refresh();
+		} catch (e) {
+			toast.error(errorMessage(e));
+		} finally {
+			running = false;
+		}
+	}
 
-  function handleSubmitForReview() {
-    if (!devWalletAddress || !app) return;
-    try {
-      const ver = backend.getDeveloperVerification(devWalletAddress);
-      if (!ver || ver.status !== 'verified') {
-        try { backend.requestDeveloperVerification({ walletAddress: devWalletAddress }); } catch {}
-        try { backend.reviewDeveloperVerification({ walletAddress: devWalletAddress, status: 'verified' }); } catch {}
-      }
-      backend.publishAppDraft({ app, listingStatus: 'pending_governance' });
-    } catch (e) {
-      console.error('Submit for review failed:', e);
-    }
-  }
-
-  const tabs = $derived(
-    isDraft
-      ? [{ id: 'overview', label: 'Overview' }, { id: 'settings', label: 'Settings' }]
-      : isReview
-        ? [{ id: 'overview', label: 'Overview' }]
-        : [{ id: 'overview', label: 'Overview' }, { id: 'analytics', label: 'Analytics' }, { id: 'miners', label: 'Miners' }, { id: 'versions', label: 'Versions' }, { id: 'settings', label: 'Settings' }]
-  );
-
-  // Analytics tab mock data
-  const revenueData = $derived(
-    app ? Array.from({ length: 30 }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (29 - i));
-      const base = app.avgEarningsPerDay * (0.6 + Math.random() * 0.8);
-      return { date: d.toISOString().slice(5, 10), revenue: Number(base.toFixed(2)), miners: Math.max(1, Math.floor(activeMiners * (0.7 + Math.random() * 0.6))) };
-    }) : []
-  );
-  const pendingCount = $derived(proofs.filter((p) => p.status === 'pending').length);
-  const rejectedCount = $derived(proofs.filter((p) => p.status === 'rejected').length);
-
-  // Announcement form
-  let announcementText = $state('');
-  function handlePostAnnouncement() {
-    if (!announcementText.trim()) return;
-    announcementText = '';
-  }
-
+	async function forgetPending(draftId: string) {
+		await hub.deleteDraft(draftId).catch(() => undefined);
+		await Promise.all([pendingQ.refresh(), ctx.refresh()]);
+	}
 </script>
 
-{#if !app}
-  <div class="min-h-screen animate-fadeIn">
-    <div class="p-6">
-      <p class="text-[13px] text-[var(--text-secondary)]">Project not found.</p>
-      <a href="/develop" class="text-[13px] text-[var(--text-accent)] no-underline">Back to Dashboard</a>
-    </div>
-  </div>
-{:else}
-  <div class="min-h-screen animate-fadeIn">
-    <div class="max-w-[960px] mx-auto p-6">
+<div class="flex flex-col gap-4">
+	{#each pendingQ.data ?? [] as pt (pt.draft_id)}
+		<div class="bg-[var(--surface-1)] border border-[var(--border-accent)] rounded-[8px] p-5">
+			<h3 class="text-[14px] font-semibold mb-1">{pt.kind === 'register' ? 'Finish registration' : `Publish version ${pt.version} on-chain`}</h3>
+			<p class="text-[12px] text-[var(--text-secondary)] mb-3">You skipped sending this transaction earlier. The project stays {pt.kind === 'register' ? 'unregistered' : 'pending'} until it confirms.</p>
+			<TxRequestCard tx={pt.tx} onsent={() => forgetPending(pt.draft_id)} />
+		</div>
+	{/each}
 
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-5">
-        <div class="flex items-center gap-3">
-          <a href="/develop" class="w-7 h-7 flex items-center justify-center rounded-[5px] no-underline">
-            <ArrowLeft class="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
-          </a>
-          <img src={iconSrc} alt={app.name} width="44" height="44" class="rounded-[12px]" />
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-[18px] font-semibold text-[var(--text-primary)]">{app.name}</h1>
-              <span class="text-[11px] font-medium px-2 py-0.5 rounded-[3px]" style="background: {isLive ? 'rgba(76,183,130,0.12)' : isReview ? 'rgba(242,153,74,0.12)' : 'var(--surface-3)'}; color: {isLive ? 'var(--success)' : isReview ? 'var(--warning)' : 'var(--text-secondary)'};">
-                {isLive ? 'Live' : isReview ? 'In Review' : 'Draft'}
-              </span>
-            </div>
-            <p class="text-[12px] text-[var(--text-tertiary)]">{app.category}</p>
-          </div>
-        </div>
-        {#if isLive}
-          <a href="/apps/{id}" class="inline-flex items-center gap-1 h-7 px-2.5 rounded-[5px] text-[12px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] no-underline">
-            <Eye size={12} strokeWidth={1.5} /> View on Store
-          </a>
-        {/if}
-        {#if isDraft}
-          <a href="/develop/apps/{id}/preview" class="inline-flex items-center gap-1 h-7 px-2.5 rounded-[5px] text-[12px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] no-underline">
-            <Eye size={12} strokeWidth={1.5} /> Preview
-          </a>
-        {/if}
-      </div>
+	{#if !listed}
+		<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+			<h3 class="text-[14px] font-semibold text-[var(--text-primary)] mb-3">Launch checklist</h3>
+			<div class="space-y-2">
+				{#each checklist as c (c.label)}
+					<div class="flex items-center gap-2 text-[13px]">
+						{#if c.done}<CheckCircle2 class="h-4 w-4 text-[var(--success)]" />{:else}<Circle class="h-4 w-4 text-[var(--text-tertiary)]" />{/if}
+						<span class={c.done ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}>{c.label}</span>
+					</div>
+				{/each}
+			</div>
+			{#if p.review?.reason}<p class="text-[12px] text-[var(--warning)] mt-3">Review note: {p.review.reason}</p>{/if}
+		</div>
+	{/if}
 
-      <!-- Tab bar -->
-      <div class="flex gap-1 mb-5 border-b border-[var(--border-default)]">
-        {#each tabs as t}
-          <button type="button" onclick={() => activeTab = t.id}
-            class="h-[34px] px-3.5 text-[13px] font-medium cursor-pointer border-none bg-transparent transition-all -mb-px" style="border-bottom: {activeTab === t.id ? '2px solid var(--accent-base)' : '2px solid transparent'}; color: {activeTab === t.id ? 'var(--text-primary)' : 'var(--text-tertiary)'}">
-            {t.label}
-          </button>
-        {/each}
-      </div>
+	{#if p.pending_version}
+		<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4 flex items-center gap-3">
+			<Clock class="h-4 w-4 text-[var(--warning)]" />
+			<p class="text-[13px]">Version {p.pending_version.version} ({p.pending_version.tiers_changed.join(', ')}) is {p.pending_version.status}{p.pending_version.effective_epoch != null ? `, effective from epoch ${p.pending_version.effective_epoch}` : ''}.</p>
+		</div>
+	{/if}
 
-      <!-- OVERVIEW TAB -->
-      {#if activeTab === 'overview'}
-        <div class="flex flex-col gap-4">
+	<div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+		{#each [
+			{ label: 'Miners (active)', value: `${formatNumber(s?.miners_active)} / ${formatNumber(s?.miners_subscribed)}` },
+			{ label: 'Rounds (7d)', value: formatNumber(s?.rounds) },
+			{ label: 'Units (7d)', value: formatNumber(s?.units) },
+			{ label: 'Paid to miners', value: s?.paid_to_miners ? formatToken(s.paid_to_miners, p.token, { maxFrac: 2, compact: true }) : '—' },
+			{ label: 'Rating', value: p.average_rating_x100 != null ? `${formatRating(p.average_rating_x100)} (${p.review_count ?? 0})` : '—' }
+		] as st (st.label)}
+			<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+				<p class="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">{st.label}</p>
+				<p class="text-[17px] font-semibold font-mono mt-1">{st.value}</p>
+			</div>
+		{/each}
+	</div>
 
-          <!-- DRAFT: Checklist + Submit -->
-          {#if isDraft}
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-[14px] font-semibold text-[var(--text-primary)]">Launch Checklist</h3>
-                <span class="text-[12px] font-mono" style="color: {readyCount === checklist.length ? 'var(--success)' : 'var(--text-secondary)'};">{readyCount}/{checklist.length}</span>
-              </div>
-              <div class="h-[3px] rounded-sm bg-[var(--surface-3)] mb-3.5">
-                <div class="h-[3px] rounded-sm transition-all" style="background: {readyCount === checklist.length ? 'var(--success)' : 'var(--accent-base)'}; width: {(readyCount / checklist.length) * 100}%; transition: width 300ms;"></div>
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                {#each checklist as item}
-                  <span class="inline-flex items-center gap-[5px] px-2.5 py-1 rounded text-[12px]" style="background: {item.done ? 'rgba(76,183,130,0.08)' : 'var(--surface-2)'}; color: {item.done ? 'var(--success)' : 'var(--text-tertiary)'};">
-                    {#if item.done}
-                      <CheckCircle2 size={12} strokeWidth={2} />
-                    {:else}
-                      <Circle size={12} strokeWidth={1.5} />
-                    {/if}
-                    {item.label}
-                  </span>
-                {/each}
-              </div>
-            </div>
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+		<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+			<h3 class="text-[14px] font-semibold mb-3">Tasks per day (7d)</h3>
+			{#if series.length > 1}
+				{#key series}<AreaChart data={series.map((x) => x.tasks ?? 0)} labels={series.map((x) => new Date((x.t ?? 0) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))} height={160} />{/key}
+			{:else}
+				<p class="text-[13px] text-[var(--text-secondary)]">No task history yet.</p>
+			{/if}
+		</div>
+		<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+			<h3 class="text-[14px] font-semibold mb-3">Health</h3>
+			{#if healthQ.data}
+				{@const h = healthQ.data}
+				<p class="text-[13px] capitalize font-medium" style="color:{h.status === 'healthy' ? 'var(--success)' : 'var(--warning)'}">{h.status ?? '—'}</p>
+				<div class="grid grid-cols-2 gap-2 mt-3 text-[12px]">
+					<span class="text-[var(--text-tertiary)]">Eligible miners</span><span class="font-mono text-right">{formatNumber(h.eligible_miners)}</span>
+					<span class="text-[var(--text-tertiary)]">Committee size</span><span class="font-mono text-right">{formatNumber(h.committee_size)}</span>
+					<span class="text-[var(--text-tertiary)]">Median finality</span><span class="font-mono text-right">{formatMs(h.median_finality_ms)}</span>
+					<span class="text-[var(--text-tertiary)]">Uptime (7d)</span><span class="font-mono text-right">{bpToPercent(s?.uptime_bp)}</span>
+				</div>
+				{#each h.issues ?? [] as issue}<p class="text-[12px] text-[var(--warning)] mt-2">• {issue}</p>{/each}
+			{:else}
+				<p class="text-[13px] text-[var(--text-secondary)]">—</p>
+			{/if}
+		</div>
+	</div>
 
-            <div class="flex items-center justify-between bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-              <div>
-                <p class="text-[13px] font-medium text-[var(--text-primary)]">Ready to go live?</p>
-                <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">Submit for governance review. Auto-approves in demo mode.</p>
-              </div>
-              <button type="button" onclick={handleSubmitForReview} class="h-8 px-4 rounded-[6px] text-[12px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5 shrink-0">
-                <Send size={12} strokeWidth={1.5} /> Submit for Review
-              </button>
-            </div>
-
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-              <p class="text-[12px] text-[var(--text-secondary)] leading-[18px]">{app.description || 'No description yet. Add one in Settings.'}</p>
-            </div>
-          {/if}
-
-          <!-- IN REVIEW: Waiting state -->
-          {#if isReview}
-            <div class="bg-[var(--surface-1)] border border-[var(--border-accent)] rounded-[8px] p-8 text-center">
-              <Clock size={32} strokeWidth={1.5} class="text-[var(--text-accent)] mx-auto mb-3" />
-              <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">Under Governance Review</h3>
-              <p class="text-[13px] text-[var(--text-tertiary)] max-w-[360px] mx-auto leading-5">
-                Reviewers are checking security, economics, and package integrity. This auto-approves in a few seconds in demo mode.
-              </p>
-              <div class="flex justify-center gap-1.5 mt-4">
-                {#each [0, 1, 2] as i}
-                  <div class="w-10 h-1 rounded-sm bg-[var(--surface-3)] overflow-hidden">
-                    <div class="w-full h-full bg-[var(--accent-base)]" style="animation: pulse 2s {i * 0.3}s infinite;"></div>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/if}
-
-          <!-- LIVE: Stats + Activity -->
-          {#if isLive}
-            <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
-              {#each [
-                { label: 'Miners', value: activeMiners.toLocaleString(), accent: false },
-                { label: 'Proofs', value: verifiedProofs.toLocaleString(), accent: false },
-                { label: 'Earned', value: `$${totalEarned.toFixed(0)}`, accent: true },
-                { label: 'Rating', value: avgRating, accent: false },
-              ] as s}
-                <div class="bg-[var(--surface-1)] px-4 py-3.5">
-                  <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{s.label}</span>
-                  <p class="text-[20px] font-semibold font-mono mt-1" style="color: {s.accent ? 'var(--text-accent)' : 'var(--text-primary)'}">{s.value}</p>
-                </div>
-              {/each}
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-                <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-2">About</h3>
-                <p class="text-[12px] text-[var(--text-secondary)] leading-[18px]">{app.description}</p>
-                {#if app.tags && app.tags.length > 0}
-                  <div class="flex gap-1 flex-wrap mt-2.5">
-                    {#each app.tags as t}
-                      <span class="text-[10px] font-medium px-2 py-0.5 rounded-[3px] bg-[var(--surface-3)] text-[var(--text-secondary)]">{t}</span>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
-              <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-                <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-2.5">Recent Activity</h3>
-                {#if subs.length === 0 && proofs.length === 0}
-                  <p class="text-[12px] text-[var(--text-tertiary)]">Waiting for miners...</p>
-                {:else}
-                  <div class="flex flex-col gap-1">
-                    {#each subs.slice(0, 4) as s}
-                      <div class="flex justify-between py-1 border-b border-[var(--border-default)] text-[12px]">
-                        <span class="text-[var(--text-secondary)]">Miner subscribed</span>
-                        <span class="text-[var(--text-tertiary)] font-mono">{new Date((s as any).subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      </div>
-                    {/each}
-                    {#each proofs.slice(0, 3) as p}
-                      <div class="flex justify-between py-1 border-b border-[var(--border-default)] text-[12px]">
-                        <span style="color: {p.status === 'verified' ? 'var(--success)' : 'var(--text-secondary)'};">Proof {p.status}</span>
-                        <span class="text-[var(--text-tertiary)] font-mono">${p.reward.toFixed(2)}</span>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
-            </div>
-
-            <!-- Announcements -->
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-2.5">Post an Update</h3>
-              <div>
-                <textarea bind:value={announcementText} placeholder="Write an update for your miners..." rows="2"
-                  class="w-full px-3 py-2.5 border border-[var(--border-default)] rounded-[6px] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] leading-5 resize-none outline-none font-inherit mb-2"></textarea>
-                <button type="button" onclick={handlePostAnnouncement}
-                  class="h-7 px-3 rounded-[5px] border-none bg-[var(--accent-base)] text-[#0C0C0E] text-[12px] font-semibold cursor-pointer">
-                  Post Update
-                </button>
-              </div>
-            </div>
-          {/if}
-        </div>
-      {/if}
-
-      <!-- ANALYTICS TAB -->
-      {#if activeTab === 'analytics'}
-        <div class="flex flex-col gap-4">
-          <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
-            {#each [
-              { label: 'Total Revenue', value: `$${totalEarned.toFixed(0)}`, accent: true },
-              { label: 'Avg Daily', value: `$${(app.avgEarningsPerDay ?? 0).toFixed(0)}`, accent: false },
-              { label: 'Proof Success', value: proofs.length > 0 ? `${Math.round((verifiedProofs / proofs.length) * 100)}%` : '—', accent: false },
-              { label: 'Active Miners', value: activeMiners.toLocaleString(), accent: false },
-            ] as s}
-              <div class="bg-[var(--surface-1)] px-4 py-3.5">
-                <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{s.label}</span>
-                <p class="text-[20px] font-semibold font-mono mt-1" style="color: {s.accent ? 'var(--text-accent)' : 'var(--text-primary)'}">{s.value}</p>
-              </div>
-            {/each}
-          </div>
-
-          <!-- Revenue chart placeholder -->
-          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-            <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-1">Revenue (30 days)</h3>
-            <p class="text-[11px] text-[var(--text-tertiary)] mb-3">Daily earnings from verified proofs</p>
-            <div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-0)] overflow-hidden">
-              <AreaChart data={revenueChartData} labels={revenueChartLabels} color="#FFBF00" height={208} />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <!-- Miner growth placeholder -->
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-1">Miner Growth (12 weeks)</h3>
-              <p class="text-[11px] text-[var(--text-tertiary)] mb-3">Weekly active miner count</p>
-              <div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-0)] overflow-hidden">
-                <AreaChart data={minerGrowthData} labels={minerGrowthLabels} color="#6E9FFF" height={160} />
-              </div>
-            </div>
-
-            <!-- Proof breakdown -->
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
-              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mb-3">Proof Breakdown</h3>
-              <div class="flex flex-col gap-2.5">
-                {#each [
-                  { label: 'Verified', count: verifiedProofs, color: 'var(--success)' },
-                  { label: 'Pending', count: pendingCount, color: 'var(--text-secondary)' },
-                  { label: 'Rejected', count: rejectedCount, color: 'var(--error)' },
-                ] as row}
-                  <div>
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-[12px] text-[var(--text-secondary)]">{row.label}</span>
-                      <span class="text-[13px] font-mono font-semibold text-[var(--text-primary)]">{row.count}</span>
-                    </div>
-                    <div class="h-1 rounded-sm bg-[var(--surface-3)]">
-                      <div class="h-1 rounded-sm" style="background: {row.color}; width: {proofs.length > 0 ? (row.count / proofs.length) * 100 : 0}%; transition: width 300ms;"></div>
-                    </div>
-                  </div>
-                {/each}
-              </div>
-
-              <h3 class="text-[12px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)] mt-4 mb-2">Recent Payouts</h3>
-              <div class="flex flex-col gap-0.5">
-                {#each proofs.filter((p) => p.status === 'verified').slice(0, 5) as p}
-                  <div class="flex justify-between py-1 border-b border-[var(--border-default)] text-[12px]">
-                    <span class="font-mono text-[var(--text-tertiary)]">{p.hash.slice(0, 10)}...</span>
-                    <span class="font-mono text-[var(--success)] font-medium">+${p.reward.toFixed(2)}</span>
-                  </div>
-                {/each}
-                {#if verifiedProofs === 0}
-                  <p class="text-[12px] text-[var(--text-tertiary)]">No payouts yet.</p>
-                {/if}
-              </div>
-            </div>
-          </div>
-        </div>
-      {/if}
-
-      <!-- MINERS TAB -->
-      {#if activeTab === 'miners'}
-        <div class="flex flex-col gap-4">
-          <div class="grid grid-cols-4 gap-px bg-[var(--border-default)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
-            {#each [
-              { label: 'Total', value: subs.length, color: null },
-              { label: 'Active', value: subs.filter((s) => s.status === 'active').length, color: 'var(--success)' },
-              { label: 'Paused', value: subs.filter((s) => s.status === 'paused').length, color: null },
-              { label: 'Avg Uptime', value: subs.length > 0 ? `${(subs.reduce((s, sub) => s + (sub.uptime || 0), 0) / subs.length).toFixed(1)}%` : '—', color: null },
-            ] as s}
-              <div class="bg-[var(--surface-1)] px-4 py-3.5">
-                <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{s.label}</span>
-                <p class="text-[20px] font-semibold font-mono mt-1" style="color: {s.color || 'var(--text-primary)'}">{s.value}</p>
-              </div>
-            {/each}
-          </div>
-          {#if subs.length > 0}
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] overflow-hidden">
-              <div class="grid px-4 py-2 border-b border-[var(--border-default)]" style="grid-template-columns: 1fr 100px 80px 80px 80px;">
-                {#each ['Miner', 'Subscribed', 'Status', 'Uptime', 'Earned'] as h}
-                  <span class="text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{h}</span>
-                {/each}
-              </div>
-              {#each subs as sub}
-                <div class="miner-row px-4 py-2.5 border-b border-[var(--border-default)] text-[12px] grid" style="grid-template-columns: 1fr 100px 80px 80px 80px;">
-                  <span class="font-mono text-[var(--text-primary)] flex items-center gap-2">
-                    <img src={minerAvatarDataUri(sub.minerId)} alt="" class="w-5 h-5 rounded shrink-0" />{sub.minerId}
-                  </span>
-                  <span class="text-[var(--text-tertiary)]">{new Date((sub as any).subscribedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  <span class="inline-flex items-center gap-[5px]">
-                    <span class="w-1.5 h-1.5 rounded-full" style="background: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'};"></span>
-                    <span class="capitalize" style="color: {sub.status === 'active' ? 'var(--success)' : 'var(--text-tertiary)'};">{sub.status}</span>
-                  </span>
-                  <span class="font-mono text-[var(--text-secondary)]">{(sub.uptime || 0).toFixed(1)}%</span>
-                  <span class="font-mono text-[var(--text-accent)]">${(sub.totalEarned || 0).toFixed(2)}</span>
-                </div>
-              {/each}
-            </div>
-          {:else}
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] text-center p-8">
-              <p class="text-[13px] text-[var(--text-tertiary)]">No miners have subscribed yet. Once your project is live, miners will appear here.</p>
-            </div>
-          {/if}
-        </div>
-      {/if}
-
-      <!-- VERSIONS TAB -->
-      {#if activeTab === 'versions'}
-        <div class="flex flex-col gap-2.5">
-          {#each [
-            { version: 'v1.2.0', date: 'Mar 20, 2026', current: true, notes: 'Performance improvements, new proof verification algorithm' },
-            { version: 'v1.1.0', date: 'Mar 5, 2026', current: false, notes: 'Added GPU support, fixed memory leak in task runner' },
-            { version: 'v1.0.0', date: 'Feb 1, 2026', current: false, notes: 'Initial release' },
-          ] as v}
-            <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4 flex items-start gap-3">
-              <div class="w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0" style="background: {v.current ? 'var(--accent-subtle)' : 'var(--surface-3)'}">
-                {#if v.current}
-                  <CheckCircle2 size={14} strokeWidth={2} class="text-[var(--text-accent)]" />
-                {:else}
-                  <Package size={14} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
-                {/if}
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-0.5">
-                  <span class="text-[13px] font-semibold font-mono text-[var(--text-primary)]">{v.version}</span>
-                  {#if v.current}
-                    <span class="text-[10px] font-medium px-1.5 py-px rounded-[3px] bg-[var(--accent-subtle)] text-[var(--text-accent)]">Current</span>
-                  {/if}
-                </div>
-                <p class="text-[12px] text-[var(--text-secondary)] mb-0.5">{v.notes}</p>
-                <span class="text-[11px] text-[var(--text-tertiary)]">{v.date}</span>
-              </div>
-            </div>
-          {/each}
-          <a href="/develop/apps/{id}/settings" class="flex items-center justify-center h-9 rounded-[6px] text-[12px] font-medium bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] no-underline">
-            Upload New Version &rarr;
-          </a>
-        </div>
-      {/if}
-
-      <!-- SETTINGS TAB -->
-      {#if activeTab === 'settings'}
-        <div class="flex flex-col gap-3">
-          <!-- Quick summary of current config -->
-          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-[14px] font-semibold text-[var(--text-primary)]">Project Configuration</h3>
-              <a href="/develop/apps/{id}/settings" class="h-8 px-4 rounded-[6px] text-[12px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] no-underline flex items-center gap-1.5">
-                <Settings size={12} strokeWidth={2} /> Edit Settings
-              </a>
-            </div>
-            <div class="grid grid-cols-2 gap-x-6 gap-y-2">
-              {#each [
-                { label: 'Name', value: app.name },
-                { label: 'Category', value: app.category },
-                { label: 'Tags', value: (app.tags ?? []).join(', ') || '—' },
-                { label: 'Features', value: `${(app.features ?? []).length} listed` },
-                { label: 'Screenshots', value: `${(app.screenshots ?? []).length} uploaded` },
-                { label: 'GPU', value: app.requirements?.gpu || 'Not required' },
-                { label: 'RAM', value: app.requirements?.ram || '—' },
-                { label: 'Reward', value: app.baseRewardPerTask ? `$${app.baseRewardPerTask}/task` : `$${app.avgEarningsPerDay}/day avg` },
-              ] as row}
-                <div class="flex justify-between py-1.5 border-b border-[var(--border-default)]">
-                  <span class="text-[12px] text-[var(--text-tertiary)]">{row.label}</span>
-                  <span class="text-[12px] font-medium text-[var(--text-primary)] text-right">{row.value}</span>
-                </div>
-              {/each}
-            </div>
-          </div>
-          <p class="text-[11px] text-[var(--text-tertiary)]">Edit branding, media, economics, hardware, and package configuration from the settings page.</p>
-        </div>
-      {/if}
-
-    </div>
-  </div>
-{/if}
-
-<style>
-  .miner-row:hover {
-    background: var(--surface-2);
-  }
-</style>
+	<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
+		<h3 class="text-[14px] font-semibold mb-1">Run test tasks on validators</h3>
+		<p class="text-[12px] text-[var(--text-secondary)] mb-3">Runs sample tasks through validator rounds (works before listing). Inputs are JSON or a raw string.</p>
+		<div class="grid grid-cols-1 md:grid-cols-[180px_1fr_auto] gap-2">
+			<select bind:value={fn} class="h-[34px] px-2 rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[13px]">
+				{#each p.consensus.work.functions as f (f)}<option value={f}>{f}</option>{/each}
+			</select>
+			<input bind:value={input} class="h-[34px] px-3 rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[13px] font-mono" />
+			<button type="button" class="btn-subscribe inline-flex items-center gap-1.5" disabled={running || !fn} onclick={runSim}>
+				{#if running}<Loader2 class="h-3.5 w-3.5 animate-spin" />{:else}<Play class="h-3.5 w-3.5" />{/if} Run
+			</button>
+		</div>
+		{#if (simsQ.data?.items?.length ?? 0) > 0}
+			<div class="mt-4 divide-y divide-[var(--border-default)]">
+				{#each simsQ.data?.items ?? [] as sim (sim.simulation_id)}
+					<details class="py-2">
+						<summary class="flex items-center justify-between cursor-pointer text-[12px]">
+							<span class="font-mono">{sim.simulation_id}</span>
+							<span style="color:{sim.status === 'passed' ? 'var(--success)' : sim.status === 'failed' ? 'var(--error)' : 'var(--warning)'}">{sim.status} · {timeAgo(sim.started_at)}</span>
+						</summary>
+						{#each sim.results ?? [] as r (r.round_id)}
+							<div class="mt-2 p-2 rounded-[5px] bg-[var(--surface-0)] text-[11px] font-mono break-all">
+								<p>{r.success ? 'ok' : 'failed'} · gas {r.gas_used} · {r.consensus?.state} ({r.consensus?.votes}/{r.consensus?.quorum})</p>
+								<p class="text-[var(--text-secondary)]">{r.output}</p>
+								{#if r.error}<p class="text-[var(--error)]">{r.error}</p>{/if}
+							</div>
+						{/each}
+						{#each sim.logs ?? [] as l}<p class="text-[11px] text-[var(--text-tertiary)] font-mono">{l}</p>{/each}
+						{#if sim.completed_at}<p class="text-[10px] text-[var(--text-tertiary)] mt-1">Completed {formatDateTime(sim.completed_at)}</p>{/if}
+					</details>
+				{/each}
+			</div>
+		{/if}
+	</div>
+</div>
