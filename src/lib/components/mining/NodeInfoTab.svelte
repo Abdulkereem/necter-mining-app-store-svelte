@@ -1,17 +1,23 @@
 <script lang="ts">
 	import { CheckCircle2, AlertTriangle, ShieldAlert, Clock } from 'lucide-svelte';
 	import type { Device, Subscription } from '$lib/api/types';
-	import { formatAmount, formatNumber, bpToPercent, timeAgo, formatDateTime, shortAddress, DEVICE_CLASS_LABEL } from '$lib/format';
+	import { formatAmount, formatNumber, bpToPercent, timeAgo, formatDateTime, DEVICE_CLASS_LABEL } from '$lib/format';
 	import { countdown, deviceStatus, ENGINE_LABEL, PLATFORM_LABEL, subStatus } from './labels';
+	import PayoutAddress from './PayoutAddress.svelte';
 
 	let {
 		sub,
 		device,
-		now
+		now,
+		canEdit = false,
+		onchanged
 	}: {
 		sub: Subscription;
 		device: Device | null | undefined;
 		now: number;
+		/** The connected wallet owns the subscription (payout changes need the owner's signature). */
+		canEdit?: boolean;
+		onchanged?: () => void | Promise<void>;
 	} = $props();
 
 	let st = $derived(subStatus(sub.status));
@@ -91,9 +97,8 @@
 					<p class="text-[11px] text-[var(--text-tertiary)] mb-0.5 uppercase tracking-wide font-medium">Mining since</p>
 					<p class="text-[12px] text-[var(--text-primary)]">{sub.started_at ? formatDateTime(sub.started_at) : '—'}</p>
 				</div>
-				<div>
-					<p class="text-[11px] text-[var(--text-tertiary)] mb-0.5 uppercase tracking-wide font-medium">Payout address</p>
-					<p class="font-mono text-[12px] text-[var(--text-primary)]" title={sub.payout_address ?? sub.owner}>{shortAddress(sub.payout_address ?? sub.owner)}</p>
+				<div class="col-span-2 md:col-span-1">
+					<PayoutAddress {sub} {canEdit} onchanged={() => onchanged?.()} />
 				</div>
 				<div>
 					<p class="text-[11px] text-[var(--text-tertiary)] mb-0.5 uppercase tracking-wide font-medium">Reward token</p>

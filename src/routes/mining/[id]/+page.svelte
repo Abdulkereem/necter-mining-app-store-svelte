@@ -139,7 +139,7 @@
 					</div>
 
 					{#if activeTab === 'node'}
-						<NodeInfoTab {sub} device={deviceQ.data} {now} />
+						<NodeInfoTab {sub} device={deviceQ.data} {now} canEdit={!wrongWallet && !!$account} onchanged={() => subQ.refresh()} />
 					{:else if activeTab === 'leases'}
 						<div class="p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-[8px]">
 							<h3 class="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Leases</h3>
