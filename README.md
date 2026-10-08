@@ -89,6 +89,24 @@ loads the same URL. In this mode the store:
   or a password on remote dashboards,
 - can use the miner's own wallet (embedded wallet) instead of a browser wallet.
 
+## Hub routes beyond openapi.yaml
+
+`src/lib/api/errata.ts` types two routes from PLATFORM.md's errata that `spec/openapi.yaml` does not list yet; they
+go through the same client as every other call (`apiErrata` in `http.ts`):
+
+- **E11** `POST /v1/developers/projects/{id}/register` — publishing signs the Hub's `register_by_sig` (EIP-712
+  `Register`, checked against the manifest just signed) and the Hub relays `registerBySig`: no ETH needed. The
+  wallet transaction (`register_tx`) is only a fallback when signing/relaying fails. Creating the vault still
+  needs Sepolia ETH (E5).
+- **E10** `POST /v1/subscriptions/{id}/payout` — `{payout}` → `SetPayout` payload, then `{typed_data, signature}`
+  → relayed. Offered on the subscription page (payout address → Change).
+
+## Known-answer vectors
+
+`spec/vectors/platform-vectors.json` is a checked-in copy of `../spec/vectors/platform-vectors.json`
+(`src/lib/protocol/vectors.test.ts` fails when the two differ). The store checks the groups it computes:
+`project_id`, `subscription_id`, `consensus`, `keys.node_seeds`, `binding`.
+
 ## Project layout
 
 | Path | Purpose |
