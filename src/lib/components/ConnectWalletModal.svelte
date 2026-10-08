@@ -1,91 +1,185 @@
 <script lang="ts">
-	import { showConnectModal, isConnecting, connectWallet } from '$lib/stores/wallet';
-	import { Loader2 } from 'lucide-svelte';
+	import {
+		showConnectModal,
+		isConnecting,
+		isSigningIn,
+		connectWallet,
+		signIn,
+		wallet,
+		signedIn,
+		walletOptions
+	} from '$lib/stores/wallet';
+	import { discoverWallets, type WalletOption } from '$lib/wallet/providers';
+	import { errorMessage } from '$lib/api/http';
+	import { APP_MODE } from '$lib/config';
+	import { shortAddress } from '$lib/format';
+	import { Loader2, Wallet, ShieldCheck, X } from 'lucide-svelte';
+	import LocalWalletSetup from '$lib/components/wallet/LocalWalletSetup.svelte';
 
-	const walletOptions = [
-		{
-			id: 'metamask',
-			name: 'MetaMask',
-			icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjEyIiBoZWlnaHQ9IjE4OSIgdmlld0JveD0iMCAwIDIxMiAxODkiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xXzMpIj4KPHBhdGggZD0iTTYwLjc1OTYgMTczLjI1MUw4OC41MTI1IDE4MC41NjNWMTc0LjE0M0w5MS4wMTI1IDE3MS42NDNIMTEzLjAxM1YxODkuMDYzSDkxLjAxMjVMNjAuNzU5NiAxNzMuMjUxWiIgZmlsbD0iI0NERDE1MiIvPgo8cGF0aCBkPSJNMTUxLjI1IDE3My4yNTFMMTIzLjQ5NyAxODAuNTYzVjE3NC4xNDNMMTIwLjk5NyAxNzEuNjQzSDk4Ljk5NjlWMTg5LjA2M0gxMjAuOTk3TDE1MS4yNSAxNzMuMjUxWiIgZmlsbD0iI0NERDE1MiIvPgo8L2c+Cjwvc3ZnPgo=',
-			popular: true
-		},
-		{
-			id: 'coinbase',
-			name: 'Coinbase Wallet',
-			icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAyNCIgaGVpZ2h0PSIxMDI0IiB2aWV3Qm94PSIwIDAgMTAyNCAxMDI0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8Y2lyY2xlIGN4PSI1MTIiIGN5PSI1MTIiIHI9IjUxMiIgZmlsbD0iIzAwNTJGRiIvPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTE1MiA1MTJDMTU1IDcxMSAzMTMgODcyIDUxMiA4NzJDNzExIDg3MiA4NzIgNzExIDg3MiA1MTJDODcyIDMxMyA3MTEgMTUyIDUxMiAxNTJDMzEzIDE1MiAxNTUgMzEzIDE1MiA1MTJaTTQyMCA0MTZINDE2VjYwOEg2MDRWNjA4SDYwOFY0MTZINjA0SDQyMFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
-			popular: true
-		},
-		{
-			id: 'walletconnect',
-			name: 'WalletConnect',
-			icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiMzQjk5RkMiLz4KPHBhdGggZD0iTTkuNTg4NiAxMS41MjY0QzEzLjEyOTMgNy45ODU3MSAxOC44NzA3IDcuOTg1NzEgMjIuNDExNCAxMS41MjY0TDIyLjkwOTMgMTIuMDI0M0MyMy4wODY0IDEyLjIwMTQgMjMuMDg2NCAxMi40OTI5IDIyLjkwOTMgMTIuNjdMMjEuMTk2NCAxNC4zODI5QzIxLjEwNzkgMTQuNDcxNCAyMC45NjIxIDE0LjQ3MTQgMjAuODczNiAxNC4zODI5TDIwLjE1NTcgMTMuNjY1QzE3Ljc0MjEgMTEuMjUxNCAxMy44NTc5IDExLjI1MTQgMTEuNDQ0MyAxMy42NjVMMTAuNjcxNCAxNC40Mzc5QzEwLjU4MjkgMTQuNTI2NCAxMC40MzcxIDE0LjUyNjQgMTAuMzQ4NiAxNC40Mzc5TDguNjM1NzEgMTIuNzI1QzguNDU4NTcgMTIuNTQ3OSA4LjQ1ODU3IDEyLjI1NjQgOC42MzU3MSAxMi4wNzkzTDkuNTg4NiAxMS41MjY0Wk0yNS4yMiAxNC4zMzVMMjYuNzY2NCAxNS44ODE0QzI2Ljk0MzYgMTYuMDU4NiAyNi45NDM2IDE2LjM1IDI2Ljc2NjQgMTYuNTI3MUwyMC4wNDM2IDIzLjI1QzE5Ljg2NjQgMjMuNDI3MSAxOS41NzUgMjMuNDI3MSAxOS4zOTc5IDIzLjI1TDE0LjQ2MjkgMTguMzE1QzE0LjQxODYgMTguMjcwNyAxNC4zNDU3IDE4LjI3MDcgMTQuMzAxNCAxOC4zMTVMOS4zNjY0MyAyMy4yNUM5LjE4OTI5IDIzLjQyNzEgOC44OTc4NiAyMy40MjcxIDguNzIwNzEgMjMuMjVMMi4wMDE0MyAxNi41Mjc5QzEuODI0MjkgMTYuMzUwNyAxLjgyNDI5IDE2LjA1OTMgMi4wMDE0MyAxNS44ODIxTDMuNTQ3ODYgMTQuMzM1N0MzLjcyNSAxNC4xNTg2IDQuMDE2NDMgMTQuMTU4NiA0LjE5MzU3IDE0LjMzNTdMOS4xMjg1NyAxOS4yNzA3QzkuMTcyODYgMTkuMzE1IDkuMjQ1NzEgMTkuMzE1IDkuMjkgMTkuMjcwN0wxNC4yMjUgMTQuMzM1N0MxNC40MDIxIDE0LjE1ODYgMTQuNjkzNiAxNC4xNTg2IDE0Ljg3MDcgMTQuMzM1N0wxOS44MDU3IDE5LjI3MDdDMTkuODUgMTkuMzE1IDE5LjkyMjkgMTkuMzE1IDE5Ljk2NzEgMTkuMjcwN0wyNC45MDIxIDE0LjMzNTdDMjUuMDc5MyAxNC4xNTg2IDI1LjM3MDcgMTQuMTU4NiAyNS41NDc5IDE0LjMzNTdMMjUuMjIgMTQuMzM1WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
-			popular: false
-		},
-		{
-			id: 'phantom',
-			name: 'Phantom',
-			icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiByeD0iMjYiIGZpbGw9IiNBQjlGRjIiLz4KPHBhdGggZD0iTTExMC41NjQgNjQuMzI0MkM5Ny44OTQyIDY0LjMyNDIgODcuOTQxOSA1NC4zNzIgODcuOTQxOSA0MS43MDIxQzg3Ljk0MTkgMzguMTM2MyA4NC4wMzkxIDM2LjM3MTUgODEuMTE5MSAzOC41NjNDNjkuODAxMiA0Ni44NTggNjQuMDAwNyA2MS4wMjM1IDY0LjAwMDcgNzYuOTk5NUM2NC4wMDA3IDkzLjQ0MjkgNzcuNTU3NSAxMDYuOTk5IDk0LjAwMSAxMDYuOTk5QzExMC40NDQgMTA2Ljk5OSAxMjQgOTMuNDQyOSAxMjQgNzYuOTk5NVY3Ni41MTdDMTI0IDY5Ljc3MjkgMTE4LjIyNyA2NC4zMjQyIDExMC41NjQgNjQuMzI0MloiIGZpbGw9InVybCgjcGFpbnQwX2xpbmVhcl8xXzMpIi8+CjxwYXRoIGQ9Ik0xNy40MzYgNjQuMzI0MkMzMC4xMDU4IDY0LjMyNDIgNDAuMDU4MSA1NC4zNzIgNDAuMDU4MSA0MS43MDIxQzQwLjA1ODEgMzguMTM2MyA0My45NjA5IDM2LjM3MTUgNDYuODgwOSAzOC41NjNDNTguMTk4OCA0Ni44NTggNjMuOTk5MyA2MS4wMjM1IDYzLjk5OTMgNzYuOTk5NUM2My45OTkzIDkzLjQ0MjkgNTAuNDQyNSAxMDYuOTk5IDM0Ljk5OSAxMDYuOTk5QzE4LjU1NTUgMTA2Ljk5OSA0IDkzLjQ0MjkgNCA3Ni45OTk1Vjc2LjUxN0M0IDY5Ljc3MjkgOS43NzI5OCA2NC4zMjQyIDE3LjQzNiA2NC4zMjQyWiIgZmlsbD0idXJsKCNwYWludDFfbGluZWFyXzFfMykiLz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl8xXzMiIHgxPSI4OSIgeTE9IjI4IiB4Mj0iMTI0IiB5Mj0iMTA2Ljk5OSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjNTM0QkI1Ii8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzU1MUJGOSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50MV9saW5lYXJfMV8zIiB4MT0iMzkiIHkxPSIyOCIgeDI9IjQiIHkyPSIxMDYuOTk5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiM1MzRCQjUiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNTUxQkY5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==',
-			popular: false
+	const LOCAL = APP_MODE === 'local';
+
+	let error = $state<string | null>(null);
+	let pendingId = $state<string | null>(null);
+	// Local mode: step of the miner-wallet setup. While a new recovery phrase is on screen the dialog cannot be
+	// dismissed by accident (Escape / backdrop), only through its own buttons.
+	let localStep = $state<'menu' | 'create' | 'backup' | 'confirm' | 'import-phrase' | 'import-key' | 'done'>('menu');
+	const pinned = $derived(LOCAL && (localStep === 'backup' || localStep === 'confirm'));
+
+	$effect(() => {
+		if ($showConnectModal) {
+			error = null;
+			localStep = 'menu';
+			discoverWallets();
 		}
-	];
+	});
+
+	// Close automatically once signed in.
+	$effect(() => {
+		if ($showConnectModal && $signedIn) showConnectModal.set(false);
+	});
 
 	function handleClose() {
+		if (pinned) return;
 		showConnectModal.set(false);
 	}
 
-	function handleConnect(walletId: string) {
-		connectWallet(walletId);
+	const localTitle = $derived(
+		localStep === 'backup' || localStep === 'confirm' ? 'Back up your wallet' : localStep === 'done' ? 'Wallet ready' : 'Set up your wallet'
+	);
+
+	function friendly(e: unknown): string {
+		const code = (e as { code?: number })?.code;
+		if (code === 4001) return 'Request rejected in the wallet.';
+		if (code === -32002) return 'Your wallet already has a pending request — open it to continue.';
+		return errorMessage(e);
+	}
+
+	async function choose(opt: WalletOption) {
+		error = null;
+		pendingId = opt.id;
+		try {
+			await connectWallet(opt);
+			await signIn();
+		} catch (e) {
+			error = friendly(e);
+		} finally {
+			pendingId = null;
+		}
+	}
+
+	async function retrySignIn() {
+		error = null;
+		try {
+			await signIn();
+		} catch (e) {
+			error = friendly(e);
+		}
 	}
 </script>
 
 {#if $showConnectModal}
-	<!-- Backdrop -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-[60] bg-black/60 flex items-end md:items-center justify-center"
 		onkeydown={(e) => e.key === 'Escape' && handleClose()}
-		onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+		onclick={(e) => {
+			if (e.target === e.currentTarget) handleClose();
+		}}
 	>
-		<!-- Modal -->
 		<div
-			class="bg-[var(--surface-1)] border border-[var(--border)] rounded-t-[12px] md:rounded-[12px] w-full md:max-w-md md:mx-4 p-6"
+			class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-t-[12px] md:rounded-[12px] w-full md:max-w-md md:mx-4 p-6"
 			role="dialog"
 			aria-modal="true"
+			aria-labelledby="connect-title"
+			data-testid="connect-modal"
 		>
-			<div class="mb-4">
-				<h2 class="text-[16px] font-semibold text-[var(--text-primary)]">Connect Wallet</h2>
-				<p class="text-[13px] text-[var(--text-secondary)] mt-1">
-					Connect your wallet to start mining and manage your earnings.
-				</p>
+			<div class="flex items-start justify-between mb-4">
+				<div>
+					<h2 id="connect-title" class="text-[16px] font-semibold text-[var(--text-primary)]">
+						{LOCAL ? localTitle : $wallet && !$signedIn ? 'Sign in' : 'Connect Wallet'}
+					</h2>
+					<p class="text-[13px] text-[var(--text-secondary)] mt-1" hidden={LOCAL && localStep !== 'menu'}>
+						{#if LOCAL}
+							{#if localStep === 'menu'}Mining uses a wallet kept by Necter Miner on this computer. Create one or bring your own.{/if}
+						{:else if $wallet && !$signedIn}
+							Sign a message to prove you own {shortAddress($wallet.address)}. It is free and sends no transaction.
+						{:else}
+							Connect a wallet on Ethereum Sepolia to mine, publish projects and manage your earnings.
+						{/if}
+					</p>
+				</div>
+				<button type="button" onclick={handleClose} hidden={pinned} class="h-7 w-7 flex items-center justify-center rounded-[5px] hover:bg-[var(--surface-2)] bg-transparent border-none cursor-pointer" aria-label="Close">
+					<X class="h-4 w-4 text-[var(--text-tertiary)]" strokeWidth={1.8} />
+				</button>
 			</div>
-			<div class="grid gap-3 py-4">
-				{#each walletOptions as w (w.id)}
-					<button
-						type="button"
-						class="p-4 border border-[var(--border)] rounded-[8px] bg-[var(--surface-1)] transition-all hover:border-[var(--border-accent)] text-left w-full {$isConnecting ? 'opacity-50 pointer-events-none' : ''}"
-						onclick={() => handleConnect(w.id)}
-					>
-						<div class="flex items-center gap-4">
-							<div class="h-10 w-10 rounded-lg bg-[var(--surface-2)] flex items-center justify-center overflow-hidden">
-								<img src={w.icon} alt={w.name} class="h-8 w-8" />
-							</div>
-							<div class="flex-1">
-								<div class="flex items-center gap-2">
-									<span class="font-medium">{w.name}</span>
-									{#if w.popular}
-										<span class="text-xs bg-[var(--accent-subtle)] text-primary px-2 py-0.5 rounded">Popular</span>
+
+			{#if LOCAL}
+				<LocalWalletSetup bind:step={localStep} onDone={() => showConnectModal.set(false)} />
+			{:else if $wallet && !$signedIn}
+				<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-2)] p-4 flex items-center gap-3">
+					<ShieldCheck class="h-5 w-5 text-[var(--text-accent)] flex-shrink-0" strokeWidth={1.6} />
+					<div class="flex-1 min-w-0">
+						<p class="text-[13px] font-medium font-mono text-[var(--text-primary)] truncate">{$wallet.address}</p>
+						<p class="text-[11px] text-[var(--text-tertiary)]">{$wallet.connector.name}</p>
+					</div>
+				</div>
+				<button
+					type="button"
+					onclick={retrySignIn}
+					disabled={$isSigningIn}
+					class="mt-4 w-full h-[38px] rounded-[6px] bg-[var(--accent-base)] text-[#0C0C0E] text-[13px] font-semibold border-none cursor-pointer hover:bg-[var(--accent-hover)] disabled:opacity-60 flex items-center justify-center gap-2"
+					data-testid="modal-sign-in"
+				>
+					{#if $isSigningIn}<Loader2 class="h-4 w-4 animate-spin" />Check your wallet…{:else}Sign in with Ethereum{/if}
+				</button>
+			{:else}
+				<div class="grid gap-2.5 py-2">
+					{#each $walletOptions as w (w.id)}
+						<button
+							type="button"
+							class="p-4 border border-[var(--border-default)] rounded-[8px] bg-[var(--surface-1)] transition-all hover:border-[var(--border-accent)] text-left w-full {pendingId || $isConnecting ? 'opacity-60 pointer-events-none' : ''}"
+							onclick={() => choose(w)}
+							data-testid="wallet-option"
+						>
+							<div class="flex items-center gap-4">
+								<div class="h-10 w-10 rounded-lg bg-[var(--surface-2)] flex items-center justify-center overflow-hidden">
+									{#if w.icon}
+										<img src={w.icon} alt="" class="h-7 w-7" />
+									{:else}
+										<Wallet class="h-5 w-5 text-[var(--text-secondary)]" strokeWidth={1.6} />
 									{/if}
 								</div>
+								<div class="flex-1">
+									<span class="font-medium text-[14px]">{w.name}</span>
+									{#if w.kind === 'walletconnect'}
+										<p class="text-[12px] text-[var(--text-secondary)]">Scan with a mobile wallet</p>
+									{/if}
+								</div>
+								{#if pendingId === w.id}
+									<Loader2 class="h-5 w-5 animate-spin text-[var(--text-accent)]" />
+								{/if}
 							</div>
-							{#if $isConnecting}
-								<Loader2 class="h-5 w-5 animate-spin text-primary" />
-							{/if}
-						</div>
-					</button>
-				{/each}
-			</div>
-			<div class="text-xs text-center text-[var(--text-secondary)]">
-				By connecting a wallet, you agree to Necter's Terms of Service and Privacy Policy.
+						</button>
+					{:else}
+						{#if !LOCAL}
+							<div class="rounded-[8px] border border-dashed border-[var(--border-strong)] p-5 text-center">
+								<p class="text-[13px] font-medium text-[var(--text-primary)]">No browser wallet found</p>
+								<p class="text-[12px] text-[var(--text-secondary)] mt-1">
+									Install a wallet extension such as MetaMask or Rabby, then reload this page.
+								</p>
+								<a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="inline-block mt-3 text-[12px] font-medium text-[var(--text-accent)]">Get MetaMask →</a>
+							</div>
+						{/if}
+					{/each}
+				</div>
+			{/if}
+
+			{#if error}
+				<p class="mt-3 text-[12px] text-[var(--error)]" role="alert">{error}</p>
+			{/if}
+
+			<div class="text-[11px] text-center text-[var(--text-tertiary)] mt-4" hidden={pinned}>
+				Mining needs no Sepolia ETH — collateral, claims and the faucet are gasless.
 			</div>
 		</div>
 	</div>

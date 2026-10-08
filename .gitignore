@@ -4,3 +4,5 @@ build
 .vercel
 .DS_Store
 .env*
+test-results
+playwright-report

@@ -1,0 +1,317 @@
+{
+  "keys": {
+    "dev": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+    "owner": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf"
+  },
+  "canonical": [
+    {
+      "input": {
+        "b": 1,
+        "a": [
+          true,
+          null,
+          "x"
+        ],
+        "é": "ü",
+        "A": {
+          "z": 0,
+          "y": -5
+        }
+      },
+      "output": "{\"A\":{\"y\":-5,\"z\":0},\"a\":[true,null,\"x\"],\"b\":1,\"é\":\"ü\"}"
+    },
+    {
+      "input": {
+        "🐝": 1,
+        "￿": 2,
+        "ctl": "\u0001 "
+      },
+      "output": "{\"ctl\":\"\\u0001 \",\"￿\":2,\"🐝\":1}"
+    }
+  ],
+  "project_id": [
+    {
+      "developer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "slug": "abc",
+      "project_id": "0x66f5dffba6515ad4d99c40c330969186a7fd0c370c8f037db3f2e0a77e6da6a8"
+    },
+    {
+      "developer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "slug": "weather-oracle",
+      "project_id": "0x3c95e2106195432ceef26e7da1e3c43f8a1d71e07d126be2a0c7a2821fe7f389"
+    },
+    {
+      "developer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "slug": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "project_id": "0x02171a076e7de0bae78c28cdf4d4008eb53536d09927c77066cbe90ff266f8b9"
+    },
+    {
+      "developer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "slug": "0-9",
+      "project_id": "0x6895af26cdf9a8eb677b985658391fdb8f1a49ca56bf614ace3430d460456692"
+    }
+  ],
+  "subscription_id": [
+    {
+      "project_id": "0x3c95e2106195432ceef26e7da1e3c43f8a1d71e07d126be2a0c7a2821fe7f389",
+      "owner": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+      "node_key": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "subscription_id": "0x734146c3df6e7bd6e0e5f7bdfa2905a7bf43a13025a8d46f820440c116933733"
+    },
+    {
+      "project_id": "0x3c95e2106195432ceef26e7da1e3c43f8a1d71e07d126be2a0c7a2821fe7f389",
+      "owner": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "node_key": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "subscription_id": "0x13ecdb85ecb92209b56195419e2c13e5fe040a3e06807e4eb11b247dcb8f7b42"
+    }
+  ],
+  "vault_address": [
+    {
+      "factory": "0x000000000000000000000000000000000000fac7",
+      "implementation": "0x0000000000000000000000000000000000001111",
+      "project_id": "0x3c95e2106195432ceef26e7da1e3c43f8a1d71e07d126be2a0c7a2821fe7f389",
+      "vault": "0xa7e72189f36424c2c6d24ce4f2d89da6e5f271d6"
+    },
+    {
+      "factory": "0x000000000000000000000000000000000000fac7",
+      "implementation": "0x0000000000000000000000000000000000001111",
+      "project_id": "0x66f5dffba6515ad4d99c40c330969186a7fd0c370c8f037db3f2e0a77e6da6a8",
+      "vault": "0x68659e9da43f5b1b08ececefcbb39f16c72363ef"
+    }
+  ],
+  "manifest": [
+    {
+      "name": "v1 api source",
+      "manifest": {
+        "v": 1,
+        "network": "necter-testnet",
+        "chain_id": 11155111,
+        "developer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+        "slug": "weather-oracle",
+        "version": 1,
+        "previous": null,
+        "consensus": {
+          "modules": {
+            "worker": "0xabababababababababababababababababababababababababababababababab",
+            "verifier": null
+          },
+          "work": {
+            "class": "deterministic",
+            "verification": "redundant-execution",
+            "execution": "committee",
+            "functions": [
+              "score"
+            ],
+            "task_source": {
+              "kind": "api"
+            },
+            "max_gas_limit": 50000000,
+            "committee": {
+              "size": 5,
+              "backups": 3,
+              "min_size": 3,
+              "selection": "collateral-reputation-sortition-v1",
+              "weight_cap_multiple": 10
+            },
+            "round_secs": 60,
+            "lease_secs": 30,
+            "epoch_secs": 3600,
+            "dispute_window_secs": 86400
+          },
+          "economics": {
+            "reward_token": "0x000000000000000000000000000000000000ec7a",
+            "vault": "0xa7e72189f36424c2c6d24ce4f2d89da6e5f271d6",
+            "reward_model": "per-unit",
+            "reward_per_unit": "1000000000000000",
+            "daily_emission": "1000000000000000000000",
+            "fee_split_bp": {
+              "miner": 8500,
+              "developer": 1000,
+              "treasury": 500
+            },
+            "max_units_per_epoch": 1000000,
+            "max_recipients_per_epoch": 2000,
+            "min_collateral": "10000000000000000000",
+            "slashing_bp": {
+              "invalid_result": 1000,
+              "missed_sla": 100
+            }
+          }
+        },
+        "scheduling": {
+          "requirements": {
+            "device_classes": [
+              "desktop",
+              "laptop",
+              "phone",
+              "server"
+            ],
+            "cpu_cores": 2,
+            "ram_mb": 2048,
+            "storage_mb": 512,
+            "gpu": null,
+            "min_benchmark": 0,
+            "engines": [
+              "native",
+              "pulley32",
+              "pulley64"
+            ],
+            "attestation": []
+          },
+          "sla": {
+            "max_latency_ms": 2000,
+            "min_uptime_bp": 9500
+          },
+          "public_tasks": false
+        },
+        "listing": {
+          "name": "Weather Oracle",
+          "tagline": "Verified weather data for dapps",
+          "description": "Line one\nline \"two\" \t tab",
+          "category": "data-sovereignty",
+          "tags": [
+            "oracle",
+            "weather"
+          ],
+          "icon": "https://testnet-rpc.necter.network/v1/assets/0000000000000000000000000000000000000000000000000000000000000000",
+          "banner": null,
+          "screenshots": [],
+          "video": null,
+          "website": "https://example.org",
+          "docs": null,
+          "support": null,
+          "features": [
+            "Runs on phones"
+          ],
+          "accent_color": "#FFC933"
+        }
+      },
+      "canonical": "{\"chain_id\":11155111,\"consensus\":{\"economics\":{\"daily_emission\":\"1000000000000000000000\",\"fee_split_bp\":{\"developer\":1000,\"miner\":8500,\"treasury\":500},\"max_recipients_per_epoch\":2000,\"max_units_per_epoch\":1000000,\"min_collateral\":\"10000000000000000000\",\"reward_model\":\"per-unit\",\"reward_per_unit\":\"1000000000000000\",\"reward_token\":\"0x000000000000000000000000000000000000ec7a\",\"slashing_bp\":{\"invalid_result\":1000,\"missed_sla\":100},\"vault\":\"0xa7e72189f36424c2c6d24ce4f2d89da6e5f271d6\"},\"modules\":{\"verifier\":null,\"worker\":\"0xabababababababababababababababababababababababababababababababab\"},\"work\":{\"class\":\"deterministic\",\"committee\":{\"backups\":3,\"min_size\":3,\"selection\":\"collateral-reputation-sortition-v1\",\"size\":5,\"weight_cap_multiple\":10},\"dispute_window_secs\":86400,\"epoch_secs\":3600,\"execution\":\"committee\",\"functions\":[\"score\"],\"lease_secs\":30,\"max_gas_limit\":50000000,\"round_secs\":60,\"task_source\":{\"kind\":\"api\"},\"verification\":\"redundant-execution\"}},\"developer\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"listing\":{\"accent_color\":\"#FFC933\",\"banner\":null,\"category\":\"data-sovereignty\",\"description\":\"Line one\\nline \\\"two\\\" \\t tab\",\"docs\":null,\"features\":[\"Runs on phones\"],\"icon\":\"https://testnet-rpc.necter.network/v1/assets/0000000000000000000000000000000000000000000000000000000000000000\",\"name\":\"Weather Oracle\",\"screenshots\":[],\"support\":null,\"tagline\":\"Verified weather data for dapps\",\"tags\":[\"oracle\",\"weather\"],\"video\":null,\"website\":\"https://example.org\"},\"network\":\"necter-testnet\",\"previous\":null,\"scheduling\":{\"public_tasks\":false,\"requirements\":{\"attestation\":[],\"cpu_cores\":2,\"device_classes\":[\"desktop\",\"laptop\",\"phone\",\"server\"],\"engines\":[\"native\",\"pulley32\",\"pulley64\"],\"gpu\":null,\"min_benchmark\":0,\"ram_mb\":2048,\"storage_mb\":512},\"sla\":{\"max_latency_ms\":2000,\"min_uptime_bp\":9500}},\"slug\":\"weather-oracle\",\"v\":1,\"version\":1}",
+      "canonical_hex": "0x7b22636861696e5f6964223a31313135353131312c22636f6e73656e737573223a7b2265636f6e6f6d696373223a7b226461696c795f656d697373696f6e223a2231303030303030303030303030303030303030303030222c226665655f73706c69745f6270223a7b22646576656c6f706572223a313030302c226d696e6572223a383530302c227472656173757279223a3530307d2c226d61785f726563697069656e74735f7065725f65706f6368223a323030302c226d61785f756e6974735f7065725f65706f6368223a313030303030302c226d696e5f636f6c6c61746572616c223a223130303030303030303030303030303030303030222c227265776172645f6d6f64656c223a227065722d756e6974222c227265776172645f7065725f756e6974223a2231303030303030303030303030303030222c227265776172645f746f6b656e223a22307830303030303030303030303030303030303030303030303030303030303030303030303065633761222c22736c617368696e675f6270223a7b22696e76616c69645f726573756c74223a313030302c226d69737365645f736c61223a3130307d2c227661756c74223a22307861376537323138396633363432346332633664323463653466326438396461366535663237316436227d2c226d6f64756c6573223a7b227665726966696572223a6e756c6c2c22776f726b6572223a22307861626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162227d2c22776f726b223a7b22636c617373223a2264657465726d696e6973746963222c22636f6d6d6974746565223a7b226261636b757073223a332c226d696e5f73697a65223a332c2273656c656374696f6e223a22636f6c6c61746572616c2d72657075746174696f6e2d736f72746974696f6e2d7631222c2273697a65223a352c227765696768745f6361705f6d756c7469706c65223a31307d2c22646973707574655f77696e646f775f73656373223a38363430302c2265706f63685f73656373223a333630302c22657865637574696f6e223a22636f6d6d6974746565222c2266756e6374696f6e73223a5b2273636f7265225d2c226c656173655f73656373223a33302c226d61785f6761735f6c696d6974223a35303030303030302c22726f756e645f73656373223a36302c227461736b5f736f75726365223a7b226b696e64223a22617069227d2c22766572696669636174696f6e223a22726564756e64616e742d657865637574696f6e227d7d2c22646576656c6f706572223a22307837653566343535323039316136393132356435646663623762386332363539303239333935626466222c226c697374696e67223a7b22616363656e745f636f6c6f72223a2223464643393333222c2262616e6e6572223a6e756c6c2c2263617465676f7279223a22646174612d736f7665726569676e7479222c226465736372697074696f6e223a224c696e65206f6e655c6e6c696e65205c2274776f5c22205c7420746162222c22646f6373223a6e756c6c2c226665617475726573223a5b2252756e73206f6e2070686f6e6573225d2c2269636f6e223a2268747470733a2f2f746573746e65742d7270632e6e65637465722e6e6574776f726b2f76312f6173736574732f30303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030222c226e616d65223a2257656174686572204f7261636c65222c2273637265656e73686f7473223a5b5d2c22737570706f7274223a6e756c6c2c227461676c696e65223a2256657269666965642077656174686572206461746120666f72206461707073222c2274616773223a5b226f7261636c65222c2277656174686572225d2c22766964656f223a6e756c6c2c2277656273697465223a2268747470733a2f2f6578616d706c652e6f7267227d2c226e6574776f726b223a226e65637465722d746573746e6574222c2270726576696f7573223a6e756c6c2c227363686564756c696e67223a7b227075626c69635f7461736b73223a66616c73652c22726571756972656d656e7473223a7b226174746573746174696f6e223a5b5d2c226370755f636f726573223a322c226465766963655f636c6173736573223a5b226465736b746f70222c226c6170746f70222c2270686f6e65222c22736572766572225d2c22656e67696e6573223a5b226e6174697665222c2270756c6c65793332222c2270756c6c65793634225d2c22677075223a6e756c6c2c226d696e5f62656e63686d61726b223a302c2272616d5f6d62223a323034382c2273746f726167655f6d62223a3531327d2c22736c61223a7b226d61785f6c6174656e63795f6d73223a323030302c226d696e5f757074696d655f6270223a393530307d7d2c22736c7567223a22776561746865722d6f7261636c65222c2276223a312c2276657273696f6e223a317d",
+      "manifest_hash": "0x24b8f33a5b502831d8d217c5f321172003fd7a83271417008ef83e1382b1b9d6",
+      "consensus_hash": "0x8addb543c123007ed231eb287db390a1d58a862cad00478c4092d38f7cfebe97",
+      "project_id": "0x3c95e2106195432ceef26e7da1e3c43f8a1d71e07d126be2a0c7a2821fe7f389",
+      "signature": "0xfb65b467255dd4625a4c186db34fc91c4700a37724b04c72c3c1c04562c4bdec560a8058b85c884d5665942608659168a352da2417bf006af14689c08de763ff1c",
+      "signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+    },
+    {
+      "name": "v2 listing-only non-ascii",
+      "manifest": {
+        "v": 1,
+        "network": "necter-testnet",
+        "chain_id": 11155111,
+        "developer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+        "slug": "weather-oracle",
+        "version": 2,
+        "previous": "0x24b8f33a5b502831d8d217c5f321172003fd7a83271417008ef83e1382b1b9d6",
+        "consensus": {
+          "modules": {
+            "worker": "0xabababababababababababababababababababababababababababababababab",
+            "verifier": null
+          },
+          "work": {
+            "class": "deterministic",
+            "verification": "redundant-execution",
+            "execution": "committee",
+            "functions": [
+              "score"
+            ],
+            "task_source": {
+              "kind": "api"
+            },
+            "max_gas_limit": 50000000,
+            "committee": {
+              "size": 5,
+              "backups": 3,
+              "min_size": 3,
+              "selection": "collateral-reputation-sortition-v1",
+              "weight_cap_multiple": 10
+            },
+            "round_secs": 60,
+            "lease_secs": 30,
+            "epoch_secs": 3600,
+            "dispute_window_secs": 86400
+          },
+          "economics": {
+            "reward_token": "0x000000000000000000000000000000000000ec7a",
+            "vault": "0xa7e72189f36424c2c6d24ce4f2d89da6e5f271d6",
+            "reward_model": "per-unit",
+            "reward_per_unit": "1000000000000000",
+            "daily_emission": "1000000000000000000000",
+            "fee_split_bp": {
+              "miner": 8500,
+              "developer": 1000,
+              "treasury": 500
+            },
+            "max_units_per_epoch": 1000000,
+            "max_recipients_per_epoch": 2000,
+            "min_collateral": "10000000000000000000",
+            "slashing_bp": {
+              "invalid_result": 1000,
+              "missed_sla": 100
+            }
+          }
+        },
+        "scheduling": {
+          "requirements": {
+            "device_classes": [
+              "desktop",
+              "laptop",
+              "phone",
+              "server"
+            ],
+            "cpu_cores": 2,
+            "ram_mb": 2048,
+            "storage_mb": 512,
+            "gpu": null,
+            "min_benchmark": 0,
+            "engines": [
+              "native",
+              "pulley32",
+              "pulley64"
+            ],
+            "attestation": []
+          },
+          "sla": {
+            "max_latency_ms": 2000,
+            "min_uptime_bp": 9500
+          },
+          "public_tasks": false
+        },
+        "listing": {
+          "name": "Wetter-Orakel — Ünïcödé ✓ 🐝",
+          "tagline": "Λ données météo",
+          "description": "Line one\nline \"two\" \t tab",
+          "category": "data-sovereignty",
+          "tags": [
+            "oracle",
+            "weather"
+          ],
+          "icon": "https://testnet-rpc.necter.network/v1/assets/0000000000000000000000000000000000000000000000000000000000000000",
+          "banner": null,
+          "screenshots": [],
+          "video": null,
+          "website": "https://example.org",
+          "docs": null,
+          "support": null,
+          "features": [
+            "Runs on phones"
+          ],
+          "accent_color": "#FFC933"
+        }
+      },
+      "canonical": "{\"chain_id\":11155111,\"consensus\":{\"economics\":{\"daily_emission\":\"1000000000000000000000\",\"fee_split_bp\":{\"developer\":1000,\"miner\":8500,\"treasury\":500},\"max_recipients_per_epoch\":2000,\"max_units_per_epoch\":1000000,\"min_collateral\":\"10000000000000000000\",\"reward_model\":\"per-unit\",\"reward_per_unit\":\"1000000000000000\",\"reward_token\":\"0x000000000000000000000000000000000000ec7a\",\"slashing_bp\":{\"invalid_result\":1000,\"missed_sla\":100},\"vault\":\"0xa7e72189f36424c2c6d24ce4f2d89da6e5f271d6\"},\"modules\":{\"verifier\":null,\"worker\":\"0xabababababababababababababababababababababababababababababababab\"},\"work\":{\"class\":\"deterministic\",\"committee\":{\"backups\":3,\"min_size\":3,\"selection\":\"collateral-reputation-sortition-v1\",\"size\":5,\"weight_cap_multiple\":10},\"dispute_window_secs\":86400,\"epoch_secs\":3600,\"execution\":\"committee\",\"functions\":[\"score\"],\"lease_secs\":30,\"max_gas_limit\":50000000,\"round_secs\":60,\"task_source\":{\"kind\":\"api\"},\"verification\":\"redundant-execution\"}},\"developer\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"listing\":{\"accent_color\":\"#FFC933\",\"banner\":null,\"category\":\"data-sovereignty\",\"description\":\"Line one\\nline \\\"two\\\" \\t tab\",\"docs\":null,\"features\":[\"Runs on phones\"],\"icon\":\"https://testnet-rpc.necter.network/v1/assets/0000000000000000000000000000000000000000000000000000000000000000\",\"name\":\"Wetter-Orakel — Ünïcödé ✓ 🐝\",\"screenshots\":[],\"support\":null,\"tagline\":\"Λ données météo\",\"tags\":[\"oracle\",\"weather\"],\"video\":null,\"website\":\"https://example.org\"},\"network\":\"necter-testnet\",\"previous\":\"0x24b8f33a5b502831d8d217c5f321172003fd7a83271417008ef83e1382b1b9d6\",\"scheduling\":{\"public_tasks\":false,\"requirements\":{\"attestation\":[],\"cpu_cores\":2,\"device_classes\":[\"desktop\",\"laptop\",\"phone\",\"server\"],\"engines\":[\"native\",\"pulley32\",\"pulley64\"],\"gpu\":null,\"min_benchmark\":0,\"ram_mb\":2048,\"storage_mb\":512},\"sla\":{\"max_latency_ms\":2000,\"min_uptime_bp\":9500}},\"slug\":\"weather-oracle\",\"v\":1,\"version\":2}",
+      "canonical_hex": "0x7b22636861696e5f6964223a31313135353131312c22636f6e73656e737573223a7b2265636f6e6f6d696373223a7b226461696c795f656d697373696f6e223a2231303030303030303030303030303030303030303030222c226665655f73706c69745f6270223a7b22646576656c6f706572223a313030302c226d696e6572223a383530302c227472656173757279223a3530307d2c226d61785f726563697069656e74735f7065725f65706f6368223a323030302c226d61785f756e6974735f7065725f65706f6368223a313030303030302c226d696e5f636f6c6c61746572616c223a223130303030303030303030303030303030303030222c227265776172645f6d6f64656c223a227065722d756e6974222c227265776172645f7065725f756e6974223a2231303030303030303030303030303030222c227265776172645f746f6b656e223a22307830303030303030303030303030303030303030303030303030303030303030303030303065633761222c22736c617368696e675f6270223a7b22696e76616c69645f726573756c74223a313030302c226d69737365645f736c61223a3130307d2c227661756c74223a22307861376537323138396633363432346332633664323463653466326438396461366535663237316436227d2c226d6f64756c6573223a7b227665726966696572223a6e756c6c2c22776f726b6572223a22307861626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162227d2c22776f726b223a7b22636c617373223a2264657465726d696e6973746963222c22636f6d6d6974746565223a7b226261636b757073223a332c226d696e5f73697a65223a332c2273656c656374696f6e223a22636f6c6c61746572616c2d72657075746174696f6e2d736f72746974696f6e2d7631222c2273697a65223a352c227765696768745f6361705f6d756c7469706c65223a31307d2c22646973707574655f77696e646f775f73656373223a38363430302c2265706f63685f73656373223a333630302c22657865637574696f6e223a22636f6d6d6974746565222c2266756e6374696f6e73223a5b2273636f7265225d2c226c656173655f73656373223a33302c226d61785f6761735f6c696d6974223a35303030303030302c22726f756e645f73656373223a36302c227461736b5f736f75726365223a7b226b696e64223a22617069227d2c22766572696669636174696f6e223a22726564756e64616e742d657865637574696f6e227d7d2c22646576656c6f706572223a22307837653566343535323039316136393132356435646663623762386332363539303239333935626466222c226c697374696e67223a7b22616363656e745f636f6c6f72223a2223464643393333222c2262616e6e6572223a6e756c6c2c2263617465676f7279223a22646174612d736f7665726569676e7479222c226465736372697074696f6e223a224c696e65206f6e655c6e6c696e65205c2274776f5c22205c7420746162222c22646f6373223a6e756c6c2c226665617475726573223a5b2252756e73206f6e2070686f6e6573225d2c2269636f6e223a2268747470733a2f2f746573746e65742d7270632e6e65637465722e6e6574776f726b2f76312f6173736574732f30303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030222c226e616d65223a225765747465722d4f72616b656c20e2809420c39c6ec3af63c3b664c3a920e29c9320f09f909d222c2273637265656e73686f7473223a5b5d2c22737570706f7274223a6e756c6c2c227461676c696e65223a22ce9b20646f6e6ec3a96573206dc3a974c3a96f222c2274616773223a5b226f7261636c65222c2277656174686572225d2c22766964656f223a6e756c6c2c2277656273697465223a2268747470733a2f2f6578616d706c652e6f7267227d2c226e6574776f726b223a226e65637465722d746573746e6574222c2270726576696f7573223a22307832346238663333613562353032383331643864323137633566333231313732303033666437613833323731343137303038656638336531333832623162396436222c227363686564756c696e67223a7b227075626c69635f7461736b73223a66616c73652c22726571756972656d656e7473223a7b226174746573746174696f6e223a5b5d2c226370755f636f726573223a322c226465766963655f636c6173736573223a5b226465736b746f70222c226c6170746f70222c2270686f6e65222c22736572766572225d2c22656e67696e6573223a5b226e6174697665222c2270756c6c65793332222c2270756c6c65793634225d2c22677075223a6e756c6c2c226d696e5f62656e63686d61726b223a302c2272616d5f6d62223a323034382c2273746f726167655f6d62223a3531327d2c22736c61223a7b226d61785f6c6174656e63795f6d73223a323030302c226d696e5f757074696d655f6270223a393530307d7d2c22736c7567223a22776561746865722d6f7261636c65222c2276223a312c2276657273696f6e223a327d",
+      "manifest_hash": "0x0a7191f6ff1ffc409f965cb7862152e601bdbddde7257229011d6096a031316d",
+      "consensus_hash": "0x8addb543c123007ed231eb287db390a1d58a862cad00478c4092d38f7cfebe97",
+      "project_id": "0x3c95e2106195432ceef26e7da1e3c43f8a1d71e07d126be2a0c7a2821fe7f389",
+      "signature": "0x96f8ee71ff22f17140eb0fd838287254bdaa83f76cd73d8f40baabd81d084bf50c294618853fb0c0d76281347561bb0dc7cba956eeaefd2916dfada776b709901c",
+      "signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+    }
+  ],
+  "siwe": {
+    "message": "testnet.necter.network wants you to sign in with your Ethereum account:\n0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF\n\nSign in to Necter testnet.\n\nURI: https://testnet.necter.network\nVersion: 1\nChain ID: 11155111\nNonce: AbCdEfGhIjKlMnOpQ\nIssued At: 2026-10-07T12:00:00Z\nExpiration Time: 2026-10-08T00:00:00Z",
+    "signature": "0xe976599c69ae05700b90cf4263216d894c11efdbd7b82adfe3ac2535bcae076e6157fd3c9c72bd6e91addb2a19476b892b8d4465c381b06c9111f13e632c16b01c",
+    "address": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf"
+  }
+}

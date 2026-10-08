@@ -1,425 +1,189 @@
 <script lang="ts">
-	import { showToast } from '$lib/stores/toast';
-	import { page } from '$app/stores';
-	import { ArrowLeft, Save, Upload, X, Image as ImageIcon } from 'lucide-svelte';
-	import { backendState, backend } from '$lib/stores/backend';
-	import { actor } from '$lib/stores/wallet';
+	import toast from 'svelte-french-toast';
+	import { FileText, Image, Link2, ListChecks, Palette, Loader2, Upload, X } from 'lucide-svelte';
+	import { hub } from '$lib/api/hub';
+	import { useQuery } from '$lib/api/query.svelte';
+	import { errorMessage } from '$lib/api/http';
+	import type { ManifestListing } from '$lib/api/types';
+	import { devProject } from '$lib/develop/context';
+	import { toManifest } from '$lib/develop/types';
+	import { uploadImage, IMAGE_ACCEPT } from '$lib/develop/upload';
+	import { nextVersion, validateManifest, CATEGORY_SLUGS } from '$lib/protocol/manifest';
+	import { canonicalJson } from '$lib/protocol/canonical';
+	import { publishVersion, ManifestRejected } from '$lib/flows';
+	import { categoryName } from '$lib/format';
+	import ProjectIcon from '$lib/components/common/ProjectIcon.svelte';
+	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 
-	const id = $derived($page.params.id);
-	const app = $derived($backendState.apps.find((a) => a.id === id) ?? null);
-
-	// ── Section nav ──
-	const sections = [
-		{ id: 'general', label: 'General' },
-		{ id: 'branding', label: 'Branding & Media' },
-		{ id: 'features', label: 'Features & Discovery' },
-		{ id: 'hardware', label: 'Hardware' },
-		{ id: 'economics', label: 'Economics' },
-		{ id: 'package', label: 'NDSR Package' },
+	type Section = 'general' | 'media' | 'links' | 'features' | 'branding';
+	const sections: { id: Section; label: string; icon: typeof FileText }[] = [
+		{ id: 'general', label: 'General', icon: FileText },
+		{ id: 'media', label: 'Media', icon: Image },
+		{ id: 'links', label: 'Links', icon: Link2 },
+		{ id: 'features', label: 'Features & tags', icon: ListChecks },
+		{ id: 'branding', label: 'Branding', icon: Palette }
 	];
-	let activeSection = $state('general');
+	let active = $state<Section>('general');
 
-	// ── General ──
-	let name = $state('');
-	let description = $state('');
+	const ctx = devProject();
+	const pid = $derived(ctx.project.project_id);
+	const manifestQ = useQuery(() => hub.manifest(pid));
 
-	// ── Hardware ──
-	let cpuReq = $state('');
-	let gpuReq = $state('');
-	let ramReq = $state('');
-	let storageReq = $state('');
+	let l = $state<ManifestListing | null>(null);
+	let tagsText = $state('');
+	let featuresText = $state('');
+	let busy = $state(false);
+	let step = $state('');
+	let uploading = $state<string | null>(null);
+	let problems = $state<{ path: string; message: string }[]>([]);
 
-	// ── Economics ──
-	let rewardPricingModel = $state('fixed');
-	let baseReward = $state(0.5);
-	let minReward = $state(0.05);
-	let maxReward = $state(2.5);
-	let feeMiner = $state(80);
-	let feeDev = $state(15);
-	let feeTreasury = $state(5);
-
-	// ── Branding & Media ──
-	let iconPreview: string | null = $state(null);
-	let screenshotPreviews: string[] = $state([]);
-	let featuresStr = $state('');
-	let tagsStr = $state('');
-	let brandAccentColor = $state('#FFC933');
-	let brandLogoUrl = $state('');
-	let brandBannerUrl = $state('');
-	let brandTagline = $state('');
-
-	// ── NDSR Package ──
-	let pkgKind = $state('docker');
-	let pkgVersion = $state('1.0.0');
-	let pkgImage = $state('');
-
-	// ── Hydrate from app ──
 	$effect(() => {
-		if (!app) return;
-		name = app.name ?? '';
-		description = app.description ?? '';
-		cpuReq = app.requirements?.cpu ?? '';
-		gpuReq = app.requirements?.gpu ?? '';
-		ramReq = app.requirements?.ram ?? '';
-		storageReq = app.requirements?.storage ?? '';
-		iconPreview = app.icon ?? null;
-		screenshotPreviews = app.screenshots ?? [];
-		featuresStr = (app.features ?? []).join('\n');
-		tagsStr = (app.tags ?? []).join(', ');
-		brandAccentColor = app.branding?.accentColor ?? '#FFC933';
-		brandLogoUrl = app.branding?.logoUrl ?? '';
-		brandBannerUrl = app.branding?.bannerUrl ?? '';
-		brandTagline = app.branding?.tagline ?? '';
+		if (manifestQ.data && !l) {
+			const m = toManifest(manifestQ.data.manifest);
+			l = structuredClone(m.listing);
+			tagsText = m.listing.tags.join(', ');
+			featuresText = m.listing.features.join('\n');
+		}
 	});
 
-	// ── File reading ──
-	function readFileAsDataUrl(file: File): Promise<string> {
-		return new Promise((resolve, reject) => {
-			const r = new FileReader();
-			r.onload = () => resolve(r.result as string);
-			r.onerror = reject;
-			r.readAsDataURL(file);
-		});
+	function draftListing(): ManifestListing | null {
+		if (!l) return null;
+		const snap = $state.snapshot(l) as ManifestListing;
+		const nul = (v: string | null) => (v && v.trim() ? v.trim() : null);
+		return {
+			...snap,
+			name: snap.name.trim(),
+			tagline: snap.tagline.trim(),
+			tags: [...new Set(tagsText.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))],
+			features: featuresText.split('\n').map((f) => f.trim()).filter(Boolean),
+			banner: nul(snap.banner),
+			video: nul(snap.video),
+			website: nul(snap.website),
+			docs: nul(snap.docs),
+			support: nul(snap.support),
+			accent_color: snap.accent_color ? snap.accent_color.toUpperCase() : null
+		};
 	}
 
-	async function handleIconUpload(e: any) {
-		const f = e.target.files?.[0];
-		if (f) iconPreview = await readFileAsDataUrl(f);
+	const fieldProblems = $derived.by(() => {
+		const d = draftListing();
+		if (!d || !manifestQ.data) return [];
+		return validateManifest({ ...toManifest(manifestQ.data.manifest), listing: d }).filter((p) => p.path.startsWith('listing'));
+	});
+
+	async function upload(e: Event, field: 'icon' | 'banner' | 'screenshot') {
+		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (!file || !l) return;
+		uploading = field;
+		try {
+			const url = await uploadImage(file);
+			if (field === 'screenshot') l.screenshots = [...l.screenshots, url].slice(0, 8);
+			else l[field] = url;
+		} catch (err) {
+			toast.error(errorMessage(err));
+		} finally {
+			uploading = null;
+		}
 	}
 
-	async function handleScreenshotUpload(e: any) {
-		const files = Array.from(e.target.files || []).slice(0, 5 - screenshotPreviews.length) as File[];
-		const urls = await Promise.all(files.map(readFileAsDataUrl));
-		screenshotPreviews = [...screenshotPreviews, ...urls].slice(0, 5);
+	async function save() {
+		const listing = draftListing();
+		if (!listing || !manifestQ.data) return;
+		const current = toManifest(manifestQ.data.manifest);
+		if (canonicalJson(listing) === canonicalJson(current.listing)) return toast('Nothing changed');
+		problems = [];
+		busy = true;
+		try {
+			const r = await publishVersion(pid, nextVersion(current, { listing }), (s) => (step = s), { sendPublishTx: false });
+			toast.success(`Listing updated (version ${r.version.version})`);
+			l = null;
+			await Promise.all([manifestQ.refresh(), ctx.refresh()]);
+		} catch (e) {
+			if (e instanceof ManifestRejected) problems = e.problems;
+			else toast.error(errorMessage(e));
+		} finally {
+			busy = false;
+			step = '';
+		}
 	}
 
-	function removeScreenshot(idx: number) {
-		screenshotPreviews = screenshotPreviews.filter((_, j) => j !== idx);
-	}
-
-	// ── Save ──
-	function save() {
-		if (!app) return;
-		backend.updateApp(id as string, {
-			name,
-			description,
-			icon: iconPreview || app.icon,
-			screenshots: screenshotPreviews,
-			features: featuresStr ? featuresStr.split('\n').map((f) => f.trim()).filter(Boolean) : [],
-			tags: tagsStr ? tagsStr.split(',').map((t) => t.trim()).filter(Boolean) : [],
-			requirements: { cpu: cpuReq, gpu: gpuReq || undefined, ram: ramReq, storage: storageReq, bandwidth: app.requirements?.bandwidth ?? '50 Mbps' },
-			minRewardPerTask: minReward,
-			maxRewardPerTask: maxReward,
-			rewardSplitMiner: feeMiner,
-			rewardSplitDeveloper: feeDev,
-			rewardSplitTreasury: feeTreasury,
-			branding: {
-				accentColor: brandAccentColor || undefined,
-				logoUrl: brandLogoUrl || undefined,
-				bannerUrl: brandBannerUrl || undefined,
-				tagline: brandTagline || undefined,
-			},
-		});
-		showToast('Settings saved');
-	}
-
-	function scrollToSection(sectionId: string) {
-		activeSection = sectionId;
-		const el = document.getElementById(`section-${sectionId}`);
-		if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-	}
-
-	const inp = 'w-full h-9 px-3 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[var(--text-primary)] text-[13px] outline-none focus:border-[var(--border-hover)] transition-colors';
-	const lbl = 'text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5';
+	const inputCls = 'w-full h-[34px] px-3 rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-base)]';
+	const labelCls = 'text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5';
 </script>
 
-{#if !app}
-	<div class="px-8 pt-8 pb-12">
-		<p class="text-[var(--text-secondary)]">App not found.</p>
-		<a href="/develop" class="text-[var(--text-accent)] text-[13px]">Back to portal</a>
-	</div>
+{#if !l}
+	<LoadingBlock rows={4} />
 {:else}
-	<div class="px-6 pt-6 pb-16">
-		<div class="max-w-[960px] mx-auto">
-			<!-- Header -->
-			<div class="flex items-center justify-between mb-6">
-				<div class="flex items-center gap-3">
-					<a href="/develop/apps/{id}" class="w-7 h-7 flex items-center justify-center rounded-[5px] no-underline hover:bg-[var(--surface-2)] transition-colors">
-						<ArrowLeft class="w-4 h-4 text-[var(--text-tertiary)]" strokeWidth={1.5} />
-					</a>
-					<div>
-						<h1 class="text-[18px] font-semibold text-[var(--text-primary)] tracking-tight">Settings</h1>
-						<p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">{app.name}</p>
-					</div>
-				</div>
-				<button onclick={save} class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5 hover:brightness-110 transition-all">
-					<Save size={14} strokeWidth={2} /> Save Changes
+	<div class="flex flex-col md:flex-row gap-4 md:gap-6">
+		<nav class="flex md:flex-col w-full md:w-[170px] flex-shrink-0 gap-0.5 md:sticky md:top-6 md:self-start overflow-x-auto">
+			{#each sections as s (s.id)}
+				{@const Icon = s.icon}
+				<button type="button" onclick={() => (active = s.id)} class="flex items-center gap-2.5 md:w-full px-3 py-2 text-[13px] rounded-[6px] text-left whitespace-nowrap border-none cursor-pointer {active === s.id ? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] font-medium' : 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'}">
+					<Icon class="h-4 w-4" strokeWidth={1.5} />{s.label}
 				</button>
+			{/each}
+		</nav>
+		<div class="flex-1 min-w-0">
+			<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5 space-y-4">
+				{#if active === 'general'}
+					<div><label for="ln" class={labelCls}>Name</label><input id="ln" bind:value={l.name} maxlength="64" class={inputCls} /></div>
+					<div><label for="lt" class={labelCls}>Tagline</label><input id="lt" bind:value={l.tagline} maxlength="120" class={inputCls} /></div>
+					<div><label for="ld" class={labelCls}>Description</label><textarea id="ld" bind:value={l.description} rows="8" maxlength="8000" class="w-full p-3 rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[13px]"></textarea></div>
+					<div>
+						<label for="lc" class={labelCls}>Category</label>
+						<select id="lc" bind:value={l.category} class={inputCls}>{#each CATEGORY_SLUGS as c (c)}<option value={c}>{categoryName(c)}</option>{/each}</select>
+					</div>
+				{:else if active === 'media'}
+					<div class="flex items-center gap-4">
+						<ProjectIcon project={{ project_id: pid, name: l.name, category: l.category, icon: l.icon }} size={64} rounded="14px" />
+						<label class="btn-secondary inline-flex items-center gap-1.5 cursor-pointer">
+							{#if uploading === 'icon'}<Loader2 class="h-3.5 w-3.5 animate-spin" />{:else}<Upload class="h-3.5 w-3.5" />{/if} Upload icon
+							<input type="file" accept={IMAGE_ACCEPT} class="hidden" onchange={(e) => upload(e, 'icon')} />
+						</label>
+					</div>
+					<div>
+						<span class={labelCls}>Banner</span>
+						{#if l.banner}<img src={l.banner} alt="" class="w-full max-h-[140px] object-cover rounded-[8px] mb-2" referrerpolicy="no-referrer" />{/if}
+						<div class="flex gap-2">
+							<label class="btn-secondary inline-flex items-center gap-1.5 cursor-pointer"><Upload class="h-3.5 w-3.5" /> Upload banner<input type="file" accept={IMAGE_ACCEPT} class="hidden" onchange={(e) => upload(e, 'banner')} /></label>
+							{#if l.banner}<button type="button" class="btn-secondary" onclick={() => (l!.banner = null)}>Remove</button>{/if}
+						</div>
+					</div>
+					<div>
+						<span class={labelCls}>Screenshots ({l.screenshots.length}/8)</span>
+						<div class="flex flex-wrap gap-2 mb-2">
+							{#each l.screenshots as s, i (s)}
+								<div class="relative"><img src={s} alt="" class="h-[90px] rounded-[6px]" referrerpolicy="no-referrer" /><button type="button" aria-label="Remove" class="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/60 border-none cursor-pointer flex items-center justify-center" onclick={() => (l!.screenshots = l!.screenshots.filter((_, j) => j !== i))}><X class="h-3 w-3 text-white" /></button></div>
+							{/each}
+						</div>
+						{#if l.screenshots.length < 8}<label class="btn-secondary inline-flex items-center gap-1.5 cursor-pointer"><Upload class="h-3.5 w-3.5" /> Add screenshot<input type="file" accept={IMAGE_ACCEPT} class="hidden" onchange={(e) => upload(e, 'screenshot')} /></label>{/if}
+					</div>
+					<div><label for="lv" class={labelCls}>Video URL (https)</label><input id="lv" bind:value={l.video} class={inputCls} placeholder="https://…" /></div>
+				{:else if active === 'links'}
+					<div><label for="lw" class={labelCls}>Website</label><input id="lw" bind:value={l.website} class={inputCls} placeholder="https://…" /></div>
+					<div><label for="ldo" class={labelCls}>Docs</label><input id="ldo" bind:value={l.docs} class={inputCls} placeholder="https://…" /></div>
+					<div><label for="ls" class={labelCls}>Support</label><input id="ls" bind:value={l.support} class={inputCls} placeholder="https://…" /></div>
+				{:else if active === 'features'}
+					<div><label for="ltg" class={labelCls}>Tags (comma separated, up to 8: a-z, 0-9, -)</label><input id="ltg" bind:value={tagsText} class={inputCls} /></div>
+					<div><label for="lf" class={labelCls}>Features (one per line, up to 12)</label><textarea id="lf" bind:value={featuresText} rows="6" class="w-full p-3 rounded-[6px] bg-[var(--surface-0)] border border-[var(--border)] text-[13px]"></textarea></div>
+				{:else}
+					<div>
+						<label for="lac" class={labelCls}>Accent color</label>
+						<div class="flex items-center gap-2">
+							<input type="color" value={l.accent_color ?? '#FFC933'} oninput={(e) => (l!.accent_color = (e.currentTarget as HTMLInputElement).value.toUpperCase())} class="h-[34px] w-[48px] rounded-[6px] bg-transparent border border-[var(--border)]" />
+							<input id="lac" bind:value={l.accent_color} placeholder="#FFC933" class="{inputCls} font-mono max-w-[140px]" />
+							{#if l.accent_color}<button type="button" class="btn-secondary" onclick={() => (l!.accent_color = null)}>Default</button>{/if}
+						</div>
+					</div>
+				{/if}
 			</div>
 
-			<!-- Layout: sidebar + content -->
-			<div class="flex gap-6">
-				<!-- Sidebar nav -->
-				<nav class="w-[180px] shrink-0 sticky top-6 self-start">
-					<div class="flex flex-col gap-0.5">
-						{#each sections as s}
-							<button
-								type="button"
-								onclick={() => scrollToSection(s.id)}
-								class="text-left px-3 py-2 rounded-[6px] text-[13px] font-medium border-none cursor-pointer transition-colors"
-								style="background:{activeSection === s.id ? 'var(--surface-2)' : 'transparent'};color:{activeSection === s.id ? 'var(--text-primary)' : 'var(--text-tertiary)'}"
-							>
-								{s.label}
-							</button>
-						{/each}
-					</div>
-				</nav>
-
-				<!-- Content -->
-				<div class="flex-1 min-w-0 flex flex-col gap-5">
-
-					<!-- General -->
-					<section id="section-general" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">General</h2>
-						<div class="space-y-4">
-							<div>
-								<label class={lbl}>Project Name</label>
-								<input class={inp} bind:value={name} />
-							</div>
-							<div>
-								<label class={lbl}>Description</label>
-								<textarea class="{inp} h-auto py-2" rows="4" bind:value={description}></textarea>
-							</div>
-						</div>
-					</section>
-
-					<!-- Branding & Media -->
-					<section id="section-branding" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Branding & Media</h2>
-						<div class="space-y-5">
-							<!-- Icon -->
-							<div>
-								<label class={lbl}>App Icon</label>
-								<div class="flex items-center gap-3">
-									<div class="w-16 h-16 rounded-[14px] bg-[var(--surface-2)] flex items-center justify-center overflow-hidden shrink-0" style="border:{iconPreview ? 'none' : '2px dashed var(--border-default)'}">
-										{#if iconPreview}
-											<img src={iconPreview} alt="Icon" width="64" height="64" class="rounded-[14px] object-cover" />
-										{:else}
-											<ImageIcon size={24} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
-										{/if}
-									</div>
-									<div>
-										<label class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[5px] text-[12px] font-medium cursor-pointer bg-[var(--surface-2)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] transition-colors">
-											<Upload size={12} strokeWidth={1.5} /> Upload Icon
-											<input type="file" accept="image/*" onchange={handleIconUpload} class="hidden" />
-										</label>
-										<p class="text-[11px] text-[var(--text-tertiary)] mt-1">512×512 recommended</p>
-									</div>
-								</div>
-							</div>
-
-							<!-- Screenshots -->
-							<div>
-								<label class={lbl}>Screenshots ({screenshotPreviews.length}/5)</label>
-								<div class="grid grid-cols-5 gap-2">
-									{#each screenshotPreviews as src, i}
-										<div class="relative aspect-[16/10] rounded-[6px] overflow-hidden border border-[var(--border-default)]">
-											<img {src} alt="Screenshot {i + 1}" class="w-full h-full object-cover" />
-											<button
-												type="button"
-												onclick={() => removeScreenshot(i)}
-												class="absolute top-1 right-1 w-5 h-5 rounded bg-black/70 border-none cursor-pointer flex items-center justify-center"
-											>
-												<X size={12} strokeWidth={2} class="text-white" />
-											</button>
-										</div>
-									{/each}
-									{#if screenshotPreviews.length < 5}
-										<label class="aspect-[16/10] rounded-[6px] border border-dashed border-[var(--border-default)] bg-[var(--surface-2)] flex flex-col items-center justify-center cursor-pointer gap-1 hover:border-[var(--border-hover)] transition-colors">
-											<Upload size={16} strokeWidth={1.5} class="text-[var(--text-tertiary)]" />
-											<span class="text-[10px] text-[var(--text-tertiary)]">Add</span>
-											<input type="file" accept="image/*" multiple onchange={handleScreenshotUpload} class="hidden" />
-										</label>
-									{/if}
-								</div>
-							</div>
-
-							<!-- Tagline -->
-							<div>
-								<label class={lbl}>Tagline</label>
-								<input class={inp} bind:value={brandTagline} placeholder="A short tagline for your project" />
-							</div>
-
-							<!-- Accent Color -->
-							<div>
-								<label class={lbl}>Accent Color</label>
-								<div class="flex items-center gap-3">
-									<input type="color" bind:value={brandAccentColor} class="w-9 h-9 rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] cursor-pointer p-0.5" />
-									<input class={inp} bind:value={brandAccentColor} placeholder="#FFC933" style="flex:1" />
-								</div>
-							</div>
-
-							<!-- Logo + Banner -->
-							<div class="grid grid-cols-2 gap-4">
-								<div>
-									<label class={lbl}>Logo URL</label>
-									<input class={inp} bind:value={brandLogoUrl} placeholder="https://example.com/logo.png" />
-								</div>
-								<div>
-									<label class={lbl}>Banner Image URL</label>
-									<input class={inp} bind:value={brandBannerUrl} placeholder="https://example.com/banner.png" />
-								</div>
-							</div>
-
-							<!-- Preview -->
-							{#if brandAccentColor || brandLogoUrl}
-								<div class="rounded-[6px] border border-[var(--border-default)] bg-[var(--surface-0)] p-4">
-									<span class="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-2">Preview</span>
-									<div class="flex items-center gap-3">
-										{#if brandLogoUrl}
-											<img src={brandLogoUrl} alt="Logo" class="w-10 h-10 rounded-[8px] object-cover border border-[var(--border-default)]" />
-										{:else}
-											<div class="w-10 h-10 rounded-[8px] border border-[var(--border-default)]" style="background:{brandAccentColor}"></div>
-										{/if}
-										<div>
-											<span class="text-[13px] font-medium text-[var(--text-primary)] block">{name || 'Project Name'}</span>
-											{#if brandTagline}
-												<span class="text-[11px] text-[var(--text-tertiary)]">{brandTagline}</span>
-											{/if}
-										</div>
-										<div class="ml-auto flex gap-1.5">
-											<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor}"></div>
-											<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.5"></div>
-											<div class="w-4 h-4 rounded-full" style="background:{brandAccentColor};opacity:0.2"></div>
-										</div>
-									</div>
-								</div>
-							{/if}
-						</div>
-					</section>
-
-					<!-- Features & Discovery -->
-					<section id="section-features" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Features & Discovery</h2>
-						<div class="space-y-4">
-							<div>
-								<label class={lbl}>Features</label>
-								<textarea class="{inp} h-auto py-2" rows="4" bind:value={featuresStr} placeholder={"Real-time coverage mapping\nAutomatic proof of coverage\nRewards tracking dashboard"}></textarea>
-								<p class="text-[11px] text-[var(--text-tertiary)] mt-1">One per line. Shown on the app detail page.</p>
-							</div>
-							<div>
-								<label class={lbl}>Tags</label>
-								<input class={inp} bind:value={tagsStr} placeholder="IoT, DePIN, Wireless, 5G" />
-								<p class="text-[11px] text-[var(--text-tertiary)] mt-1">Comma-separated. Used for search and discovery.</p>
-							</div>
-						</div>
-					</section>
-
-					<!-- Hardware -->
-					<section id="section-hardware" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Hardware Requirements</h2>
-						<div class="grid grid-cols-2 gap-4">
-							<div>
-								<label class={lbl}>CPU</label>
-								<input class={inp} bind:value={cpuReq} placeholder="e.g. 4 cores" />
-							</div>
-							<div>
-								<label class={lbl}>GPU</label>
-								<input class={inp} bind:value={gpuReq} placeholder="e.g. RTX 4090" />
-							</div>
-							<div>
-								<label class={lbl}>RAM</label>
-								<input class={inp} bind:value={ramReq} placeholder="e.g. 16GB" />
-							</div>
-							<div>
-								<label class={lbl}>Storage</label>
-								<input class={inp} bind:value={storageReq} placeholder="e.g. 500GB SSD" />
-							</div>
-						</div>
-					</section>
-
-					<!-- Economics -->
-					<section id="section-economics" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">Reward Economics</h2>
-						<div class="space-y-4">
-							<div>
-								<label class={lbl}>Pricing Model</label>
-								<select class={inp} bind:value={rewardPricingModel}>
-									<option value="fixed">Fixed per task</option>
-									<option value="variable">Variable (supply/demand)</option>
-									<option value="marketplace">Marketplace auction</option>
-								</select>
-							</div>
-							<div class="grid grid-cols-3 gap-4">
-								<div>
-									<label class={lbl}>Min Reward</label>
-									<input class={inp} type="number" step="0.01" bind:value={minReward} />
-								</div>
-								<div>
-									<label class={lbl}>Base Reward</label>
-									<input class={inp} type="number" step="0.01" bind:value={baseReward} />
-								</div>
-								<div>
-									<label class={lbl}>Max Reward</label>
-									<input class={inp} type="number" step="0.01" bind:value={maxReward} />
-								</div>
-							</div>
-							<div>
-								<label class={lbl}>Fee Split (Miner / Developer / Treasury)</label>
-								<div class="grid grid-cols-3 gap-4">
-									<div>
-										<input class={inp} type="number" bind:value={feeMiner} />
-										<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Miner %</span>
-									</div>
-									<div>
-										<input class={inp} type="number" bind:value={feeDev} />
-										<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Developer %</span>
-									</div>
-									<div>
-										<input class={inp} type="number" bind:value={feeTreasury} />
-										<span class="text-[10px] text-[var(--text-tertiary)] mt-1 block">Treasury %</span>
-									</div>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<!-- NDSR Package -->
-					<section id="section-package" class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-5">
-						<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-4">NDSR Package</h2>
-						<div class="space-y-4">
-							<div class="grid grid-cols-2 gap-4">
-								<div>
-									<label class={lbl}>Package Type</label>
-									<select class={inp} bind:value={pkgKind}>
-										<option value="docker">Docker</option>
-										<option value="vm">Virtual Machine</option>
-										<option value="ndsr">NDSR Native</option>
-									</select>
-								</div>
-								<div>
-									<label class={lbl}>Version</label>
-									<input class={inp} bind:value={pkgVersion} />
-								</div>
-							</div>
-							<div>
-								<label class={lbl}>Image Reference</label>
-								<input class={inp} bind:value={pkgImage} placeholder="e.g. registry.necter.io/mynetwork:latest" />
-							</div>
-						</div>
-					</section>
-
-					<!-- Bottom save bar -->
-					<div class="flex items-center justify-between pt-2">
-						<a href="/develop/apps/{id}" class="text-[13px] text-[var(--text-tertiary)] no-underline hover:text-[var(--text-secondary)] transition-colors">
-							<ArrowLeft class="inline w-3 h-3 mr-1" strokeWidth={1.5} />Cancel
-						</a>
-						<button onclick={save} class="h-9 px-5 rounded-[6px] text-[13px] font-semibold bg-[var(--accent-base)] text-[#0C0C0E] border-none cursor-pointer flex items-center gap-1.5 hover:brightness-110 transition-all">
-							<Save size={14} strokeWidth={2} /> Save Changes
-						</button>
-					</div>
-
-				</div>
+			{#each [...fieldProblems, ...problems] as pr (pr.path + pr.message)}<p class="text-[12px] text-[var(--error)] mt-2">{pr.path}: {pr.message}</p>{/each}
+			<div class="flex items-center justify-between gap-3 mt-4 flex-wrap">
+				<p class="text-[11px] text-[var(--text-tertiary)]">Saving signs a listing-only version: no transaction, effective immediately.</p>
+				<button type="button" class="btn-subscribe inline-flex items-center gap-1.5" disabled={busy || fieldProblems.length > 0 || !!uploading} onclick={save}>
+					{#if busy}<Loader2 class="h-3.5 w-3.5 animate-spin" />{step || 'Working…'}{:else}Sign & save listing{/if}
+				</button>
 			</div>
 		</div>
 	</div>

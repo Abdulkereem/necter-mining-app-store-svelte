@@ -11,9 +11,15 @@
 		Settings,
 		LogOut,
 		Wallet,
-		ChevronRight
+		ChevronRight,
+		Droplets,
+		Blocks,
+		KeyRound
 	} from 'lucide-svelte';
-	import { actor, showConnectModal, disconnectWallet } from '$lib/stores/wallet';
+	import { wallet, signedIn, showConnectModal, disconnectWallet, signIn } from '$lib/stores/wallet';
+	import { errorMessage } from '$lib/api/http';
+	import toast from 'svelte-french-toast';
+	import { shortAddress } from '$lib/format';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 
 	const tabs = [
@@ -25,13 +31,15 @@
 		},
 		{ href: '/mining', label: 'Mining', icon: Pickaxe, match: ['/mining'] },
 		{ href: '/leaderboards', label: 'Leaderboard', icon: Trophy, match: ['/leaderboards'] },
-		{ href: '/governance', label: 'Governance', icon: Shield, match: ['/governance'] },
+		{ href: '/explorer', label: 'Explorer', icon: Blocks, match: ['/explorer'] },
 		{ href: '/search', label: 'Search', icon: Search, match: ['/search'] }
 	];
 
 	const menuItems = [
 		{ href: '/settings', label: 'Settings', icon: Settings },
-		{ href: '/withdraw', label: 'Withdraw', icon: Wallet }
+		{ href: '/withdraw', label: 'Withdraw', icon: Wallet },
+		{ href: '/faucet', label: 'Testnet faucet', icon: Droplets },
+		{ href: '/governance', label: 'Governance', icon: Shield }
 	];
 
 	let showProfile = $state(false);
@@ -42,10 +50,19 @@
 		return match.some((m) => pathname === m || pathname.startsWith(m + '/'));
 	}
 
-	const avatarSrc = $derived($actor?.minerId ? minerAvatarDataUri($actor.minerId) : null);
+	const avatarSrc = $derived($wallet ? minerAvatarDataUri($wallet.address) : null);
+
+	async function doSignIn() {
+		try {
+			await signIn();
+			showProfile = false;
+		} catch (e) {
+			toast.error(errorMessage(e));
+		}
+	}
 
 	function handleAvatarClick() {
-		if ($actor) {
+		if ($wallet) {
 			showProfile = !showProfile;
 		} else {
 			showConnectModal.set(true);
@@ -53,7 +70,7 @@
 	}
 
 	function handleDisconnect() {
-		disconnectWallet();
+		void disconnectWallet();
 		showProfile = false;
 	}
 </script>
@@ -144,16 +161,16 @@
 			role="presentation"
 		>
 			<!-- Wallet info -->
-			{#if $actor}
+			{#if $wallet}
 				<div
 					class="px-4 py-3"
 					style="border-bottom: 1px solid var(--border-default);"
 				>
-					<p class="text-[13px] font-medium" style="color: var(--text-primary);">
-						{$actor.minerId}
+					<p class="text-[13px] font-medium font-mono" style="color: var(--text-primary);">
+						{shortAddress($wallet.address)}
 					</p>
-					<p class="text-[11px] font-mono truncate" style="color: var(--text-tertiary);">
-						{$actor.walletAddress}
+					<p class="text-[11px] truncate" style="color: var(--text-tertiary);">
+						{$wallet.connector.name} · {$signedIn ? 'Signed in' : 'Not signed in'}
 					</p>
 				</div>
 			{/if}
@@ -174,7 +191,17 @@
 					</a>
 				{/each}
 
-				{#if $actor}
+				{#if $wallet && !$signedIn}
+					<button
+						type="button"
+						onclick={doSignIn}
+						class="flex items-center gap-3 px-4 py-3 w-full bg-transparent border-none cursor-pointer transition-colors hover:bg-[var(--surface-2)]"
+					>
+						<KeyRound class="h-[18px] w-[18px]" strokeWidth={1.5} style="color: var(--text-accent);" />
+						<span class="text-[14px]" style="color: var(--text-accent);">Sign in</span>
+					</button>
+				{/if}
+				{#if $wallet}
 					<button
 						type="button"
 						onclick={handleDisconnect}

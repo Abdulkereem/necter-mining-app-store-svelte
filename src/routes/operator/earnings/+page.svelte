@@ -1,138 +1,82 @@
 <script lang="ts">
-  import { backendState, backend } from '$lib/stores/backend';
-  import { actor, showConnectModal } from '$lib/stores/wallet';
-  import { ArrowLeft, DollarSign, TrendingUp, Clock, ArrowDownToLine } from 'lucide-svelte';
+	import { ArrowLeft } from 'lucide-svelte';
+	import { hub } from '$lib/api/hub';
+	import { useQuery } from '$lib/api/query.svelte';
+	import type { Period } from '$lib/api/types';
+	import { signedIn } from '$lib/stores/wallet';
+	import { formatNumber, formatToken } from '$lib/format';
+	import { projectRef } from '$lib/components/mining/projects.svelte';
+	import SignInGate from '$lib/components/common/SignInGate.svelte';
+	import EmptyState from '$lib/components/common/EmptyState.svelte';
+	import ErrorState from '$lib/components/common/ErrorState.svelte';
+	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 
-  const miners = $derived(backend.listOperatorMiners());
-  const minerIdSet = $derived(new Set(miners.map((m) => m.id)));
+	let period = $state<Period>('30d');
+	// Rewards are paid per payout address and project, so the Hub reports per-device rows as units only.
+	let groupBy = $state<'device' | 'project' | 'day'>('project');
+	const q = useQuery(() => hub.earnings({ period, group_by: groupBy }), { enabled: () => $signedIn });
+	const rows = $derived(q.data?.rows ?? []);
 
-  const fleetPayouts = $derived($backendState.payouts.filter((p) => minerIdSet.has(p.minerId)));
-
-  const totalEarned = $derived(fleetPayouts.reduce((s, p) => s + p.minerAmount, 0));
-  const totalDeveloper = $derived(fleetPayouts.reduce((s, p) => s + p.developerAmount, 0));
-  const totalTreasury = $derived(fleetPayouts.reduce((s, p) => s + p.treasuryAmount, 0));
-
-  const pendingAmount = $derived(totalEarned * 0.12);
-  const withdrawnAmount = $derived(totalEarned * 0.65);
-  const availableAmount = $derived(totalEarned - pendingAmount - withdrawnAmount);
-
-  const earningsByApp = $derived.by(() => {
-    const map: Record<string, any> = {};
-    for (const p of fleetPayouts) {
-      if (!map[p.appId]) {
-        const app = $backendState.apps.find((a) => a.id === p.appId);
-        map[p.appId] = { appId: p.appId, appName: app?.name ?? p.appId, amount: 0, count: 0 };
-      }
-      map[p.appId].amount += p.minerAmount;
-      map[p.appId].count += 1;
-    }
-    return Object.values(map).sort((a, b) => b.amount - a.amount);
-  });
-
-  const topStats = $derived([
-    { label: 'Total Earned', value: `$${totalEarned.toFixed(2)}`, icon: DollarSign, color: 'var(--text-accent)' },
-    { label: 'Available', value: `$${availableAmount.toFixed(2)}`, icon: TrendingUp, color: 'var(--success)' },
-    { label: 'Pending', value: `$${pendingAmount.toFixed(2)}`, icon: Clock, color: 'var(--warning)' },
-    { label: 'Withdrawn', value: `$${withdrawnAmount.toFixed(2)}`, icon: ArrowDownToLine, color: 'var(--text-secondary)' },
-  ]);
-
-  const revenueSplit = $derived([
-    { label: 'Miner Revenue', value: `$${totalEarned.toFixed(2)}`, color: 'var(--success)' },
-    { label: 'Developer Fees', value: `$${totalDeveloper.toFixed(2)}`, color: 'var(--info)' },
-    { label: 'Treasury Contribution', value: `$${totalTreasury.toFixed(2)}`, color: 'var(--text-tertiary)' },
-  ]);
+	function label(key: string | undefined) {
+		if (!key) return '—';
+		if (groupBy === 'project') return projectRef(key)?.name ?? key.slice(0, 12) + '…';
+		return key;
+	}
 </script>
 
-{#if !$actor}
-  <div class="min-h-screen animate-fadeIn px-6 pt-6 pb-12">
-    <div style="max-width:1152px;margin:0 auto;text-align:center;padding-top:120px">
-      <p style="font-size:13px;color:var(--text-secondary)">Connect a wallet to view Fleet Earnings.</p>
-      <button class="btn-pill" onclick={() => ($showConnectModal = true)} style="font-size:13px;height:32px;padding:0 16px;margin-top:16px">
-        Connect Wallet
-      </button>
-    </div>
-  </div>
-{:else}
-  <div class="min-h-screen animate-fadeIn px-6 pt-6 pb-12">
-    <div style="max-width:1152px;margin:0 auto">
-      <a href="/operator" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-tertiary);text-decoration:none;margin-bottom:16px">
-        <ArrowLeft size={14} strokeWidth={1.5} />
-        Operator Portal
-      </a>
+<svelte:head><title>Fleet earnings · Necter</title></svelte:head>
 
-      <h1 class="text-[20px] font-semibold text-[var(--text-primary)]" style="letter-spacing:-0.015em;line-height:28px">
-        Fleet Earnings
-      </h1>
-      <p style="font-size:13px;color:var(--text-secondary);margin-top:4px">
-        Aggregate revenue across {miners.length} fleet miners.
-      </p>
+<SignInGate title="Fleet earnings" description="Sign in to see earnings per device, project and day." illustration="ecosystem">
+	<div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-6 pb-12">
+		<a href="/operator" class="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] no-underline mb-4"><ArrowLeft class="h-3 w-3" /> Operator</a>
+		<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+			<div>
+				<h1 class="text-[24px] font-semibold tracking-tight text-[var(--text-primary)]">Earnings</h1>
+				<p class="text-[13px] text-[var(--text-secondary)] mt-1">Amounts are per reward token — never added across tokens.</p>
+			</div>
+			<div class="flex gap-2">
+				<select bind:value={groupBy} class="h-[32px] px-2 rounded-[6px] bg-[var(--surface-1)] border border-[var(--border)] text-[12px]">
+					<option value="device">By device</option><option value="project">By project</option><option value="day">By day</option>
+				</select>
+				<select bind:value={period} class="h-[32px] px-2 rounded-[6px] bg-[var(--surface-1)] border border-[var(--border)] text-[12px]">
+					<option value="24h">24 h</option><option value="7d">7 days</option><option value="30d">30 days</option><option value="all">All time</option>
+				</select>
+			</div>
+		</div>
 
-      <!-- Top stat cards -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px">
-        {#each topStats as stat}
-          <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px]" style="padding:16px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-              <stat.icon size={14} strokeWidth={1.5} style="color:var(--text-tertiary)" />
-              <span style="font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.02em">
-                {stat.label}
-              </span>
-            </div>
-            <p style="font-size:24px;font-weight:600;color:{stat.color};font-family:var(--font-mono);letter-spacing:-0.02em">
-              {stat.value}
-            </p>
-          </div>
-        {/each}
-      </div>
-
-      <!-- Revenue split summary -->
-      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px]" style="padding:16px;margin-top:16px">
-        <h2 style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:12px;letter-spacing:-0.006em">
-          Revenue Split
-        </h2>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-          {#each revenueSplit as item}
-            <div>
-              <p style="font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.02em;margin-bottom:4px">
-                {item.label}
-              </p>
-              <p style="font-size:20px;font-weight:600;color:{item.color};font-family:var(--font-mono)">
-                {item.value}
-              </p>
-            </div>
-          {/each}
-        </div>
-      </div>
-
-      <!-- Earnings by app -->
-      <div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px]" style="padding:16px;margin-top:16px">
-        <h2 style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:12px;letter-spacing:-0.006em">
-          Earnings by App / Network
-        </h2>
-
-        {#if earningsByApp.length === 0}
-          <p style="font-size:13px;color:var(--text-tertiary);padding:12px 0">No earnings recorded yet.</p>
-        {:else}
-          <div style="display:flex;flex-direction:column">
-            {#each earningsByApp as item}
-              {@const pct = totalEarned > 0 ? (item.amount / totalEarned) * 100 : 0}
-              <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-default)">
-                <div style="flex:1;min-width:0">
-                  <p style="font-size:13px;color:var(--text-primary)">{item.appName}</p>
-                  <p style="font-size:11px;color:var(--text-tertiary)">{item.count} payouts</p>
-                </div>
-                <div style="width:120px;flex-shrink:0">
-                  <div style="height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden">
-                    <div style="height:100%;width:{pct}%;background:var(--accent-base);border-radius:2px"></div>
-                  </div>
-                </div>
-                <span style="font-size:13px;font-family:var(--font-mono);font-weight:600;color:var(--text-accent);min-width:80px;text-align:right">
-                  ${item.amount.toFixed(2)}
-                </span>
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </div>
-    </div>
-  </div>
-{/if}
+		{#if q.loading && !q.data}
+			<LoadingBlock rows={4} />
+		{:else if q.error}
+			<ErrorState error={q.error} retry={q.refresh} />
+		{:else if q.data}
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+				<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+					<p class="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">Units</p>
+					<p class="text-[22px] font-semibold font-mono">{formatNumber(q.data.units ?? 0)}</p>
+				</div>
+				{#each q.data.totals ?? [] as t (t.token.address)}
+					<div class="bg-[var(--surface-1)] border border-[var(--border-default)] rounded-[8px] p-4">
+						<p class="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">{t.token.symbol} earned</p>
+						<p class="text-[22px] font-semibold font-mono text-[var(--text-accent)]">{formatToken(t.amount, t.token, { maxFrac: 2 })}</p>
+					</div>
+				{/each}
+			</div>
+			{#if groupBy === 'device'}
+				<p class="text-[12px] text-[var(--text-tertiary)] mb-3">Rewards are paid per payout address and project, not per device; this view shows each device's verified units.</p>
+			{/if}
+			{#if rows.length === 0}
+				<EmptyState illustration="ecosystem" title="No earnings in this period" description="Earnings appear after your devices' first finalized rounds settle in an epoch." />
+			{:else}
+				<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-1)] overflow-hidden divide-y divide-[var(--border-default)]">
+					{#each rows as r (r.key)}
+						<div class="flex items-center justify-between gap-3 px-4 py-3">
+							<span class="text-[13px] {groupBy === 'device' ? 'font-mono' : ''} truncate">{label(r.key)}</span>
+							<span class="text-[12px] text-[var(--text-tertiary)] font-mono">{formatNumber(r.units ?? 0)} units</span>
+							<span class="text-[13px] font-mono text-right">{#each r.amounts ?? [] as a (a.token.address)}<span class="block">{formatToken(a.amount, a.token, { maxFrac: 4 })}</span>{:else}{#if groupBy === 'device'}<span class="text-[11px] text-[var(--text-tertiary)] font-sans">units only</span>{/if}{/each}</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+	</div>
+</SignInGate>

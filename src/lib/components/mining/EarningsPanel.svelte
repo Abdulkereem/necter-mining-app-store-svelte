@@ -1,456 +1,303 @@
 <script lang="ts">
-	import { backendState, backend } from '$lib/stores/backend';
-	import { actor, wallet, showConnectModal } from '$lib/stores/wallet';
 	import { ArrowUpRight, Download } from 'lucide-svelte';
-	import { Button, Card, Input, StatCard } from '$lib/components/ui';
+	import { Button, Card, StatCard } from '$lib/components/ui';
+	import { hub } from '$lib/api/hub';
+	import { useQuery } from '$lib/api/query.svelte';
+	import { signedIn } from '$lib/stores/wallet';
+	import { descriptor, explorerBase } from '$lib/stores/network';
+	import { formatAmount, formatNumber, formatDateTime, txUrl } from '$lib/format';
+	import type { Token } from '$lib/api/types';
+	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
+	import ErrorState from '$lib/components/common/ErrorState.svelte';
+	import EmptyState from '$lib/components/common/EmptyState.svelte';
+	import ProjectIcon from '$lib/components/common/ProjectIcon.svelte';
+	import { PAYOUT_STATUS, amountOf, bigOf, chartValue, sumByToken } from './labels';
+	import { iconProject, projectName } from './projects.svelte';
 
-	type TimeRange = '7d' | '30d' | '90d' | 'all';
+	type Range = '7d' | '30d' | 'all';
+	let range = $state<Range>('30d');
 
-	let amount = $state('');
-	let recipient = $state('');
-	let selectedWithdrawalId = $state<string | null>(null);
-	let timeRange = $state<TimeRange>('30d');
+	const byDay = useQuery(() => hub.earnings({ period: range, group_by: 'day' }), { enabled: () => $signedIn });
+	const byProject = useQuery(() => hub.earnings({ period: range, group_by: 'project' }), { enabled: () => $signedIn });
+	const payouts = useQuery(() => hub.epochPayouts({ limit: 50 }), { enabled: () => $signedIn });
+	const claims = useQuery(() => hub.claims(), { enabled: () => $signedIn });
 
-	let minerId = $derived($actor?.minerId ?? null);
-	let walletAddress = $derived($wallet?.address ?? '');
+	// Tokens seen anywhere (period totals, claimable, payouts) — amounts are never summed across tokens.
+	let tokens = $derived.by(() => {
+		const m = new Map<string, Token>();
+		for (const t of byDay.data?.totals ?? []) m.set(t.token.address.toLowerCase(), t.token);
+		for (const c of claims.data?.items ?? []) m.set(c.token.address.toLowerCase(), c.token);
+		for (const p of payouts.data?.items ?? []) m.set(p.token.address.toLowerCase(), p.token);
+		return [...m.values()].sort((a, b) => a.symbol.localeCompare(b.symbol));
+	});
 
-	const NECTA_USD = 0.2;
+	let tokenAddr = $state<string | null>(null);
+	let token = $derived(tokens.find((t) => t.address.toLowerCase() === tokenAddr) ?? tokens[0] ?? null);
 
-	let availableBalance = $derived(
-		$wallet?.address ? ($backendState.walletBalancesByAddress?.[$wallet.address] ?? 0) : 0
+	let claimable = $derived(
+		token ? sumByToken((claims.data?.items ?? []).filter((c) => c.token.address.toLowerCase() === token!.address.toLowerCase()))[0]?.amount ?? 0n : 0n
 	);
-
-	let totalEarned = $derived(
-		minerId
-			? $backendState.proofs
-					.filter((p) => p.status === 'verified' && p.minerId === minerId)
-					.reduce((sum, p) => sum + p.reward, 0)
-			: 0
-	);
-
-	let pendingRewards = $derived(
-		minerId
-			? $backendState.jobs
-					.filter(
-						(j) =>
-							(j.status === 'queued' || j.status === 'running') && j.minerId === minerId
+	let periodTotal = $derived(token ? amountOf(byDay.data?.totals, token.address) : 0n);
+	let accruing = $derived(
+		token
+			? sumByToken(
+					(payouts.data?.items ?? []).filter(
+						(p) => (p.status === 'accruing' || p.status === 'attested') && p.token.address.toLowerCase() === token!.address.toLowerCase()
 					)
-					.reduce((sum, j) => sum + j.reward, 0)
-			: 0
+				)[0]?.amount ?? 0n
+			: 0n
 	);
 
-	let thisMonth = $derived(() => {
-		const payouts = (($backendState as any).payouts ?? []) as Array<{
-			minerId: string;
-			createdAt: string;
-			minerAmount: number;
-		}>;
+	function dayKeys(n: number): string[] {
 		const now = new Date();
-		return payouts
-			.filter(
-				(p) =>
-					p.minerId === minerId &&
-					new Date(p.createdAt).getMonth() === now.getMonth() &&
-					new Date(p.createdAt).getFullYear() === now.getFullYear()
-			)
-			.reduce((sum, p) => sum + Number(p.minerAmount ?? 0), 0);
-	});
-
-	let parsedAmount = $derived(Number.parseFloat(amount || '0'));
-	let feeNecta = $derived(Number(Math.max(0.01, parsedAmount * 0.005).toFixed(4)));
-	let gasNecta = 0.02;
-	let totalFees = $derived(feeNecta + gasNecta);
-	let canWithdraw = $derived(!!$wallet && parsedAmount > 0 && parsedAmount <= availableBalance);
-
-	let savedRecipients = $derived.by(() => {
-		if (!minerId || !walletAddress) return walletAddress ? [walletAddress] : [];
-		let saved: string[] = [];
-		try {
-			saved = backend.listWithdrawalAddresses(minerId);
-		} catch {
-			/* not authenticated */
-		}
-		const merged = walletAddress ? [walletAddress, ...saved] : [...saved];
-		const out: string[] = [];
-		for (const a of merged) {
-			if (!a) continue;
-			if (out.some((x) => x.toLowerCase() === a.toLowerCase())) continue;
-			out.push(a);
-		}
-		return out;
-	});
-
-	let recipientAddress = $derived(recipient || walletAddress);
-
-	let minerWithdrawals = $derived(
-		minerId
-			? $backendState.withdrawals
-					.filter((w) => w.minerId === minerId)
-					.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
-			: []
-	);
-
-	const statusColors: Record<string, { color: string; bg: string }> = {
-		completed: { color: 'var(--success)', bg: 'rgba(76,183,130,0.12)' },
-		pending: { color: 'var(--warning)', bg: 'rgba(242,153,74,0.12)' },
-		processing: { color: 'var(--info)', bg: 'rgba(110,159,255,0.12)' },
-		failed: { color: 'var(--error)', bg: 'rgba(239,68,68,0.12)' }
-	};
-
-	// Tooltip state for earnings bar chart
-	let earningsTooltip = $state<{ index: number; x: number } | null>(null);
-
-	// Earnings chart data
-	let chartData = $derived.by(() => {
-		const payouts = (($backendState as any).payouts ?? []) as Array<{
-			minerId: string;
-			createdAt: string;
-			minerAmount: number;
-		}>;
-		const minerPayouts = minerId ? payouts.filter((p) => p.minerId === minerId) : [];
-		const now = new Date();
-		const totalDays =
-			timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
-		const barCount =
-			timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 30 : 30;
-		const bucketSize = Math.max(1, Math.floor(totalDays / barCount));
-		const daysMap: Record<string, number> = {};
-		let periodTotal = 0;
-
-		for (const p of minerPayouts) {
-			const dayDiff = Math.floor(
-				(now.getTime() - new Date(p.createdAt).getTime()) / 86400000
-			);
-			if (dayDiff < totalDays) {
-				periodTotal += Number(p.minerAmount ?? 0);
-				const bucket = Math.min(barCount - 1, Math.floor(dayDiff / bucketSize));
-				const key = String(barCount - 1 - bucket);
-				daysMap[key] = (daysMap[key] ?? 0) + Number(p.minerAmount ?? 0);
-			}
-		}
-
-		const bars = Array.from({ length: barCount }, (_, i) => daysMap[String(i)] ?? 0);
-		const maxVal = Math.max(...bars, 0.01);
-		const startLabel = new Date(now.getTime() - totalDays * 86400000).toLocaleDateString(
-			'en-US',
-			{ month: 'short', day: 'numeric' }
-		);
-		const barLabels = Array.from({ length: barCount }, (_, i) => {
-			const daysAgo = (barCount - 1 - i) * bucketSize;
-			const d = new Date(now.getTime() - daysAgo * 86400000);
-			return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-		});
-
-		return { bars, maxVal, periodTotal, barCount, startLabel, barLabels };
-	});
-
-	function handleWithdraw() {
-		if (!$actor || !$wallet || !minerId) {
-			showConnectModal.set(true);
-			return;
-		}
-		if (!canWithdraw) return;
-		backend.requestWithdrawal({
-			minerId,
-			walletAddress: recipientAddress,
-			amount: parsedAmount
-		});
-		amount = '';
+		const anchor = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+		return Array.from({ length: n }, (_, i) => new Date(anchor - (n - 1 - i) * 86400000).toISOString().slice(0, 10));
 	}
 
+	let chart = $derived.by(() => {
+		const rows = byDay.data?.rows ?? [];
+		const map = new Map<string, bigint>();
+		for (const r of rows) if (r.key && token) map.set(r.key, amountOf(r.amounts, token.address));
+		const keys = range === 'all' ? [...map.keys()].sort() : dayKeys(range === '7d' ? 7 : 30);
+		const values = keys.map((k) => map.get(k) ?? 0n);
+		const max = values.reduce((a, b) => (b > a ? b : a), 0n);
+		const fmt = (k: string) => new Date(`${k}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+		return { keys, values, max, labels: keys.map(fmt) };
+	});
+
+	let tooltip = $state<{ index: number; x: number } | null>(null);
+
+	let projectRows = $derived(
+		(byProject.data?.rows ?? [])
+			.map((r) => ({ key: r.key ?? '', units: r.units ?? 0, amount: token ? amountOf(r.amounts, token.address) : 0n, amounts: r.amounts ?? [] }))
+			.filter((r) => r.key)
+			.sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : b.units - a.units))
+	);
+
+	let payoutItems = $derived(payouts.data?.items ?? []);
+
 	function exportCsv() {
-		const rows = minerWithdrawals.map((w) => ({
-			id: w.id,
-			status: w.status,
-			amount: w.amount,
-			fee: w.fee,
-			walletAddress: w.walletAddress,
-			requestedAt: w.requestedAt,
-			completedAt: w.completedAt ?? '',
-			txHash: w.txHash ?? ''
-		}));
-		const header = Object.keys(rows[0] ?? { id: '' }).join(',');
-		const body = rows
-			.map((r) =>
-				Object.values(r)
-					.map((v) => `"${String(v).replaceAll('"', '""')}"`)
-					.join(',')
-			)
-			.join('\n');
-		const csv = `${header}\n${body}\n`;
-		const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		const header = ['project_id', 'epoch', 'units', 'amount_wei', 'token', 'status', 'claim_tx'];
+		const lines = payoutItems.map((p) =>
+			[p.project_id, p.epoch, p.units, p.amount, p.token.symbol, p.status, p.claim_tx ?? ''].map((v) => `"${String(v).replaceAll('"', '""')}"`).join(',')
+		);
+		const blob = new Blob([`${header.join(',')}\n${lines.join('\n')}\n`], { type: 'text/csv;charset=utf-8;' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `necter-withdrawals-${minerId}.csv`;
+		a.download = 'necter-epoch-payouts.csv';
 		a.click();
 		URL.revokeObjectURL(url);
 	}
 </script>
 
-{#if !$actor || !$wallet}
-	<!-- Hidden when no wallet -->
-{:else}
-	<div class="flex flex-col gap-4">
-		<!-- Summary stats -->
-		<Card padding="p-0" class="overflow-hidden">
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)]">
-				{#each [
-					{ label: 'Available', value: availableBalance.toFixed(2), color: 'var(--success)' },
-					{ label: 'Total Earned', value: totalEarned.toFixed(2), color: undefined },
-					{ label: 'Pending', value: pendingRewards.toFixed(2), color: undefined },
-					{ label: 'This Month', value: thisMonth().toFixed(2), color: undefined }
-				] as stat}
-					<StatCard label={stat.label} value={stat.value} color={stat.color} class="!rounded-none !border-0 px-4 py-3.5" />
+<div class="flex flex-col gap-4">
+	{#if tokens.length > 1}
+		<div class="flex flex-wrap items-center gap-1.5">
+			<span class="text-[11px] text-[var(--text-tertiary)] mr-1">Reward token</span>
+			{#each tokens as t (t.address)}
+				<button
+					type="button"
+					onclick={() => (tokenAddr = t.address.toLowerCase())}
+					class="h-6 px-2 rounded-[4px] text-[11px] font-medium border cursor-pointer transition-colors {token?.address === t.address
+						? 'bg-[var(--accent-subtle)] text-[var(--text-accent)] border-transparent'
+						: 'bg-transparent text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--surface-2)]'}"
+				>
+					{t.symbol}
+				</button>
+			{/each}
+		</div>
+	{/if}
+
+	<!-- Summary stats -->
+	<Card padding="p-0" class="overflow-hidden">
+		<div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-default)]">
+			<StatCard
+				label="Claimable"
+				value={token ? `${formatAmount(claimable, token.decimals)} ${token.symbol}` : '—'}
+				color={claimable > 0n ? 'var(--success)' : undefined}
+				class="!rounded-none !border-0 px-4 py-3.5"
+			/>
+			<StatCard
+				label={range === 'all' ? 'Earned (all time)' : `Earned (${range})`}
+				value={token ? `${formatAmount(periodTotal, token.decimals)} ${token.symbol}` : '—'}
+				class="!rounded-none !border-0 px-4 py-3.5"
+			/>
+			<StatCard label="Compute units" value={byDay.data ? formatNumber(byDay.data.units ?? 0) : '—'} class="!rounded-none !border-0 px-4 py-3.5" />
+			<StatCard
+				label="Accruing"
+				value={token ? `${formatAmount(accruing, token.decimals)} ${token.symbol}` : '—'}
+				class="!rounded-none !border-0 px-4 py-3.5"
+			/>
+		</div>
+	</Card>
+
+	<!-- Earnings chart with time range -->
+	<Card padding="p-0" class="overflow-hidden">
+		<div class="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between">
+			<span class="text-[11px] font-semibold tracking-[0.04em] uppercase text-[var(--text-tertiary)]">Earnings Trend</span>
+			<div class="flex gap-0.5 bg-[var(--surface-2)] rounded-[5px] p-0.5">
+				{#each ['7d', '30d', 'all'] as r (r)}
+					<Button
+						variant="ghost"
+						size="sm"
+						onclick={() => (range = r as Range)}
+						class="!h-6 !px-2 !rounded text-[11px] {range === r ? '!bg-[var(--surface-1)] !text-[var(--text-primary)]' : '!text-[var(--text-tertiary)]'}"
+						style={range === r ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2)' : ''}
+					>
+						{r === 'all' ? 'All' : r}
+					</Button>
 				{/each}
 			</div>
-		</Card>
-
-		<!-- Earnings chart with time range -->
-		<Card padding="p-0" class="overflow-hidden">
-			<div
-				class="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between"
-			>
-				<span
-					class="text-[11px] font-semibold tracking-[0.04em] uppercase text-[var(--text-tertiary)]"
-				>
-					Earnings Trend
-				</span>
-				<div class="flex gap-0.5 bg-[var(--surface-2)] rounded-[5px] p-0.5">
-					{#each ['7d', '30d', '90d', 'all'] as range}
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => (timeRange = range as TimeRange)}
-							class="!h-6 !px-2 !rounded text-[11px] {timeRange === range ? '!bg-[var(--surface-1)] !text-[var(--text-primary)]' : '!text-[var(--text-tertiary)]'}"
-							style={timeRange === range ? 'box-shadow: 0 1px 3px rgba(0,0,0,0.2)' : ''}
-						>
-							{range === 'all' ? 'All' : range}
-						</Button>
-					{/each}
-				</div>
-			</div>
-			<div class="p-4">
+		</div>
+		<div class="p-4">
+			{#if byDay.loading && !byDay.data}
+				<LoadingBlock rows={1} height="170px" />
+			{:else if byDay.error}
+				<ErrorState error={byDay.error} retry={byDay.refresh} compact />
+			{:else}
 				<div class="mb-3">
-					<span
-						class="text-[20px] font-semibold font-mono text-[var(--text-primary)] tracking-[-0.02em]"
-					>
-						{chartData.periodTotal.toFixed(2)}
+					<span class="text-[20px] font-semibold font-mono text-[var(--text-primary)] tracking-[-0.02em]">
+						{token ? formatAmount(periodTotal, token.decimals) : '0'}
 					</span>
-					<span class="text-[12px] text-[var(--text-tertiary)] ml-1.5"
-						>NECTA</span
-					>
+					<span class="text-[12px] text-[var(--text-tertiary)] ml-1.5">{token?.symbol ?? ''}</span>
 				</div>
-				<div class="relative h-[150px]">
-					{#if earningsTooltip !== null}
-						{@const tVal = chartData.bars[earningsTooltip.index]}
-						{@const tLabel = chartData.barLabels[earningsTooltip.index]}
-						<div
-							class="absolute z-10 pointer-events-none bottom-full -translate-x-1/2 mb-1 whitespace-nowrap bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px] text-[var(--text-primary)] font-mono"
-							style="left: {earningsTooltip.x}px;"
-						>
-							<span class="text-[var(--text-tertiary)]">{tLabel}</span>: {tVal.toFixed(2)} NECTA
-						</div>
-					{/if}
-					<div class="flex items-end gap-0.5 h-full">
-						{#each chartData.bars as val, i}
-							{@const h = val > 0 ? Math.max(4, (val / chartData.maxVal) * 140) : 2}
-							<div
-								role="img"
-								aria-label="{chartData.barLabels[i]}: {val.toFixed(2)} NECTA"
-								class="flex-1 rounded-t-sm transition-all cursor-default"
-								style="height: {h}px; background: {earningsTooltip?.index === i ? 'var(--accent-base)' : i ===
-								chartData.bars.length - 1
-									? 'var(--accent-base)'
-									: 'var(--accent-subtle)'};"
-								onmouseenter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const parent = e.currentTarget.parentElement!.getBoundingClientRect(); earningsTooltip = { index: i, x: rect.left - parent.left + rect.width / 2 }; }}
-								onmouseleave={() => { earningsTooltip = null; }}
-							></div>
-						{/each}
+				{#if chart.keys.length === 0}
+					<div class="h-[150px] flex items-center justify-center text-[12px] text-[var(--text-tertiary)]">
+						No earnings in this period yet.
 					</div>
-				</div>
-				<div class="flex justify-between mt-1.5">
-					<span
-						class="text-[10px] text-[var(--text-tertiary)] font-mono"
-					>
-						{chartData.startLabel}
-					</span>
-					<span
-						class="text-[10px] text-[var(--text-tertiary)] font-mono"
-					>
-						Today
-					</span>
-				</div>
-			</div>
-		</Card>
-
-		<!-- Withdraw + Withdrawals -->
-		<div class="mobile-stack grid gap-4" style="grid-template-columns: 1.2fr 1fr;">
-			<!-- Withdraw form -->
-			<Card>
-				<h3
-					class="text-[14px] font-semibold text-[var(--text-primary)] mb-4"
-				>
-					Withdraw
-				</h3>
-
-				<!-- Amount -->
-				<div class="mb-3">
-					<label
-						class="block text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5"
-					>
-						Amount
-					</label>
-					<div class="flex gap-1.5">
-						<Input
-							type="number"
-							bind:value={amount}
-							placeholder="0.00"
-							class="flex-1 !h-9 font-mono"
-						/>
-						<Button
-							variant="secondary"
-							size="sm"
-							onclick={() => (amount = availableBalance.toString())}
-							class="!h-9 px-3 text-[11px]"
-						>
-							Max
-						</Button>
-					</div>
-				</div>
-
-				<!-- Destination -->
-				<div class="mb-3">
-					<label
-						class="block text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.04em] mb-1.5"
-					>
-						Destination
-					</label>
-					<select
-						bind:value={recipient}
-						class="appearance-none w-full h-9 px-2.5 text-[12px] font-mono bg-[var(--surface-0)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-primary)] outline-none cursor-pointer"
-					>
-						{#each savedRecipients as addr}
-							<option value={addr}>{addr.slice(0, 10)}...{addr.slice(-6)}</option>
-						{/each}
-					</select>
-				</div>
-
-				<!-- Fee breakdown -->
-				<div
-					class="bg-[var(--surface-2)] p-3 rounded-[6px] border border-[var(--border-default)] mb-3"
-				>
-					{#each [
-						{ label: 'Amount', value: `${parsedAmount.toFixed(2)} NECTA` },
-						{ label: 'Network Fee', value: `${feeNecta.toFixed(4)} NECTA` },
-						{ label: 'Gas', value: `${gasNecta.toFixed(2)} NECTA` }
-					] as row}
-						<div
-							class="flex justify-between py-0.5 text-[12px]"
-						>
-							<span class="text-[var(--text-tertiary)]">{row.label}</span>
-							<span
-								class="text-[var(--text-primary)] font-mono"
-								>{row.value}</span
-							>
-						</div>
-					{/each}
-					<div
-						class="border-t border-[var(--border-default)] mt-1.5 pt-1.5 flex justify-between text-[13px]"
-					>
-						<span class="font-semibold text-[var(--text-primary)]">You Receive</span>
-						<span
-							class="font-semibold text-[var(--success)] font-mono"
-							>{Math.max(0, parsedAmount - totalFees).toFixed(2)} NECTA</span
-						>
-					</div>
-				</div>
-
-				<!-- Withdraw button -->
-				<Button
-					onclick={handleWithdraw}
-					disabled={!$wallet || !canWithdraw}
-					class="w-full !h-[38px]"
-				>
-					<ArrowUpRight size={14} strokeWidth={2} />
-					Withdraw
-				</Button>
-			</Card>
-
-			<!-- Recent Withdrawals -->
-			<Card>
-				<div
-					class="flex items-center justify-between mb-3"
-				>
-					<h3
-						class="text-[14px] font-semibold text-[var(--text-primary)]"
-					>
-						Withdrawals
-					</h3>
-					{#if minerWithdrawals.length > 0}
-						<Button variant="ghost" size="sm" onclick={exportCsv} class="text-[11px] !text-[var(--text-tertiary)]">
-							<Download size={12} strokeWidth={1.5} />
-							CSV
-						</Button>
-					{/if}
-				</div>
-
-				{#if minerWithdrawals.length === 0}
-					<p class="text-[12px] text-[var(--text-tertiary)] text-center py-6">
-						No withdrawals yet
-					</p>
 				{:else}
-					<div class="flex flex-col gap-1.5">
-						{#each minerWithdrawals.slice(0, 8) as w}
-							{@const sc = statusColors[w.status] ?? statusColors.pending}
+					<div class="relative h-[150px]">
+						{#if tooltip !== null && token}
 							<div
-								onclick={() => (selectedWithdrawalId = selectedWithdrawalId === w.id ? null : w.id)}
-								class="px-3 py-2.5 rounded-[6px] border border-[var(--border-default)] cursor-pointer transition-colors"
-								style="background: {selectedWithdrawalId === w.id ? 'var(--surface-2)' : 'transparent'};"
-								role="button"
-								tabindex="0"
-								onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectedWithdrawalId = selectedWithdrawalId === w.id ? null : w.id; }}
+								class="absolute z-10 pointer-events-none bottom-full -translate-x-1/2 mb-1 whitespace-nowrap bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[11px] text-[var(--text-primary)] font-mono"
+								style="left: {tooltip.x}px;"
 							>
-								<div class="flex items-center justify-between">
-									<span
-										class="text-[13px] font-semibold font-mono text-[var(--text-primary)] tabular-nums"
-										>{w.amount.toFixed(2)} NECTA</span
-									>
-									<span
-										class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-[3px]"
-										style="background: {sc.bg}; color: {sc.color};"
-										>{w.status}</span
-									>
-								</div>
-								<span class="text-[10px] text-[var(--text-tertiary)]">
-									{new Date(w.requestedAt).toLocaleDateString('en-US', {
-										month: 'short',
-										day: 'numeric',
-										year: 'numeric'
-									})}
-								</span>
-
-								<!-- Expanded detail -->
-								{#if selectedWithdrawalId === w.id}
-									<div class="mt-2.5 pt-2.5 border-t border-[var(--border-default)] flex flex-col gap-1">
-										{#each [
-											{ label: 'Fee', value: `${w.fee.toFixed(4)} NECTA` },
-											{ label: 'To', value: `${w.walletAddress.slice(0, 10)}...${w.walletAddress.slice(-6)}` },
-											...(w.completedAt ? [{ label: 'Completed', value: new Date(w.completedAt).toLocaleDateString() }] : []),
-											...(w.txHash ? [{ label: 'Tx', value: w.txHash.slice(0, 16) + '...' }] : [])
-										] as row}
-											<div class="flex justify-between text-[11px]">
-												<span class="text-[var(--text-tertiary)]">{row.label}</span>
-												<span class="text-[var(--text-secondary)] font-mono">{row.value}</span>
-											</div>
-										{/each}
-									</div>
-								{/if}
+								<span class="text-[var(--text-tertiary)]">{chart.labels[tooltip.index]}</span>: {formatAmount(chart.values[tooltip.index], token.decimals)}
+								{token.symbol}
 							</div>
-						{/each}
+						{/if}
+						<div class="flex items-end gap-0.5 h-full">
+							{#each chart.values as val, i (chart.keys[i])}
+								{@const ratio = chart.max > 0n ? chartValue((val * 10n ** 18n) / chart.max, 18) : 0}
+								{@const h = val > 0n ? Math.max(4, ratio * 140) : 2}
+								<div
+									role="img"
+									aria-label="{chart.labels[i]}: {token ? formatAmount(val, token.decimals) : '0'} {token?.symbol ?? ''}"
+									class="flex-1 rounded-t-sm transition-all cursor-default"
+									style="height: {h}px; background: {tooltip?.index === i || i === chart.values.length - 1 ? 'var(--accent-base)' : 'var(--accent-subtle)'};"
+									onmouseenter={(e) => {
+										const rect = e.currentTarget.getBoundingClientRect();
+										const parent = e.currentTarget.parentElement!.getBoundingClientRect();
+										tooltip = { index: i, x: rect.left - parent.left + rect.width / 2 };
+									}}
+									onmouseleave={() => (tooltip = null)}
+								></div>
+							{/each}
+						</div>
+					</div>
+					<div class="flex justify-between mt-1.5">
+						<span class="text-[10px] text-[var(--text-tertiary)] font-mono">{chart.labels[0] ?? ''}</span>
+						<span class="text-[10px] text-[var(--text-tertiary)] font-mono">{range === 'all' ? chart.labels[chart.labels.length - 1] : 'Today'}</span>
 					</div>
 				{/if}
-			</Card>
+			{/if}
 		</div>
+	</Card>
+
+	<!-- By project + epoch payouts -->
+	<div class="mobile-stack grid gap-4" style="grid-template-columns: 1.2fr 1fr;">
+		<Card>
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="text-[14px] font-semibold text-[var(--text-primary)]">By project</h3>
+				<a href="/withdraw" class="inline-flex items-center gap-1 text-[12px] no-underline text-[var(--text-accent)]">
+					Claim rewards <ArrowUpRight size={12} strokeWidth={1.5} />
+				</a>
+			</div>
+			{#if byProject.loading && !byProject.data}
+				<LoadingBlock rows={3} height="36px" />
+			{:else if byProject.error}
+				<ErrorState error={byProject.error} retry={byProject.refresh} compact />
+			{:else if projectRows.length === 0}
+				<p class="text-[12px] text-[var(--text-tertiary)] text-center py-6">No project earnings in this period.</p>
+			{:else}
+				<div class="flex flex-col">
+					{#each projectRows as r (r.key)}
+						<a
+							href="/apps/{r.key}"
+							class="flex items-center gap-2.5 py-2 border-b border-[var(--border-default)] last:border-0 no-underline hover:bg-[var(--surface-2)] -mx-2 px-2 rounded-[5px] transition-colors"
+						>
+							<ProjectIcon project={iconProject(r.key)} size={24} rounded="5px" />
+							<div class="min-w-0 flex-1">
+								<div class="text-[13px] font-medium truncate text-[var(--text-primary)]">{projectName(r.key)}</div>
+								<div class="text-[11px] text-[var(--text-tertiary)]">{formatNumber(r.units)} units</div>
+							</div>
+							<div class="text-right shrink-0">
+								{#each r.amounts as a (a.token.address)}
+									<div class="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">
+										{formatAmount(a.amount, a.token.decimals)} <span class="text-[var(--text-tertiary)]">{a.token.symbol}</span>
+									</div>
+								{/each}
+							</div>
+						</a>
+					{/each}
+				</div>
+			{/if}
+		</Card>
+
+		<Card>
+			<div class="flex items-center justify-between mb-3">
+				<h3 class="text-[14px] font-semibold text-[var(--text-primary)]">Epoch payouts</h3>
+				{#if payoutItems.length > 0}
+					<Button variant="ghost" size="sm" onclick={exportCsv} class="text-[11px] !text-[var(--text-tertiary)]">
+						<Download size={12} strokeWidth={1.5} />
+						CSV
+					</Button>
+				{/if}
+			</div>
+			{#if payouts.loading && !payouts.data}
+				<LoadingBlock rows={4} height="44px" />
+			{:else if payouts.error}
+				<ErrorState error={payouts.error} retry={payouts.refresh} compact />
+			{:else if payoutItems.length === 0}
+				<EmptyState
+					compact
+					illustration="hourglass"
+					title="No payouts yet"
+					description="Payouts appear when an epoch of a project you mine closes with your verified units."
+				/>
+			{:else}
+				<div class="flex flex-col gap-1.5 max-h-[420px] overflow-y-auto">
+					{#each payoutItems as p (`${p.project_id}:${p.epoch}`)}
+						{@const st = PAYOUT_STATUS[p.status]}
+						<div class="px-3 py-2.5 rounded-[6px] border border-[var(--border-default)]">
+							<div class="flex items-center justify-between gap-2">
+								<span class="text-[13px] font-semibold font-mono text-[var(--text-primary)] tabular-nums">
+									{formatAmount(bigOf(p.amount), p.token.decimals)} {p.token.symbol}
+								</span>
+								<span class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-[3px] bg-[var(--surface-2)]" style="color: {st?.color};">
+									{st?.label ?? p.status}
+								</span>
+							</div>
+							<div class="flex items-center justify-between gap-2 mt-0.5">
+								<span class="text-[11px] text-[var(--text-tertiary)] truncate">
+									{projectName(p.project_id)} · epoch {p.epoch} · {formatNumber(p.units)} units
+								</span>
+								{#if p.claim_tx}
+									<a
+										href={txUrl(p.claim_tx, explorerBase($descriptor))}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="text-[10px] font-mono text-[var(--text-accent)] no-underline shrink-0">tx ↗</a
+									>
+								{:else if p.claimable_at && p.status !== 'claimed'}
+									<span class="text-[10px] text-[var(--text-tertiary)] shrink-0">from {formatDateTime(p.claimable_at)}</span>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</Card>
 	</div>
-{/if}
+</div>

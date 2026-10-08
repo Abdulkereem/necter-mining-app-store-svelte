@@ -1,237 +1,189 @@
-<script>
-  import { backendState, backend } from '$lib/stores/backend';
-  import { actor, showConnectModal } from '$lib/stores/wallet';
-  import { ArrowLeft, ArrowDownToLine } from 'lucide-svelte';
-  import { StatCard, Card, Input, Button } from '$lib/components/ui';
+<script lang="ts">
+	import toast from 'svelte-french-toast';
+	import { ArrowLeft, Loader2, ExternalLink } from 'lucide-svelte';
+	import { hub } from '$lib/api/hub';
+	import { useQuery } from '$lib/api/query.svelte';
+	import { errorMessage } from '$lib/api/http';
+	import type { Claim, Subscription, Withdrawal } from '$lib/api/types';
+	import { signedIn, account } from '$lib/stores/wallet';
+	import { refreshBalances } from '$lib/stores/balances';
+	import { descriptor, explorerBase } from '$lib/stores/network';
+	import { claimAll, withdrawCollateral } from '$lib/flows';
+	import { formatAmount, formatDateTime, formatToken, shortAddress, txUrl } from '$lib/format';
+	import { sumByToken, WITHDRAWAL_STATUS } from '$lib/components/mining/labels';
+	import { projectRef } from '$lib/components/mining/projects.svelte';
+	import { Card, StatCard } from '$lib/components/ui';
+	import SignInGate from '$lib/components/common/SignInGate.svelte';
+	import EmptyState from '$lib/components/common/EmptyState.svelte';
+	import ErrorState from '$lib/components/common/ErrorState.svelte';
+	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 
-  let amount = $state('');
-  let destination = $state('');
-  let network = 'Necter L2';
-  let submitting = $state(false);
+	const claimsQ = useQuery(() => hub.claims(), { enabled: () => $signedIn });
+	const collateralQ = useQuery(() => hub.collateral(), { enabled: () => $signedIn });
+	const historyQ = useQuery(() => hub.withdrawals({ limit: 50 }), { enabled: () => $signedIn });
 
-  const walletAddress = $derived($actor?.walletAddress ?? null);
-  const minerId = $derived($actor?.minerId ?? null);
+	const claims = $derived((claimsQ.data?.items ?? []) as Claim[]);
+	const claimTotals = $derived(sumByToken(claims));
+	const withdrawable = $derived(
+		((collateralQ.data?.subscriptions ?? []) as Subscription[]).filter(
+			(s) => s.status === 'withdrawable' || (s.status === 'unbonding' && !!s.release_at && s.release_at <= Math.floor(Date.now() / 1000))
+		)
+	);
+	const history = $derived((historyQ.data?.items ?? []) as Withdrawal[]);
+	const byProject = $derived.by(() => {
+		const m = new Map<string, Claim[]>();
+		for (const c of claims) m.set(c.project_id, [...(m.get(c.project_id) ?? []), c]);
+		return [...m.entries()];
+	});
 
-  const availableBalance = $derived(
-    walletAddress ? ($backendState.walletBalancesByAddress[walletAddress] ?? 0) : 0
-  );
+	let claiming = $state(false);
+	let busySub = $state<string | null>(null);
+	let step = $state('');
 
-  const payouts = $derived(
-    minerId ? ($backendState.payouts ?? []).filter((/** @type {any} */ p) => p.minerId === minerId) : []
-  );
+	async function refreshAll() {
+		void refreshBalances();
+		await Promise.all([claimsQ.refresh(), collateralQ.refresh(), historyQ.refresh()]);
+	}
 
-  const totalEarned = $derived(
-    payouts.reduce((/** @type {number} */ sum, /** @type {any} */ p) => sum + (p.minerAmount ?? p.gross ?? 0), 0)
-  );
+	async function claim(projectIds?: string[]) {
+		claiming = true;
+		try {
+			const items = await claimAll(projectIds);
+			toast.success(items.length ? `Claim submitted for ${items.length} vault(s)` : 'Claim submitted');
+			await refreshAll();
+		} catch (e) {
+			toast.error(errorMessage(e));
+		} finally {
+			claiming = false;
+		}
+	}
 
-  const withdrawals = $derived(
-    minerId ? ($backendState.withdrawals ?? []).filter((/** @type {any} */ w) => w.minerId === minerId) : []
-  );
-
-  const totalWithdrawn = $derived(
-    withdrawals.filter((/** @type {any} */ w) => w.status === 'completed').reduce((/** @type {number} */ sum, /** @type {any} */ w) => sum + w.amount, 0)
-  );
-
-  const pendingAmount = $derived(
-    withdrawals.filter((/** @type {any} */ w) => w.status === 'pending' || w.status === 'processing').reduce((/** @type {number} */ sum, /** @type {any} */ w) => sum + w.amount, 0)
-  );
-
-  const numericAmount = $derived(Number(amount) || 0);
-
-  const canWithdraw = $derived(
-    !submitting && amount && numericAmount > 0 && numericAmount <= availableBalance
-  );
-
-  function handleWithdraw() {
-    if (!walletAddress || !minerId || !canWithdraw) return;
-    submitting = true;
-    try {
-      backend.requestWithdrawal({
-        minerId,
-        walletAddress,
-        amount: numericAmount,
-      });
-      amount = '';
-      destination = '';
-    } catch (e) {
-      console.error('Withdrawal error:', e);
-    } finally {
-      submitting = false;
-    }
-  }
-
-  /** @type {Record<string, { bg: string; text: string }>} */
-  const statusColor = {
-    completed: { bg: 'rgba(76,183,130,0.12)', text: 'var(--success)' },
-    pending: { bg: 'rgba(110,159,255,0.12)', text: 'var(--info)' },
-    processing: { bg: 'rgba(242,153,74,0.12)', text: 'var(--warning)' },
-    failed: { bg: 'rgba(235,87,87,0.12)', text: 'var(--error)' },
-  };
-
-  /** @param {number} n */
-  function fmtCurrency(n) {
-    return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
+	async function withdraw(s: Subscription) {
+		busySub = s.subscription_id;
+		try {
+			await withdrawCollateral(s, (x) => (step = x));
+			toast.success('Collateral withdrawn');
+			await refreshAll();
+		} catch (e) {
+			toast.error(errorMessage(e));
+		} finally {
+			busySub = null;
+			step = '';
+		}
+	}
 </script>
 
-<svelte:head>
-  <title>Withdraw — Necter Mining App Store</title>
-</svelte:head>
+<svelte:head><title>Withdraw — Necter Mining App Store</title></svelte:head>
 
-{#if !walletAddress}
-  <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
-    <Card class="max-w-[480px] mt-20 mx-auto text-center" padding="p-8">
-      <img src="/brand/3d/blockchain-network.png" alt="" loading="lazy" class="w-24 h-auto mx-auto mb-3 opacity-60" />
-      <h2 class="text-[16px] font-semibold text-[var(--text-primary)] mb-2">
-        Earnings & Withdrawals
-      </h2>
-      <p class="text-[13px] text-[var(--text-secondary)] mb-4">
-        Connect your wallet to view earnings and withdraw funds.
-      </p>
-      <button type="button" onclick={() => $showConnectModal = true} class="btn-pill-primary">
-        Connect Wallet
-      </button>
-    </Card>
-  </div>
-{:else}
-  <div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
-      <div>
-        <h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-[-0.015em] leading-7 m-0">
-          Earnings & Withdrawals
-        </h1>
-        <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">
-          Manage your mining revenue and withdraw funds
-        </p>
-      </div>
-      <a href="/mining" class="btn-secondary">
-        <ArrowLeft class="h-3 w-3 mr-1.5" strokeWidth={1.5} />
-        Back
-      </a>
-    </div>
+<SignInGate title="Earnings & withdrawals" description="Sign in to claim settled rewards and withdraw unbonded collateral. Both are gasless." illustration="ecosystem">
+	<div class="min-h-screen animate-fadeIn px-4 md:px-6 pt-4 md:pt-6 pb-12">
+		<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+			<div>
+				<h1 class="text-[20px] font-semibold text-[var(--text-primary)] tracking-[-0.015em] leading-7 m-0">Earnings & Withdrawals</h1>
+				<p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">
+					Rewards and collateral always go to your miner wallet {$account ? shortAddress($account) : ''}. The network pays the gas.
+				</p>
+			</div>
+			<a href="/mining" class="btn-secondary"><ArrowLeft class="h-3 w-3 mr-1.5" strokeWidth={1.5} /> Back</a>
+		</div>
 
-    <!-- Stats row -->
-    <div class="mobile-grid-2 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      {#each [
-        { label: 'Available Balance', value: fmtCurrency(availableBalance), accent: true },
-        { label: 'Total Earned', value: fmtCurrency(totalEarned), accent: false },
-        { label: 'Total Withdrawn', value: fmtCurrency(totalWithdrawn), accent: false },
-        { label: 'Pending', value: fmtCurrency(pendingAmount), accent: false },
-      ] as stat}
-        <StatCard label={stat.label} value={stat.value} accent={stat.accent} />
-      {/each}
-    </div>
+		<div class="mobile-grid-2 grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+			<StatCard label="Claimable rewards" value={claimTotals.length ? claimTotals.map((t) => formatToken(t.amount.toString(), t.token, { maxFrac: 2 })).join(' · ') : '0'} accent />
+			<StatCard label="Claimable epochs" value={String(claims.length)} />
+			<StatCard label="Withdrawable collateral" value={`${formatAmount(collateralQ.data?.withdrawable ?? '0', 18, { maxFrac: 2 })} NECTA`} />
+			<StatCard label="Unbonding" value={`${formatAmount(collateralQ.data?.unbonding ?? '0', 18, { maxFrac: 2 })} NECTA`} />
+		</div>
 
-    <div class="grid grid-cols-2 gap-4">
-      <!-- Withdrawal form -->
-      <Card>
-        <h2 class="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.006em] mb-4">
-          Withdraw Funds
-        </h2>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+			<Card>
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-[14px] font-semibold text-[var(--text-primary)]">Claim rewards</h2>
+					<button type="button" class="btn-subscribe inline-flex items-center gap-1.5" disabled={claiming || claims.length === 0} onclick={() => claim()} data-testid="claim-all">
+						{#if claiming}<Loader2 class="h-3.5 w-3.5 animate-spin" />Claiming…{:else}Claim all (gasless){/if}
+					</button>
+				</div>
+				{#if claimsQ.loading && !claimsQ.data}
+					<LoadingBlock rows={3} />
+				{:else if claimsQ.error}
+					<ErrorState error={claimsQ.error} retry={claimsQ.refresh} compact />
+				{:else if claims.length === 0}
+					<EmptyState compact illustration="ecosystem" title="Nothing to claim right now" description="Epoch payouts become claimable after settlement and the one-hour challenge window." />
+				{:else}
+					<div class="space-y-2">
+						{#each byProject as [pid, list] (pid)}
+							{@const ref = projectRef(pid)}
+							{@const tot = sumByToken(list)}
+							<div class="flex items-center justify-between gap-3 p-3 rounded-[6px] bg-[var(--surface-2)]">
+								<div class="min-w-0">
+									<p class="text-[13px] font-medium truncate">{ref?.name ?? pid.slice(0, 12) + '…'}</p>
+									<p class="text-[11px] text-[var(--text-tertiary)]">{list.length} epoch{list.length === 1 ? '' : 's'} · {list.map((c) => c.epoch).sort((a, b) => a - b).slice(0, 4).join(', ')}{list.length > 4 ? '…' : ''}</p>
+								</div>
+								<div class="text-right">
+									{#each tot as t (t.token.address)}<p class="text-[13px] font-mono font-semibold text-[var(--text-accent)]">{formatToken(t.amount.toString(), t.token, { maxFrac: 4 })}</p>{/each}
+									<button type="button" class="text-[11px] text-[var(--text-accent)] bg-transparent border-none cursor-pointer p-0" disabled={claiming} onclick={() => claim([pid])}>Claim</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</Card>
 
-        <div class="flex flex-col gap-3">
-          <!-- Amount -->
-          <div>
-            <label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1.5">
-              Amount
-            </label>
-            <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[var(--text-tertiary)]">$</span>
-                <Input
-                  type="number"
-                  bind:value={amount}
-                  placeholder="0.00"
-                  class="pl-7 font-mono tabular-nums"
-                />
-            </div>
-            <p class="text-[11px] text-[var(--text-tertiary)] mt-1">
-              Available: ${availableBalance.toFixed(2)}
-            </p>
-          </div>
+			<Card>
+				<h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">Withdraw collateral</h2>
+				{#if collateralQ.loading && !collateralQ.data}
+					<LoadingBlock rows={2} />
+				{:else if withdrawable.length === 0}
+					<EmptyState compact illustration="security" title="No collateral ready" description="Unbond a subscription first; collateral can be withdrawn after the unbonding period.">
+						<a href="/mining/collateral" class="btn-secondary">Manage collateral</a>
+					</EmptyState>
+				{:else}
+					<div class="space-y-2">
+						{#each withdrawable as s (s.subscription_id)}
+							<div class="flex items-center justify-between gap-3 p-3 rounded-[6px] bg-[var(--surface-2)]">
+								<div class="min-w-0">
+									<p class="text-[13px] font-medium truncate">{s.project_name ?? projectRef(s.project_id)?.name ?? 'Project'}</p>
+									<p class="text-[11px] text-[var(--text-tertiary)] font-mono">{s.node_id}</p>
+								</div>
+								<div class="text-right">
+									<p class="text-[13px] font-mono font-semibold">{formatAmount(s.collateral, 18, { maxFrac: 2 })} NECTA</p>
+									<button type="button" class="btn-subscribe mt-1" disabled={busySub === s.subscription_id} onclick={() => withdraw(s)}>
+										{busySub === s.subscription_id ? step || 'Working…' : 'Withdraw'}
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</Card>
+		</div>
 
-          <!-- Destination select -->
-          <div>
-            <label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1.5">
-              Destination Address
-            </label>
-            <Input
-              type="text"
-              bind:value={destination}
-              placeholder={walletAddress}
-              class="font-mono text-[12px]"
-            />
-            <p class="text-[11px] text-[var(--text-tertiary)] mt-1">
-              Leave blank to withdraw to connected wallet
-            </p>
-          </div>
-
-          <!-- Network -->
-          <div>
-            <label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-[0.04em] block mb-1.5">
-              Network
-            </label>
-            <div class="h-9 px-3 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] text-[var(--text-secondary)] flex items-center">
-              {network}
-            </div>
-          </div>
-
-          <Button
-            onclick={handleWithdraw}
-            disabled={!canWithdraw}
-            size="lg"
-            class="mt-1 w-full"
-          >
-            <ArrowDownToLine class="h-3.5 w-3.5" strokeWidth={1.5} />
-            {submitting ? 'Processing...' : 'Withdraw'}
-          </Button>
-        </div>
-
-      </Card>
-
-      <!-- Recent withdrawals -->
-      <Card padding="p-0" class="overflow-hidden">
-        <div class="px-5 py-4 border-b border-[var(--border-default)]">
-          <h2 class="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.006em] m-0">
-            Recent Withdrawals
-          </h2>
-        </div>
-
-        {#if withdrawals.length === 0}
-          <div class="px-5 py-8 text-center">
-            <img src="/brand/3d/hourglass.png" alt="" loading="lazy" class="w-20 h-auto mx-auto mb-3 opacity-60" />
-            <p class="text-[13px] text-[var(--text-secondary)]">No withdrawals yet.</p>
-          </div>
-        {:else}
-          <div class="overflow-x-auto">
-            <!-- Table header -->
-            <div class="grid gap-2 px-5 py-2 bg-[var(--surface-1)] border-b border-[var(--border-default)]" style="grid-template-columns: 1fr 100px 90px 1fr;">
-              {#each ['Date', 'Amount', 'Status', 'Tx Hash'] as h}
-                <span class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.02em]">{h}</span>
-              {/each}
-            </div>
-            <!-- Rows -->
-            {#each withdrawals.slice(0, 20) as w}
-              {@const sc = statusColor[w.status] ?? statusColor.pending}
-              {@const txDisplay = w.txHash ? `${w.txHash.slice(0, 10)}...${w.txHash.slice(-6)}` : '--'}
-              <div class="grid gap-2 px-5 py-2.5 border-b border-[var(--border-default)] items-center" style="grid-template-columns: 1fr 100px 90px 1fr;">
-                <span class="text-[12px] text-[var(--text-secondary)]">
-                  {new Date(w.requestedAt).toLocaleDateString()}
-                </span>
-                <span class="text-[12px] font-mono text-[var(--text-primary)] tabular-nums">
-                  ${w.amount.toFixed(2)}
-                </span>
-                <span class="inline-flex items-center h-5 px-1.5 rounded-[3px] text-[11px] font-medium capitalize w-fit" style="background: {sc.bg}; color: {sc.text};">
-                  {w.status}
-                </span>
-                <span class="text-[12px] font-mono text-[var(--text-tertiary)]">
-                  {txDisplay}
-                </span>
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </Card>
-    </div>
-  </div>
-{/if}
+		<Card class="mt-4">
+			<h2 class="text-[14px] font-semibold text-[var(--text-primary)] mb-4">History</h2>
+			{#if historyQ.loading && !historyQ.data}
+				<LoadingBlock rows={3} />
+			{:else if history.length === 0}
+				<p class="text-[13px] text-[var(--text-secondary)]">No claims or withdrawals yet.</p>
+			{:else}
+				<div class="divide-y divide-[var(--border-default)]">
+					{#each history as w (w.withdrawal_id)}
+						{@const st = WITHDRAWAL_STATUS[w.status]}
+						<div class="flex items-center justify-between gap-3 py-3">
+							<div>
+								<p class="text-[13px] font-medium">{w.kind === 'claim' ? 'Reward claim' : 'Collateral withdrawal'}</p>
+								<p class="text-[11px] text-[var(--text-tertiary)]">{formatDateTime(w.requested_at)}{w.epochs?.length ? ` · ${w.epochs.length} epoch(s)` : ''}</p>
+							</div>
+							<div class="text-right">
+								<p class="text-[13px] font-mono">{formatToken(w.amount, w.token, { maxFrac: 4 })}</p>
+								<p class="text-[11px] flex items-center gap-1 justify-end">
+									<span style="color:{st?.color}">{st?.label ?? w.status}</span>
+									{#if w.tx_hash}<a href={txUrl(w.tx_hash, explorerBase($descriptor))} target="_blank" rel="noopener noreferrer" class="text-[var(--text-tertiary)]" aria-label="Transaction"><ExternalLink class="h-3 w-3" /></a>{/if}
+								</p>
+								{#if w.error}<p class="text-[11px] text-[var(--error)]">{w.error}</p>{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</Card>
+	</div>
+</SignInGate>

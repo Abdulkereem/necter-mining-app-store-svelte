@@ -1,17 +1,29 @@
 <script lang="ts">
 	import { X, Check, ChevronRight, Package, FileText, Shield, Rocket } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
+	import toast from 'svelte-french-toast';
 	import { wallet } from '$lib/stores/wallet';
-	import { backend } from '$lib/stores/backend';
+	import { hub } from '$lib/api/hub';
+	import { errorMessage } from '$lib/api/http';
+	import type { Developer } from '$lib/api/types';
 
-	let { open = $bindable(false) }: { open: boolean } = $props();
+	let {
+		open = $bindable(false),
+		developer = null,
+		onenrolled
+	}: {
+		open: boolean;
+		/** Existing record (e.g. a saved enrollment draft) to prefill from. */
+		developer?: Developer | null;
+		onenrolled?: (d: Developer) => void;
+	} = $props();
 
 	type Step = 1 | 2 | 3 | 4;
 
 	const stepInfo = [
 		{ num: 1, label: 'Account', icon: Package, desc: 'Your developer identity' },
 		{ num: 2, label: 'Agreement', icon: FileText, desc: 'Accept program terms' },
-		{ num: 3, label: 'Verify', icon: Shield, desc: 'Identity verification' },
+		{ num: 3, label: 'Verify', icon: Shield, desc: 'Wallet verification' },
 		{ num: 4, label: 'Launch', icon: Rocket, desc: 'Start building' },
 	];
 
@@ -22,41 +34,65 @@
 	let devWebsite = $state('');
 	let devReason = $state('');
 	let agreed = $state(false);
-	let verifying = $state(false);
-	let verified = $state(false);
 	let submitting = $state(false);
+	let savingDraft = $state(false);
+	let result = $state<Developer | null>(null);
+	let prefilled = false;
 
-	const canProceedStep1 = $derived(devName.trim().length > 0 && devEmail.trim().length > 0);
+	$effect(() => {
+		if (!open || prefilled || !developer) return;
+		prefilled = true;
+		devType = developer.developer_type === 'organization' ? 'organization' : 'individual';
+		devName = developer.display_name ?? '';
+		devEmail = developer.email ?? '';
+		devWebsite = developer.website ?? '';
+	});
+
+	const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	const websiteOk = $derived(!devWebsite.trim() || /^https?:\/\/\S+$/.test(devWebsite.trim()));
+	const emailOk = $derived(!devEmail.trim() || EMAIL_RE.test(devEmail.trim()));
+	const canProceedStep1 = $derived(devName.trim().length > 0 && devName.trim().length <= 64 && emailOk && websiteOk && devReason.length <= 2000);
 	const canProceedStep2 = $derived(agreed);
+	const verified = $derived(result?.verification?.status === 'verified');
 
-	function handleVerify() {
-		verifying = true;
-		setTimeout(() => {
-			verifying = false;
-			verified = true;
-		}, 2000);
+	function body(draft: boolean) {
+		return {
+			draft,
+			developer_type: devType,
+			display_name: devName.trim(),
+			...(devEmail.trim() ? { email: devEmail.trim() } : {}),
+			...(devWebsite.trim() ? { website: devWebsite.trim() } : {}),
+			...(devReason.trim() ? { reason: devReason.trim() } : {}),
+			agreements_accepted: true as const
+		};
 	}
 
-	function handleSubmit() {
-		if (!$wallet) return;
+	async function handleSaveDraft() {
+		if (!canProceedStep1) return;
+		savingDraft = true;
+		try {
+			const d = await hub.enroll(body(true));
+			onenrolled?.(d);
+			toast.success('Enrollment draft saved');
+		} catch (e) {
+			toast.error(errorMessage(e));
+		} finally {
+			savingDraft = false;
+		}
+	}
+
+	async function handleSubmit() {
+		if (!$wallet || !canProceedStep1 || !agreed) return;
 		submitting = true;
-		setTimeout(() => {
-			try {
-				backend.saveDeveloperEnrollmentDraft({
-					walletAddress: $wallet!.address,
-					displayName: devName,
-					email: devEmail,
-					developerType: devType,
-					agreementsAccepted: true,
-				});
-				backend.submitDeveloperEnrollment($wallet!.address);
-				backend.grantRole($wallet!.address, 'developer');
-			} catch (e) {
-				console.warn('Enrollment error:', e);
-			}
-			submitting = false;
+		try {
+			result = await hub.enroll(body(false));
+			onenrolled?.(result);
 			step = 4;
-		}, 800);
+		} catch (e) {
+			toast.error(errorMessage(e));
+		} finally {
+			submitting = false;
+		}
 	}
 
 	function handleClose() {
@@ -107,7 +143,7 @@
 
 				<!-- Current step label -->
 				<div class="flex items-center gap-2 mt-3">
-					<svelte:component this={currentStep.icon} size={16} strokeWidth={1.5} class="text-[var(--text-accent)]" />
+					<currentStep.icon size={16} strokeWidth={1.5} class="text-[var(--text-accent)]" />
 					<span class="text-[12px] font-medium text-[var(--text-accent)]">{currentStep.label}</span>
 					<span class="text-[12px] text-[var(--text-tertiary)]">· {currentStep.desc}</span>
 					<span class="ml-auto text-[11px] text-[var(--text-tertiary)]">{step}/4</span>
@@ -118,23 +154,37 @@
 			<div class="p-6">
 				{#if step === 1}
 					<div class="space-y-4">
+						<div class="grid grid-cols-2 gap-1.5">
+							{#each [{ v: 'individual', l: 'Individual' }, { v: 'organization', l: 'Organization' }] as const as t}
+								<button
+									type="button"
+									onclick={() => (devType = t.v)}
+									class="h-[34px] rounded-[5px] text-[12px] font-medium cursor-pointer transition-colors"
+									style="border:1px solid {devType === t.v ? 'var(--border-accent)' : 'var(--border-default)'};background:{devType === t.v ? 'var(--accent-subtle)' : 'var(--surface-0)'};color:{devType === t.v ? 'var(--text-accent)' : 'var(--text-secondary)'}"
+								>
+									{t.l}
+								</button>
+							{/each}
+						</div>
 						<div>
 							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
 								>Display Name *</label
 							>
-							<input class={inp} type="text" bind:value={devName} placeholder="Your name or org name" />
+							<input class={inp} type="text" maxlength="64" bind:value={devName} placeholder="Your name or org name" />
 						</div>
 						<div>
 							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
-								>Email *</label
+								>Email</label
 							>
 							<input class={inp} type="email" bind:value={devEmail} placeholder="dev@example.com" />
+							{#if !emailOk}<p class="text-[11px] text-[var(--error)] mt-1 m-0">Enter a valid email address</p>{/if}
 						</div>
 						<div>
 							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
 								>Website</label
 							>
 							<input class={inp} type="url" bind:value={devWebsite} placeholder="https://yourproject.com" />
+							{#if !websiteOk}<p class="text-[11px] text-[var(--error)] mt-1 m-0">Enter a full URL starting with https://</p>{/if}
 						</div>
 						<div>
 							<label class="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide block mb-1.5"
@@ -143,6 +193,7 @@
 							<textarea
 								bind:value={devReason}
 								rows={3}
+								maxlength={2000}
 								placeholder="Describe your mining project..."
 								class="w-full px-3 py-2 rounded-[5px] border border-[var(--border-default)] bg-[var(--surface-0)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--accent-glow)] resize-none"
 							></textarea>
@@ -159,9 +210,9 @@
 								<ul class="list-disc pl-4 space-y-1 m-0">
 									<li>Comply with all applicable laws and regulations</li>
 									<li>Submit accurate information about your mining project</li>
-									<li>Maintain the security and uptime of your published networks</li>
-									<li>Accept the DAO governance process for app listing and delisting</li>
-									<li>Pay applicable platform fees as defined in the fee schedule</li>
+									<li>Keep your reward vault funded for the epochs you advertise to miners</li>
+									<li>Accept operator review of listings during the testnet (listing, pausing and delisting)</li>
+									<li>Pay the treasury share of rewards set in each project's fee split</li>
 								</ul>
 							</div>
 						</div>
@@ -180,7 +231,7 @@
 							</div>
 							<span class="text-[13px] text-[var(--text-primary)] leading-relaxed">
 								I have read and agree to the Developer Program License Agreement and understand that my
-								networks are subject to DAO governance review.
+								projects are reviewed by the network operator before they are listed.
 							</span>
 						</button>
 					</div>
@@ -188,11 +239,11 @@
 					<div class="space-y-4">
 						<div class="rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-2)] p-4">
 							<h3 class="text-[13px] font-medium text-[var(--text-primary)] mb-1 m-0">
-								Identity Verification
+								Wallet Verification
 							</h3>
 							<p class="text-[12px] text-[var(--text-secondary)] m-0">
-								Verified developers get priority listing and a trust badge. This is optional but
-								recommended.
+								On the testnet your signed-in wallet is verified automatically when you enroll. Verified
+								developers can publish projects and show a verified badge on their listings.
 							</p>
 						</div>
 
@@ -204,29 +255,12 @@
 										{$wallet?.address?.slice(0, 12)}...{$wallet?.address?.slice(-8)}
 									</p>
 								</div>
-								{#if verified}
-									<div class="flex items-center gap-1.5 text-[12px] font-medium text-[var(--success)]">
-										<Check size={16} strokeWidth={2} />
-										Verified
-									</div>
-								{:else}
-									<button
-										type="button"
-										onclick={handleVerify}
-										disabled={verifying}
-										class="h-[28px] px-3 rounded-[5px] text-[12px] font-medium bg-[var(--surface-3)] text-[var(--text-primary)] border-none cursor-pointer hover:bg-[var(--accent-base)] hover:text-[#0C0C0E] transition-colors disabled:opacity-50"
-									>
-										{verifying ? 'Verifying...' : 'Verify Now'}
-									</button>
-								{/if}
+								<div class="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-tertiary)]">
+									<Shield size={14} strokeWidth={1.5} />
+									Verified on enrollment
+								</div>
 							</div>
 						</div>
-
-						{#if !verified}
-							<p class="text-[11px] text-[var(--text-tertiary)] m-0">
-								You can skip verification for now and complete it later from your developer settings.
-							</p>
-						{/if}
 					</div>
 				{:else}
 					<!-- Step 4: Launch -->
@@ -249,10 +283,17 @@
 								<circle cx="28" cy="28" r="3.5" fill="var(--success)" />
 							</svg>
 						</div>
-						<h3 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2 m-0">You're all set!</h3>
-						<p class="text-[13px] text-[var(--text-secondary)] mb-6 max-w-[320px] mx-auto m-0">
-							Your developer account is active. Start building your first mining project.
-						</p>
+						{#if result?.enrollment?.status === 'active'}
+							<h3 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2 m-0">You're all set!</h3>
+							<p class="text-[13px] text-[var(--text-secondary)] mb-6 max-w-[320px] mx-auto m-0">
+								Your developer account is active{verified ? ' and verified' : ''}. Start building your first mining project.
+							</p>
+						{:else}
+							<h3 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2 m-0">Enrollment submitted</h3>
+							<p class="text-[13px] text-[var(--text-secondary)] mb-6 max-w-[320px] mx-auto m-0">
+								Your enrollment is {result?.enrollment?.status ?? 'pending'}. You can publish projects once it is active.
+							</p>
+						{/if}
 						<div class="space-y-2">
 							<button
 								type="button"
@@ -291,7 +332,14 @@
 							Back
 						</button>
 					{:else}
-						<div></div>
+						<button
+							type="button"
+							onclick={handleSaveDraft}
+							disabled={!canProceedStep1 || savingDraft}
+							class="text-[13px] text-[var(--text-secondary)] bg-transparent border-none cursor-pointer hover:text-[var(--text-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+						>
+							{savingDraft ? 'Saving…' : 'Save draft'}
+						</button>
 					{/if}
 
 					{#if step === 3}
@@ -301,7 +349,7 @@
 							disabled={submitting}
 							class="h-[32px] px-4 rounded-[5px] text-[13px] font-medium bg-[var(--surface-3)] text-[var(--text-primary)] border-none cursor-pointer hover:bg-[var(--accent-base)] hover:text-[#0C0C0E] transition-colors flex items-center gap-1.5 disabled:opacity-50"
 						>
-							{submitting ? 'Creating...' : 'Create Account'}
+							{submitting ? 'Enrolling...' : 'Enroll'}
 							<ChevronRight size={14} strokeWidth={1.5} />
 						</button>
 					{:else}
