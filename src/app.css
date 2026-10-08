@@ -217,11 +217,14 @@
 
 /* --- Tailwind theme mapping --- */
 @theme inline {
-  --default-font-family: "Geist", "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --default-mono-font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-  --font-sans: "Geist", "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Satoshi", "Geist", sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --default-font-family: "Geist Variable", "Geist", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --default-mono-font-family: "JetBrains Mono Variable", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Geist Variable", "Geist", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Satoshi (Fontshare ITF Free Font License) may not be redistributed through repositories or public servers,
+     so it is not bundled; headings use the self-hosted Geist (OFL). Fonts are never loaded from third-party
+     hosts: the local build runs under the miner's CSP (font-src 'self', PLATFORM.md errata E8). */
+  --font-display: "Geist Variable", "Geist", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

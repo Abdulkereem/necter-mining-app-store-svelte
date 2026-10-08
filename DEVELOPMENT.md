@@ -13,7 +13,7 @@ pnpm build      # production build
 - **Framework**: SvelteKit 2 + Svelte 5 (runes: $state, $derived, $effect)
 - **Styling**: Tailwind CSS 4 with CSS custom properties design system
 - **State**: Mock backend store (`src/lib/mock-backend/store.ts`) with localStorage persistence
-- **Fonts**: Geist Sans (body), Satoshi (headings), JetBrains Mono (code)
+- **Fonts**: self-hosted Geist (body and headings), JetBrains Mono (code); no third-party font hosts (CSP `font-src 'self'`)
 - **Icons**: lucide-svelte
 - **Toasts**: svelte-french-toast
 

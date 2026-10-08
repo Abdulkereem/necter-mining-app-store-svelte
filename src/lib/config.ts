@@ -43,8 +43,13 @@ export const CHAIN_RPC_PUBLIC = str('PUBLIC_CHAIN_RPC') ?? 'https://ethereum-sep
 /** Network id the store expects (PLATFORM.md §0). */
 export const NETWORK_ID = str('PUBLIC_NETWORK_ID') ?? 'necter-testnet';
 
-/** Optional WalletConnect v2 project id; the WalletConnect option is hidden without it. */
-export const WALLETCONNECT_PROJECT_ID = str('PUBLIC_WALLETCONNECT_PROJECT_ID');
+/**
+ * Optional WalletConnect v2 project id; the WalletConnect option is hidden without it. Never used by the local
+ * build: the miner's CSP (PLATFORM.md errata E8) only allows the Hub origins, so the WalletConnect relay,
+ * verify iframe and modal fonts could not load there. Local users sign with the miner's embedded wallet or a
+ * browser wallet extension.
+ */
+export const WALLETCONNECT_PROJECT_ID = APP_MODE === 'local' ? undefined : str('PUBLIC_WALLETCONNECT_PROJECT_ID');
 
 /**
  * Dev-only mock Hub. Only honoured in `vite dev` (import.meta.env.DEV); production builds never include it.

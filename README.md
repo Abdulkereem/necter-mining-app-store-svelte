@@ -20,7 +20,7 @@ pnpm install
 pnpm dev            # talks to PUBLIC_RPC_URL (default https://testnet-rpc.necter.network)
 pnpm dev:mock       # dev-only in-browser mock Hub with sample data (never in production builds)
 pnpm test           # vitest: API client, SIWE, manifest signing, key stores, protocol cross-checks
-pnpm test:e2e       # Playwright smoke test against tests/mock-server.ts
+pnpm test:e2e       # Playwright: smoke + CSP tests, both builds behind their CSP headers, against tests/mock-server.ts
 pnpm check          # svelte-check
 pnpm gen:api        # regenerate src/lib/api/schema.d.ts from spec/openapi.yaml
 ```
@@ -55,8 +55,23 @@ security headers. A ready image for DockHive app hosting (or any container host)
 docker build -t necter-store .     # builds build/web and serves it with nginx on :8080
 ```
 
-`deploy/nginx.conf` sets the SPA fallback, long-lived caching for `/_app/immutable/*`, and a CSP that only allows
-API calls to the Hub host. The previous Vercel adapter was removed.
+`deploy/nginx.conf` sets the SPA fallback and long-lived caching for `/_app/immutable/*`; every location includes
+`deploy/security-headers.conf` with the CSP (`deploy/csp.mjs` `webCsp()`): the local policy below for the web
+origin (`script-src 'self'` without `'unsafe-inline'`, `font-src 'self'`), API calls to the Hub host only, plus the
+WalletConnect endpoints. Serving the store from another Hub host needs a regenerated policy.
+
+### Content Security Policy (both builds)
+
+- **No inline scripts.** SvelteKit's boot script is moved into `/_app/immutable/boot.<hash>.js` after the build
+  (`scripts/externalize-boot.js`, wired into the adapter in `svelte.config.js`); the build fails if any inline
+  script or inline event handler remains.
+- **Self-hosted fonts only** (`@fontsource-variable/geist`, `@fontsource-variable/jetbrains-mono`, OFL); Vite never
+  inlines fonts as `data:` URIs. No Google Fonts / Fontshare links. Satoshi is not bundled: its ITF Free Font
+  License forbids redistributing the files through repositories or public servers, so headings use Geist.
+- **Local build:** runs under exactly the miner's header (PLATFORM.md errata E8). WalletConnect is disabled there
+  (its relay is not an allowed origin); use the miner's embedded wallet or a browser wallet extension.
+- `tests/e2e/csp.spec.ts` serves both builds behind their production headers (`tests/static-server.ts`) and fails on
+  any `securitypolicyviolation`, CSP console error or third-party request.
 
 ### Local mode — necter-miner (127.0.0.1:7878) and the Tauri desktop app
 
@@ -84,7 +99,7 @@ loads the same URL. In this mode the store:
 | `src/lib/flows.ts` | subscribe / top-up / unbond / withdraw / claims / publish flows |
 | `src/lib/local/miner.ts` | necter-miner local API client |
 | `src/lib/components/common/` | empty / error / loading / coming-soon / sign-in components (brand illustrations) |
-| `tests/` | Playwright smoke test + mock Hub server |
+| `tests/` | Playwright smoke + CSP tests, mock Hub server, CSP static server |
 | `spec/openapi.yaml` | vendored copy of the binding API spec (`pnpm gen:api` re-syncs from `../spec`) |
 
 ## License

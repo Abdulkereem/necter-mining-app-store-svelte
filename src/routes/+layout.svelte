@@ -1,7 +1,7 @@
 <script lang="ts">
-	import '../app.css';
-	import '@fontsource-variable/inter';
+	import '@fontsource-variable/geist';
 	import '@fontsource-variable/jetbrains-mono';
+	import '../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import MobileNav from '$lib/components/MobileNav.svelte';
 	import ConnectWalletModal from '$lib/components/ConnectWalletModal.svelte';

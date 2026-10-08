@@ -12,5 +12,6 @@ RUN pnpm build:web
 
 FROM nginx:1.27-alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /app/build/web /usr/share/nginx/html
 EXPOSE 8080
