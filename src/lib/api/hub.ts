@@ -11,6 +11,7 @@ import type {
 	DeveloperProfileInput,
 	DraftInput,
 	Manifest,
+	Project,
 	Period,
 	Preferences,
 	ProofStatus,
@@ -55,11 +56,14 @@ export const hub = {
 	explorerSearch: (q: string) => unwrap(api.GET('/v1/explorer/search', { params: { query: { q } } })),
 	modules: (query: { developer?: string; limit?: number; cursor?: string } = {}) => unwrap(api.GET('/v1/modules', { params: { query } })),
 	module: (address: string) => unwrapOrNull(api.GET('/v1/modules/{address}', path({ address }))),
+	/** Uploads a .hbc artifact (base64, ≤ 16 MiB decoded); the Hub computes and verifies its address. */
+	uploadModule: (hbc_b64: string) => unwrap(api.POST('/v1/modules', { body: { hbc_b64 } })),
 
 	// ── projects ──
 	projects: (query: ProjectQuery = {}) => unwrap(api.GET('/v1/projects', { params: { query } })),
-	project: (project_id: string) => unwrapOrNull(api.GET('/v1/projects/{project_id}', path({ project_id }))),
-	manifest: (project_id: string) => unwrapOrNull(api.GET('/v1/projects/{project_id}/manifest', path({ project_id }))),
+	// Cast: openapi-fetch's response helper drops `null`-only fields (consensus.modules.verifier).
+	project: (project_id: string) => unwrapOrNull(api.GET('/v1/projects/{project_id}', path({ project_id }))) as Promise<Project | null>,
+	manifest: (project_id: string) => unwrapOrNull(api.GET('/v1/projects/{project_id}/manifest', path({ project_id }))) as Promise<SignedManifest | null>,
 	versions: (project_id: string) => unwrap(api.GET('/v1/projects/{project_id}/versions', path({ project_id }))),
 	economics: (project_id: string) => unwrapOrNull(api.GET('/v1/projects/{project_id}/economics', path({ project_id }))),
 	stats: (project_id: string, period: Period = '7d') =>
