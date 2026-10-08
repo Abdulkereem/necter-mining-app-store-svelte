@@ -16,6 +16,8 @@
 	import { wallet, personalSign, signTypedData, showConnectModal } from '$lib/stores/wallet';
 	import { errorMessage } from '$lib/api/http';
 	import { checkGaslessPayload } from '$lib/protocol/gasless';
+	import { checkBindingMessage, messageText } from '$lib/protocol/binding';
+	import { CHAIN_ID, NETWORK_ID } from '$lib/config';
 	import { loadDescriptor } from '$lib/stores/network';
 	import type { Eip712TypedData } from '$lib/api/types';
 	import { shortAddress, timeAgo, formatDateTime } from '$lib/format';
@@ -90,15 +92,31 @@
 				let signature: string;
 				if (req.format === 'eip191') {
 					if (typeof req.payload !== 'string') throw new Error('Unexpected payload');
+					if (req.kind === 'binding') {
+						// Re-parse strictly (PLATFORM.md §c.2): this wallet as owner, this network, a fresh message.
+						const d = await loadDescriptor();
+						try {
+							checkBindingMessage(messageText(req.payload), { network: d.network ?? NETWORK_ID, chainId: d.chain.id ?? CHAIN_ID, owner: $wallet!.address });
+						} catch (e) {
+							throw new Error(`Refusing to sign: ${e instanceof Error ? e.message : String(e)}`);
+						}
+					}
 					signature = await personalSign(req.payload);
 				} else {
 					const td = req.payload as Eip712TypedData;
 					const d = await loadDescriptor();
-					const action = td.primaryType === 'Bond' ? 'bond' : td.primaryType === 'Unbond' ? 'unbond' : td.primaryType === 'Withdraw' ? 'withdraw' : null;
+					const action =
+						td.primaryType === 'Bond' ? 'bond' : td.primaryType === 'Unbond' ? 'unbond' : td.primaryType === 'Withdraw' ? 'withdraw' : td.primaryType === 'SetPayout' ? 'set_payout' : null;
 					if (action) {
 						const problem = checkGaslessPayload(
 							{ action, typed_data: td, permit: null, expires_at: req.expires_at },
-							{ chainId: d.chain.id, owner: $wallet!.address, contracts: d.chain.contracts.staking ? [d.chain.contracts.staking] : [] }
+							{
+								chainId: d.chain.id,
+								owner: $wallet!.address,
+								contracts: d.chain.contracts.staking ? [d.chain.contracts.staking] : [],
+								// SetPayout: the address is the miner's request; the wallet shows it before signing.
+								payout: action === 'set_payout' ? String((td.message as Record<string, unknown>).payout ?? '') : undefined
+							}
 						);
 						if (problem) throw new Error(`Refusing to sign: ${problem}`);
 					}

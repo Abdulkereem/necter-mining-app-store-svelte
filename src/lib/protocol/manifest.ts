@@ -308,13 +308,18 @@ export interface ManifestDigest {
 	eip191_digest: Hex;
 }
 
+/** consensus_hash = keccak256(canonical JSON of the consensus tier) — what ProjectRegistry stores (§a.2). */
+export function consensusHash(consensus: Manifest['consensus']): Hex {
+	return keccak256(stringToHex(canonicalJson(consensus)));
+}
+
 /** §a.2 derived values. Throws on non-canonicalizable input. */
 export function digestManifest(m: Manifest): ManifestDigest {
 	const canonical = canonicalJson(m);
 	return {
 		canonical,
 		manifest_hash: keccak256(stringToHex(canonical)),
-		consensus_hash: keccak256(stringToHex(canonicalJson(m.consensus))),
+		consensus_hash: consensusHash(m.consensus),
 		project_id: projectId(m.developer, m.slug),
 		eip191_digest: hashMessage({ raw: stringToHex(canonical) })
 	};
