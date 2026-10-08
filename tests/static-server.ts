@@ -6,11 +6,15 @@
  *
  * Local mode mirrors the miner (miner-core.md §7): `/rpc/*` proxies to the Hub, `/api/v1/*` is the local miner API
  * (answered with 404 here: "no miner session"), everything else is the SPA with an index.html fallback.
+ *
+ *   local build on LOCAL_MINER_PORT: the same, plus the in-memory mock of the miner's wallet API
+ *   (src/lib/local/mock/miner.ts) on `/api/v1/*`; `POST /api/v1/__mock/reset` re-seeds it.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
 import { localCsp, webCsp } from '../deploy/csp.mjs';
+import { createMockMiner } from '../src/lib/local/mock/miner';
 
 const HUB = process.env.HUB_URL ?? 'http://127.0.0.1:4517';
 const TYPES: Record<string, string> = {
@@ -54,7 +58,8 @@ async function proxy(req: IncomingMessage, res: ServerResponse, target: string, 
 	res.end(Buffer.from(await r.arrayBuffer()));
 }
 
-function start(mode: 'web' | 'local', port: number) {
+function start(mode: 'web' | 'local', port: number, withMiner = false) {
+	const miner = withMiner ? createMockMiner() : null;
 	const root = resolve(process.cwd(), `build/${mode}`);
 	if (!existsSync(join(root, 'index.html'))) throw new Error(`${root} is not built`);
 	const csp = mode === 'local' ? localCsp(HUB) : webCsp(HUB);
@@ -65,6 +70,21 @@ function start(mode: 'web' | 'local', port: number) {
 			if (mode === 'local' && (url.pathname === '/rpc' || url.pathname.startsWith('/rpc/'))) {
 				return await proxy(req, res, HUB + (url.pathname.slice(4) || '/') + url.search, headers);
 			}
+			if (miner && url.pathname.startsWith('/api/v1/')) {
+				const chunks: Buffer[] = [];
+				for await (const c of req) chunks.push(c as Buffer);
+				const raw = Buffer.concat(chunks).toString();
+				const body = raw ? JSON.parse(raw) : undefined;
+				const path = url.pathname.slice('/api/v1'.length);
+				if (path === '/__mock/reset' && req.method === 'POST') {
+					miner.reset(body ?? {});
+					res.writeHead(204, headers);
+					return res.end();
+				}
+				const r = miner.handle(req.method ?? 'GET', path, body) ?? { status: 404, body: { error: 'not_found', message: 'unknown endpoint' } };
+				res.writeHead(r.status, { ...headers, 'content-type': 'application/json' });
+				return res.end(r.status === 204 ? undefined : JSON.stringify(r.body));
+			}
 			if (mode === 'local' && url.pathname.startsWith('/api/v1/')) {
 				res.writeHead(404, { ...headers, 'content-type': 'application/json' });
 				return res.end(JSON.stringify({ error: 'not_found', message: 'no miner in this test server' }));
@@ -74,8 +94,9 @@ function start(mode: 'web' | 'local', port: number) {
 			res.writeHead(502, { 'content-type': 'text/plain' });
 			res.end(String(e));
 		}
-	}).listen(port, '127.0.0.1', () => console.log(`${mode} build on http://127.0.0.1:${port}`));
+	}).listen(port, '127.0.0.1', () => console.log(`${mode} build${miner ? ' + mock miner' : ''} on http://127.0.0.1:${port}`));
 }
 
 if (process.env.WEB_PORT) start('web', Number(process.env.WEB_PORT));
 if (process.env.LOCAL_PORT) start('local', Number(process.env.LOCAL_PORT));
+if (process.env.LOCAL_MINER_PORT) start('local', Number(process.env.LOCAL_MINER_PORT), true);

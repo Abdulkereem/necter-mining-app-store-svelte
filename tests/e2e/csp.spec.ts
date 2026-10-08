@@ -96,6 +96,8 @@ for (const mode of ['local', 'web'] as const) {
 		});
 
 		test('wallet sign-in works under the CSP', async ({ page }) => {
+			// Local mode never offers browser wallets; its miner-wallet setup runs under this CSP in local-wallet.spec.ts.
+			test.skip(mode === 'local', 'no browser wallets in local mode');
 			const w = await watch(page, origin);
 			await installTestWallet(page);
 			await page.goto('/faucet');

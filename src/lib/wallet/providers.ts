@@ -4,7 +4,7 @@
  * demand so it adds nothing to the initial bundle).
  */
 import { writable, type Readable } from 'svelte/store';
-import { CHAIN_ID, CHAIN_RPC_PUBLIC, WALLETCONNECT_PROJECT_ID } from '$lib/config';
+import { APP_MODE, CHAIN_ID, CHAIN_RPC_PUBLIC, WALLETCONNECT_PROJECT_ID } from '$lib/config';
 
 export interface Eip1193Provider {
 	request(args: { method: string; params?: unknown[] | Record<string, unknown> }): Promise<unknown>;
@@ -48,7 +48,7 @@ function publish() {
 
 /** Starts EIP-6963 discovery (idempotent). */
 export function discoverWallets() {
-	if (typeof window === 'undefined') return;
+	if (typeof window === 'undefined' || APP_MODE === 'local') return;
 	if (!started) {
 		started = true;
 		window.addEventListener('eip6963:announceProvider', (ev: Event) => {

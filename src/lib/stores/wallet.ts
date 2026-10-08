@@ -127,7 +127,7 @@ export async function connectWallet(option: WalletOption): Promise<WalletInfo> {
 /** Local mode: use the miner's own wallet (embedded or external) — no browser wallet needed. */
 export async function connectMinerWallet(): Promise<WalletInfo | null> {
 	const w = await minerApi.wallet();
-	if (!w.address) return null;
+	if (!w.address || (w.mode === 'embedded' && w.locked)) return null;
 	provider = null;
 	detach?.();
 	const info: WalletInfo = {
@@ -152,10 +152,12 @@ export async function hydrateWallet() {
 		last = null;
 	}
 	if (!last) return;
-	if (last === 'miner') {
-		if (APP_MODE === 'local') await connectMinerWallet().catch(() => null);
+	if (APP_MODE === 'local') {
+		// Only the miner's wallet exists in local mode; reconnect it silently when it is usable.
+		if (last === 'miner') await connectMinerWallet().catch(() => null);
 		return;
 	}
+	if (last === 'miner') return;
 	if (last === 'walletconnect') return; // needs an explicit reconnect
 	// EIP-6963 announcements arrive asynchronously; give them a moment.
 	await new Promise((r) => setTimeout(r, 150));

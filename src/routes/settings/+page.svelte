@@ -14,6 +14,8 @@
 	import { Card } from '$lib/components/ui';
 	import SignInGate from '$lib/components/common/SignInGate.svelte';
 	import CopyText from '$lib/components/common/CopyText.svelte';
+	import MinerWalletCard from '$lib/components/wallet/MinerWalletCard.svelte';
+	import { APP_MODE } from '$lib/config';
 
 	type Tab = 'profile' | 'wallet' | 'notifications' | 'addresses' | 'goal';
 	const tabs: { id: Tab; label: string; icon: typeof User }[] = [
@@ -150,6 +152,9 @@
 							</div>
 							<button type="button" class="btn-secondary mt-5 inline-flex items-center gap-1.5" onclick={() => disconnectWallet()}><LogOut class="h-3.5 w-3.5" /> Sign out & disconnect</button>
 						</Card>
+						{#if APP_MODE === 'local'}
+							<MinerWalletCard />
+						{/if}
 					{:else if activeTab === 'notifications'}
 						<Card>
 							<h2 class="text-[13px] font-semibold text-[var(--text-primary)] mb-1 tracking-[0.01em]">Notification preferences</h2>

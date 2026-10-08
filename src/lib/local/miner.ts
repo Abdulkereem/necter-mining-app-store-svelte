@@ -51,6 +51,21 @@ export interface MinerWallet {
 	locked: boolean;
 }
 
+/** `POST /api/v1/wallet` results (necter-miner README "Embedded wallet"). */
+export interface MinerWalletCreated {
+	address: string;
+	/** Only when created with `recovery_phrase: true`; returned once and never stored by the miner. */
+	recovery_phrase?: string;
+	derivation_path?: string;
+}
+
+export interface MinerPhraseImport {
+	recovery_phrase: string;
+	passphrase?: string;
+	/** 0–9: `m/44'/60'/0'/0/<index>` (MetaMask account index + 1). */
+	account_index?: number;
+}
+
 export interface MinerHardware {
 	class?: string;
 	platform?: string;
@@ -174,6 +189,18 @@ export const minerApi = {
 	hardware: () => request<MinerHardware>('GET', '/hardware'),
 	runBenchmark: () => request<{ request_id: string }>('POST', '/benchmark'),
 	wallet: () => request<MinerWallet>('GET', '/wallet'),
+	/** New embedded wallet; with `words` from a fresh BIP-39 phrase that is returned once. */
+	createWallet: (words?: 12 | 24) =>
+		request<MinerWalletCreated>('POST', '/wallet', words ? { action: 'create', recovery_phrase: true, words } : { action: 'create' }),
+	importWalletPhrase: (p: MinerPhraseImport) =>
+		request<{ address: string; derivation_path: string }>('POST', '/wallet', { action: 'import', ...p }),
+	importWalletKey: (private_key: string) => request<{ address: string }>('POST', '/wallet', { action: 'import', private_key }),
+	/** Address of a phrase at an account index; validates the phrase, stores nothing. */
+	deriveWalletAddress: (p: MinerPhraseImport) =>
+		request<{ address: string; account_index: number; derivation_path: string }>('POST', '/wallet', { action: 'derive', ...p }),
+	unlockWallet: () => request<MinerWallet>('POST', '/wallet', { action: 'unlock' }),
+	/** Local sessions only (the miner refuses remote dashboards). */
+	exportWalletKey: () => request<{ private_key: string }>('POST', '/wallet', { action: 'export' }),
 	start: () => request<void>('POST', '/start'),
 	stop: (grace_ms?: number) => request<void>('POST', '/stop', grace_ms ? { grace_ms } : {}),
 	bind: (owner: string) => request<{ request_id: string }>('POST', '/binding', { owner }),
@@ -198,6 +225,12 @@ export async function waitMinerRequest(id: string, timeoutMs = 120_000, interval
 		if (Date.now() > until) return { state: 'failed', error: 'timed out waiting for the miner' };
 		await new Promise((res) => setTimeout(res, intervalMs));
 	}
+}
+
+/** Current miner session (null until `connectMiner` succeeded). */
+export function minerSession(): MinerSessionInfo | null {
+	const c = get(_conn);
+	return c.state === 'ready' ? c.session : null;
 }
 
 export function minerConnected(): boolean {

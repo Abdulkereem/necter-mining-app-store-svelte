@@ -21,6 +21,7 @@ pnpm dev            # talks to PUBLIC_RPC_URL (default https://testnet-rpc.necte
 pnpm dev:mock       # dev-only in-browser mock Hub with sample data (never in production builds)
 pnpm test           # vitest: API client, SIWE, manifest signing, key stores, protocol cross-checks
 pnpm test:e2e       # Playwright: smoke + CSP tests, both builds behind their CSP headers, against tests/mock-server.ts
+                    # (local-wallet.spec.ts: local build against the mock miner wallet API, src/lib/local/mock/miner.ts)
 pnpm check          # svelte-check
 pnpm gen:api        # regenerate src/lib/api/schema.d.ts from spec/openapi.yaml
 ```
@@ -69,7 +70,8 @@ WalletConnect endpoints. Serving the store from another Hub host needs a regener
   inlines fonts as `data:` URIs. No Google Fonts / Fontshare links. Satoshi is not bundled: its ITF Free Font
   License forbids redistributing the files through repositories or public servers, so headings use Geist.
 - **Local build:** runs under exactly the miner's header (PLATFORM.md errata E8). WalletConnect is disabled there
-  (its relay is not an allowed origin); use the miner's embedded wallet or a browser wallet extension.
+  (its relay is not an allowed origin) and browser wallet extensions are not offered; the miner's embedded wallet
+  is created or imported in the connect dialog.
 - `tests/e2e/csp.spec.ts` serves both builds behind their production headers (`tests/static-server.ts`) and fails on
   any `securitypolicyviolation`, CSP console error or third-party request.
 
@@ -87,7 +89,13 @@ loads the same URL. In this mode the store:
   sign requests) and the hardware checker (real hardware profile + benchmark),
 - logs into the local API with the `#login=<token>` fragment opened by `necter-miner ui` (session cookie),
   or a password on remote dashboards,
-- can use the miner's own wallet (embedded wallet) instead of a browser wallet.
+- signs with the miner's own wallet only. The connect dialog (`src/lib/components/wallet/LocalWalletSetup.svelte`)
+  offers **Create a new wallet** (BIP-39 phrase shown once, three words re-entered to confirm the backup),
+  **Import with recovery phrase** (12/24 words, paste-friendly, live checksum/address check through the miner,
+  advanced account index 0–9 and BIP-39 passphrase), **Import with private key**, or unlock/use the existing
+  miner wallet. Injected / EIP-6963 wallets and WalletConnect are never offered (no extension can exist in the
+  desktop app, and the miner's CSP blocks the WalletConnect relay). Settings → Wallet shows the miner wallet and
+  a local-only **Export private key** behind a typed confirmation.
 
 ## Hub routes beyond openapi.yaml
 
