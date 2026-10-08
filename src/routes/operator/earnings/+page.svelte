@@ -12,7 +12,8 @@
 	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 
 	let period = $state<Period>('30d');
-	let groupBy = $state<'device' | 'project' | 'day'>('device');
+	// Rewards are paid per payout address and project, so the Hub reports per-device rows as units only.
+	let groupBy = $state<'device' | 'project' | 'day'>('project');
 	const q = useQuery(() => hub.earnings({ period, group_by: groupBy }), { enabled: () => $signedIn });
 	const rows = $derived(q.data?.rows ?? []);
 
@@ -60,6 +61,9 @@
 					</div>
 				{/each}
 			</div>
+			{#if groupBy === 'device'}
+				<p class="text-[12px] text-[var(--text-tertiary)] mb-3">Rewards are paid per payout address and project, not per device; this view shows each device's verified units.</p>
+			{/if}
 			{#if rows.length === 0}
 				<EmptyState illustration="ecosystem" title="No earnings in this period" description="Earnings appear after your devices' first finalized rounds settle in an epoch." />
 			{:else}
@@ -68,7 +72,7 @@
 						<div class="flex items-center justify-between gap-3 px-4 py-3">
 							<span class="text-[13px] {groupBy === 'device' ? 'font-mono' : ''} truncate">{label(r.key)}</span>
 							<span class="text-[12px] text-[var(--text-tertiary)] font-mono">{formatNumber(r.units ?? 0)} units</span>
-							<span class="text-[13px] font-mono text-right">{#each r.amounts ?? [] as a (a.token.address)}<span class="block">{formatToken(a.amount, a.token, { maxFrac: 4 })}</span>{/each}</span>
+							<span class="text-[13px] font-mono text-right">{#each r.amounts ?? [] as a (a.token.address)}<span class="block">{formatToken(a.amount, a.token, { maxFrac: 4 })}</span>{:else}{#if groupBy === 'device'}<span class="text-[11px] text-[var(--text-tertiary)] font-sans">units only</span>{/if}{/each}</span>
 						</div>
 					{/each}
 				</div>

@@ -84,10 +84,15 @@ export const EIP712_TYPES: Record<string, { domainName: string; fields: Field[] 
 	}
 };
 
-const ACTION_PRIMARY: Record<GaslessPayload['action'], string> = {
+/** `set_payout` is errata E10 (POST /v1/subscriptions/{id}/payout), not yet in openapi's enum. */
+export type GaslessAction = GaslessPayload['action'] | 'set_payout';
+export type AnyGaslessPayload = Omit<GaslessPayload, 'action'> & { action: GaslessAction };
+
+const ACTION_PRIMARY: Record<GaslessAction, string> = {
 	bond: 'Bond',
 	unbond: 'Unbond',
 	withdraw: 'Withdraw',
+	set_payout: 'SetPayout',
 	register_project: 'Register'
 };
 
@@ -102,6 +107,10 @@ export interface GaslessExpectation {
 	amount?: string;
 	projectId?: string;
 	subscriptionId?: string;
+	/** SetPayout: the payout address the user asked for. */
+	payout?: string;
+	/** Register: the exact manifest the developer just signed (errata E11). */
+	register?: { slug: string; worker: string; consensusHash: string; manifestHash: string };
 	now?: number;
 }
 
@@ -138,7 +147,7 @@ function checkCommon(td: Eip712TypedData, exp: GaslessExpectation, contracts: st
 }
 
 /** Returns null when the payload is acceptable, else a human-readable reason. */
-export function checkGaslessPayload(p: GaslessPayload, exp: GaslessExpectation): string | null {
+export function checkGaslessPayload(p: AnyGaslessPayload, exp: GaslessExpectation): string | null {
 	const primary = ACTION_PRIMARY[p.action];
 	if (!primary) return `unknown action ${p.action}`;
 	const td = p.typed_data;
@@ -151,8 +160,19 @@ export function checkGaslessPayload(p: GaslessPayload, exp: GaslessExpectation):
 	if (lc(msg[ownerField]) !== exp.owner.toLowerCase()) return 'payload is for another wallet';
 	if (exp.amount !== undefined && primary === 'Bond' && String(msg.amount) !== exp.amount) return 'amount differs from your request';
 	if (exp.projectId && primary === 'Bond' && lc(msg.projectId) !== exp.projectId.toLowerCase()) return 'project differs from your request';
-	if (exp.subscriptionId && (primary === 'Unbond' || primary === 'Withdraw') && lc(msg.subscriptionId) !== exp.subscriptionId.toLowerCase())
+	if (exp.subscriptionId && (primary === 'Unbond' || primary === 'Withdraw' || primary === 'SetPayout') && lc(msg.subscriptionId) !== exp.subscriptionId.toLowerCase())
 		return 'subscription differs from your request';
+	if (primary === 'SetPayout') {
+		if (!exp.payout || lc(msg.payout) !== exp.payout.toLowerCase()) return 'payout address differs from your request';
+		if (p.permit) return 'unexpected permit';
+	}
+	if (primary === 'Register') {
+		if (!exp.register) return 'no manifest to compare the registration with';
+		if (msg.slug !== exp.register.slug) return 'slug differs from your manifest';
+		for (const k of ['worker', 'consensusHash', 'manifestHash'] as const)
+			if (lc(msg[k]) !== exp.register[k].toLowerCase()) return `${k} differs from your manifest`;
+		if (p.permit) return 'unexpected permit';
+	}
 	if (p.permit) {
 		const permErr = checkTypes(p.permit, 'Permit') ?? checkCommon(p.permit, exp, exp.necta ? [exp.necta] : undefined);
 		if (permErr) return `permit: ${permErr}`;

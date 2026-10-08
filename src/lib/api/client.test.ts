@@ -8,6 +8,8 @@ import { normalizeSignature, signManifest, digestManifest } from '$lib/protocol/
 import { vaultAddress } from '$lib/protocol/ids';
 import ref from '$lib/protocol/fixtures/reference-python.json';
 import type { Manifest } from './types';
+import type { ErrataPaths, SetPayoutPayload } from './errata';
+import type { TxStatus } from './types';
 
 const OWNER_KEY = ('0x' + '00'.repeat(31) + '02') as `0x${string}`;
 const owner = privateKeyToAccount(OWNER_KEY);
@@ -19,16 +21,13 @@ function setup(opts: { now?: () => number } = {}) {
 	let token: string | null = null;
 	const onUnauthorized = vi.fn(() => (token = null));
 	const seen: Request[] = [];
-	const client = createApiClient({
-		baseUrl: BASE,
-		fetch: (r) => {
-			seen.push(r.clone());
-			return hub.handle(r);
-		},
-		getToken: () => token,
-		onUnauthorized
-	});
-	return { hub, client, seen, onUnauthorized, setToken: (t: string | null) => (token = t) };
+	const fetch = (r: Request) => {
+		seen.push(r.clone());
+		return hub.handle(r);
+	};
+	const client = createApiClient({ baseUrl: BASE, fetch, getToken: () => token, onUnauthorized });
+	const errata = createApiClient<ErrataPaths>({ baseUrl: BASE, fetch, getToken: () => token, onUnauthorized });
+	return { hub, client, errata, seen, onUnauthorized, setToken: (t: string | null) => (token = t) };
 }
 
 async function siwe(client: ReturnType<typeof setup>['client'], domain = 'testnet.necter.network') {
@@ -195,8 +194,8 @@ describe('subscribe + gasless bond (EIP-712 intent and permit)', () => {
 });
 
 describe('developer publish flow', () => {
-	it('enroll → prepare → sign manifest → publish → version 2 listing-only', async () => {
-		const { client, setToken } = setup();
+	it('enroll → prepare → sign manifest → publish → gasless register → version 2 listing-only', async () => {
+		const { client, errata, setToken } = setup();
 		const { session } = await siwe(client);
 		setToken(session.token);
 		await unwrap(client.POST('/v1/developers/me/enrollment', { body: { developer_type: 'individual', display_name: 'Owner', agreements_accepted: true } }));
@@ -210,8 +209,32 @@ describe('developer publish flow', () => {
 		expect(prep.canonical).toBe(digestManifest(m).canonical);
 		const env = await signManifest(m, (hex) => owner.signMessage({ message: { raw: hex } }));
 		const pub = await unwrap(client.POST('/v1/developers/projects', { body: env as never }));
-		expect(pub.project.listing_status).toBe('pending_review');
+		// Like the real Hub: `submitted` until the registration is indexed.
+		expect(pub.project.listing_status).toBe('submitted');
 		expect(pub.register_tx.to).toMatch(/^0x[0-9a-f]{40}$/);
+
+		// Errata E11: gasless registration — check the Register payload against the signed manifest, sign, relay.
+		const bySig = pub.register_by_sig!;
+		const dg = digestManifest(m);
+		const regExp = {
+			chainId: 11155111,
+			owner: ownerAddr,
+			contracts: [(await unwrap(client.GET('/'))).chain.contracts.project_registry!],
+			register: { slug: m.slug, worker: m.consensus.modules.worker, consensusHash: dg.consensus_hash, manifestHash: dg.manifest_hash }
+		};
+		expect(checkGaslessPayload(bySig, regExp)).toBeNull();
+		expect(checkGaslessPayload(bySig, { ...regExp, register: { ...regExp.register, slug: 'other-slug' } })).toMatch(/slug/);
+		expect(checkGaslessPayload(bySig, { ...regExp, register: { ...regExp.register, manifestHash: '0x' + '00'.repeat(32) } })).toMatch(/manifestHash/);
+		expect(checkGaslessPayload(bySig, { ...regExp, contracts: ['0x' + '99'.repeat(20)] })).toMatch(/contract/);
+		const regTd = { ...bySig.typed_data, types: { ...(bySig.typed_data.types as Record<string, unknown>) } };
+		delete (regTd.types as Record<string, unknown>).EIP712Domain;
+		const regSig = (await owner.signTypedData(regTd as never)).toLowerCase();
+		const relayed = await unwrap(
+			errata.POST('/v1/developers/projects/{project_id}/register', { params: { path: { project_id: pid } }, body: { typed_data: bySig.typed_data, signature: regSig } })
+		);
+		expect(['queued', 'sent', 'confirmed']).toContain(relayed.status);
+		const registered = await unwrap(client.GET('/v1/projects/{project_id}', { params: { path: { project_id: pid } } }));
+		expect(registered.listing_status).toBe('pending_review');
 		const v2 = { ...m, version: 2, previous: env.manifest_hash!, listing: { ...m.listing, tagline: 'Updated' } };
 		const env2 = await signManifest(v2, (hex) => owner.signMessage({ message: { raw: hex } }));
 		const res = await unwrap(client.POST('/v1/developers/projects/{project_id}/versions', { params: { path: { project_id: pid } }, body: env2 as never }));
@@ -220,7 +243,7 @@ describe('developer publish flow', () => {
 	});
 
 	it('Hub rejects a manifest signed by someone else', async () => {
-		const { client, setToken } = setup();
+		const { client, setToken, onUnauthorized } = setup();
 		const { session } = await siwe(client);
 		setToken(session.token);
 		await unwrap(client.POST('/v1/developers/me/enrollment', { body: { developer_type: 'individual', display_name: 'Owner', agreements_accepted: true } }));
@@ -229,6 +252,43 @@ describe('developer publish flow', () => {
 		m.consensus.economics.vault = vaultAddress('0x000000000000000000000000000000000000fac7', '0x0000000000000000000000000000000000001111', digestManifest(m).project_id);
 		const dev = privateKeyToAccount(('0x' + '00'.repeat(31) + '01') as `0x${string}`);
 		const env = await signManifest(m, (hex) => dev.signMessage({ message: { raw: hex } }));
-		await expect(unwrap(client.POST('/v1/developers/projects', { body: env as never }))).rejects.toMatchObject({ status: 422, code: 'bad_signature' });
+		// The real Hub answers 401 bad_signature (hub_routes_dev._verify_envelope); the session must survive it.
+		await expect(unwrap(client.POST('/v1/developers/projects', { body: env as never }))).rejects.toMatchObject({ status: 401, code: 'bad_signature' });
+		expect(onUnauthorized).not.toHaveBeenCalled();
+	});
+});
+
+describe('payout change (errata E10, two-step)', () => {
+	it('payload → check → sign → relay; refuses payloads for another address', async () => {
+		const { client, errata, setToken } = setup();
+		const { session } = await siwe(client);
+		setToken(session.token);
+		await unwrap(client.POST('/v1/faucet/drip'));
+		const devices = await unwrap(client.GET('/v1/me/devices'));
+		const project = (await unwrap(client.GET('/v1/projects'))).items[0];
+		const intent = await unwrap(client.POST('/v1/subscriptions', { body: { project_id: project.project_id, node_id: devices.items[0].node_id, collateral: '10000000000000000000' } }));
+		const sid = intent.subscription.subscription_id;
+		const to = '0x' + 'ab'.repeat(20);
+		const payload = (await unwrap(errata.POST('/v1/subscriptions/{subscription_id}/payout', { params: { path: { subscription_id: sid } }, body: { payout: to } }))) as SetPayoutPayload;
+		expect(payload.action).toBe('set_payout');
+		const d = await unwrap(client.GET('/'));
+		const exp = { chainId: 11155111, owner: ownerAddr, contracts: [d.chain.contracts.staking!], subscriptionId: sid, payout: to };
+		expect(checkGaslessPayload(payload, exp)).toBeNull();
+		expect(checkGaslessPayload(payload, { ...exp, payout: '0x' + 'cd'.repeat(20) })).toMatch(/payout address/);
+		expect(checkGaslessPayload(payload, { ...exp, subscriptionId: '0x' + '00'.repeat(32) })).toMatch(/subscription/);
+		const td = { ...payload.typed_data, types: { ...(payload.typed_data.types as Record<string, unknown>) } };
+		delete (td.types as Record<string, unknown>).EIP712Domain;
+		const signature = (await owner.signTypedData(td as never)).toLowerCase();
+		const tx = (await unwrap(errata.POST('/v1/subscriptions/{subscription_id}/payout', { params: { path: { subscription_id: sid } }, body: { typed_data: payload.typed_data, signature } }))) as TxStatus;
+		expect(tx.status).toBe('queued');
+		const sub = await unwrap(client.GET('/v1/subscriptions/{subscription_id}', { params: { path: { subscription_id: sid } } }));
+		expect(sub.payout_address).toBe(to);
+		// a signature by another wallet is refused
+		const other = privateKeyToAccount(('0x' + '00'.repeat(31) + '03') as `0x${string}`);
+		const p2 = (await unwrap(errata.POST('/v1/subscriptions/{subscription_id}/payout', { params: { path: { subscription_id: sid } }, body: { payout: ownerAddr } }))) as SetPayoutPayload;
+		const td2 = { ...p2.typed_data, types: { ...(p2.typed_data.types as Record<string, unknown>) } };
+		delete (td2.types as Record<string, unknown>).EIP712Domain;
+		const bad = (await other.signTypedData(td2 as never)).toLowerCase();
+		await expect(unwrap(errata.POST('/v1/subscriptions/{subscription_id}/payout', { params: { path: { subscription_id: sid } }, body: { typed_data: p2.typed_data, signature: bad } }))).rejects.toMatchObject({ status: 422, code: 'bad_signature' });
 	});
 });

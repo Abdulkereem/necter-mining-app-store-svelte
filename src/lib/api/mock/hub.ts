@@ -35,6 +35,13 @@ const CHAIN_ID = 11155111;
 const NECTA: S['Token'] = { address: MOCK_CONTRACTS.necta, symbol: 'NECTA', name: 'Necter (testnet)', decimals: 18 };
 const SAMPLE_DEV = '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf';
 const E18 = 10n ** 18n;
+/** The Hub's typed data always lists the domain type (eip712.py DOMAIN_FIELDS). */
+const EIP712_DOMAIN = [
+	{ name: 'name', type: 'string' },
+	{ name: 'version', type: 'string' },
+	{ name: 'chainId', type: 'uint256' },
+	{ name: 'verifyingContract', type: 'address' }
+];
 const ALLOWED_DOMAINS = ['testnet.necter.network', '127.0.0.1:7878', 'localhost:7878', 'necter-miner.app'];
 
 export interface MockHubOptions {
@@ -497,6 +504,7 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 			typed_data: {
 				domain: { name: 'Necter Staking', version: '1', chainId: CHAIN_ID, verifyingContract: MOCK_CONTRACTS.staking },
 				types: {
+					EIP712Domain: EIP712_DOMAIN,
 					Bond: [
 						{ name: 'owner', type: 'address' },
 						{ name: 'projectId', type: 'bytes32' },
@@ -512,6 +520,7 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 			permit: {
 				domain: { name: 'NECTA (testnet)', version: '1', chainId: CHAIN_ID, verifyingContract: MOCK_CONTRACTS.necta },
 				types: {
+					EIP712Domain: EIP712_DOMAIN,
 					Permit: [
 						{ name: 'owner', type: 'address' },
 						{ name: 'spender', type: 'address' },
@@ -527,6 +536,57 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 		};
 	}
 
+	function setPayoutPayload(acc: Account, subId: string, payout: string) {
+		const deadline = now() + 3600;
+		return {
+			action: 'set_payout' as const,
+			typed_data: {
+				domain: { name: 'Necter Staking', version: '1', chainId: CHAIN_ID, verifyingContract: MOCK_CONTRACTS.staking },
+				types: {
+					EIP712Domain: EIP712_DOMAIN,
+					SetPayout: [
+						{ name: 'owner', type: 'address' },
+						{ name: 'subscriptionId', type: 'bytes32' },
+						{ name: 'payout', type: 'address' },
+						{ name: 'nonce', type: 'uint256' },
+						{ name: 'deadline', type: 'uint256' }
+					]
+				},
+				primaryType: 'SetPayout',
+				message: { owner: acc.address, subscriptionId: subId, payout, nonce: String(acc.nonce), deadline: String(deadline) }
+			},
+			permit: null,
+			expires_at: deadline
+		};
+	}
+
+	/** `register_by_sig` of POST /v1/developers/projects (hub_routes_dev.py hub_publish). */
+	function registerPayload(acc: Account, m: S['Manifest'], d: { consensus_hash: string; manifest_hash: string }): S['GaslessPayload'] {
+		const deadline = now() + 3600;
+		return {
+			action: 'register_project',
+			typed_data: {
+				domain: { name: 'Necter ProjectRegistry', version: '1', chainId: CHAIN_ID, verifyingContract: MOCK_CONTRACTS.project_registry },
+				types: {
+					EIP712Domain: EIP712_DOMAIN,
+					Register: [
+						{ name: 'developer', type: 'address' },
+						{ name: 'slug', type: 'string' },
+						{ name: 'worker', type: 'bytes32' },
+						{ name: 'consensusHash', type: 'bytes32' },
+						{ name: 'manifestHash', type: 'bytes32' },
+						{ name: 'nonce', type: 'uint256' },
+						{ name: 'deadline', type: 'uint256' }
+					]
+				},
+				primaryType: 'Register',
+				message: { developer: acc.address, slug: m.slug, worker: m.consensus.modules.worker, consensusHash: d.consensus_hash, manifestHash: d.manifest_hash, nonce: String(acc.nonce), deadline: String(deadline) }
+			},
+			permit: null,
+			expires_at: deadline
+		};
+	}
+
 	function simplePayload(acc: Account, action: 'unbond' | 'withdraw', subId: string): S['GaslessPayload'] {
 		const deadline = now() + 3600;
 		const primary = action === 'unbond' ? 'Unbond' : 'Withdraw';
@@ -535,6 +595,7 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 			typed_data: {
 				domain: { name: 'Necter Staking', version: '1', chainId: CHAIN_ID, verifyingContract: MOCK_CONTRACTS.staking },
 				types: {
+					EIP712Domain: EIP712_DOMAIN,
 					[primary]: [
 						{ name: 'owner', type: 'address' },
 						{ name: 'subscriptionId', type: 'bytes32' },
@@ -1257,6 +1318,28 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 		}));
 	}
 
+	// Errata E10 — two-step like unbond/withdraw: {payout} → SetPayout payload (200); {typed_data, signature} → 202.
+	route('POST', '/v1/subscriptions/{id}/payout', needAuth(async (acc, { params, body }) => {
+		const s = acc.subscriptions.find((x) => x.subscription_id === params.id);
+		if (!s) return err(404, 'not_found', 'subscription not found');
+		if (s.status === 'closed') return err(409, 'invalid_state', 'subscription is closed');
+		const b = await body();
+		if (typeof b.payout === 'string') {
+			if (!/^0x[0-9a-f]{40}$/.test(b.payout) || /^0x0{40}$/.test(b.payout)) return err(400, 'invalid_field', 'payout must be a lowercase non-zero address');
+			return json(200, setPayoutPayload(acc, s.subscription_id, b.payout));
+		}
+		const td = b.typed_data as S['Eip712TypedData'] | undefined;
+		if (!td || td.primaryType !== 'SetPayout') return err(400, 'bad_request', 'typed_data must be a SetPayout');
+		const msg = td.message as Json;
+		if (String(msg.subscriptionId).toLowerCase() !== s.subscription_id) return err(400, 'invalid_field', 'typed data names another subscription');
+		if (Number(msg.deadline) <= now()) return err(422, 'unprocessable', 'deadline passed');
+		if (!(await verifyTyped(td, String(b.signature), acc.address))) return err(422, 'bad_signature', 'typed data must be signed by the subscription owner');
+		acc.nonce++;
+		s.payout_address = String(msg.payout).toLowerCase();
+		save();
+		return json(202, { status: 'queued', tx_hash: null, error: null });
+	}));
+
 	// ── earnings / proofs ──
 	function ensureActivity(acc: Account) {
 		if (acc.proofs.length || !acc.subscriptions.some((s) => s.status === 'active')) return;
@@ -1465,9 +1548,10 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 		try {
 			signer = (await recoverMessageAddress({ message: { raw: stringToHex(d.canonical) }, signature: env.signature as Hex })).toLowerCase();
 		} catch {
-			return err(422, 'bad_signature', 'signature does not recover');
+			return err(401, 'bad_signature', 'signature does not recover');
 		}
-		if (signer !== env.manifest.developer) return err(422, 'bad_signature', 'signer is not the developer');
+		// The Hub answers 401 bad_signature here (hub_routes_dev._verify_envelope), with the session still valid.
+		if (signer !== env.manifest.developer) return err(401, 'bad_signature', 'signer is not the developer');
 		return null;
 	}
 	route('POST', '/v1/developers/projects', needAuth(async (acc, { body }) => {
@@ -1477,15 +1561,41 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 		if (env.manifest.version !== 1) return err(422, 'invalid_manifest', 'use the versions endpoint for version > 1');
 		const d = digestManifest(env.manifest);
 		if (findProject(d.project_id)) return err(409, 'already_exists', 'slug already registered');
-		const project = projectFromManifest(env.manifest, now(), { listing_status: 'pending_review', developer_name: acc.developer?.display_name ?? null, listed_at: null, miners: 0 });
+		// Like hub_publish: `submitted` until ProjectRegistered is indexed, then `pending_review`.
+		const project = projectFromManifest(env.manifest, now(), { listing_status: 'submitted', developer_name: acc.developer?.display_name ?? null, listed_at: null, miners: 0 });
 		project.economics = economicsOf(env.manifest);
-		project.review = { status: 'pending', reason: null, conditions: [], decided_at: null };
+		project.review = { status: 'submitted', reason: null, conditions: [], decided_at: null };
 		st.projects.push({ project, manifest: env.manifest, versions: [{ version: 1, manifest_hash: d.manifest_hash, consensus_hash: d.consensus_hash, tiers_changed: ['consensus', 'scheduling', 'listing'], status: 'submitted', publish_tx: null, published_at: null, effective_epoch: null, submitted_at: now() }], reviews: [], announcements: [], simulations: [] });
 		save();
 		return json(201, {
 			project,
-			register_tx: { chain_id: CHAIN_ID, to: MOCK_CONTRACTS.project_registry, data: '0x' + '00'.repeat(4), value: '0', description: `ProjectRegistry.register("${env.manifest.slug}")` }
+			register_tx: { chain_id: CHAIN_ID, to: MOCK_CONTRACTS.project_registry, data: '0x' + '00'.repeat(4), value: '0', description: 'ProjectRegistry.register (send from the developer wallet)' },
+			register_by_sig: registerPayload(acc, env.manifest, d)
 		});
+	}));
+	// Errata E11 (hub_register_by_sig): relays a signed Register; the developer needs no ETH.
+	route('POST', '/v1/developers/projects/{id}/register', needAuth(async (acc, { params, body }) => {
+		const p = findProject(params.id);
+		if (!p) return err(404, 'not_found', 'project not found');
+		if (p.project.developer !== acc.address) return err(403, 'forbidden', 'not your project');
+		const b = await body();
+		const td = b.typed_data as S['Eip712TypedData'] | undefined;
+		if (!td || td.primaryType !== 'Register') return err(422, 'bad_request', 'typed_data must be a Register');
+		const dom = td.domain as Json;
+		if (String(dom.verifyingContract).toLowerCase() !== MOCK_CONTRACTS.project_registry || Number(dom.chainId) !== CHAIN_ID) return err(422, 'bad_request', 'typed_data must be a Register');
+		if (!(await verifyTyped(td, String(b.signature), acc.address))) return err(422, 'bad_signature', 'Register not signed by the developer');
+		const msg = td.message as Json;
+		const v1 = p.versions.find((v) => v.version === 1);
+		if (msg.slug !== p.manifest.slug || String(msg.manifestHash).toLowerCase() !== v1?.manifest_hash) return err(400, 'invalid_field', 'Register does not match the version-1 manifest');
+		acc.nonce++;
+		const tx = fakeHash('register:' + p.project.project_id);
+		// The indexer would see ProjectRegistered: version 1 active, listing → pending_review.
+		p.project.registry_tx = tx;
+		p.project.listing_status = 'pending_review';
+		p.project.review = { status: 'pending_review', reason: null, conditions: [], decided_at: null } as S['Project']['review'];
+		if (v1) Object.assign(v1, { status: 'active', published_at: now() });
+		save();
+		return json(202, { status: 'queued', tx_hash: null, error: null });
 	}));
 	route('POST', '/v1/developers/projects/{id}/versions', needAuth(async (acc, { params, body }) => {
 		const p = findProject(params.id);

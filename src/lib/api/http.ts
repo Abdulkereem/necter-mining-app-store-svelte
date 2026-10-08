@@ -9,6 +9,7 @@
  */
 import createClient, { type Middleware } from 'openapi-fetch';
 import type { paths } from './schema';
+import type { ErrataPaths } from './errata';
 import { RPC_URL, MOCK_API } from '$lib/config';
 import { currentToken, setSession } from './session';
 
@@ -100,8 +101,8 @@ export interface ApiClientOptions {
 }
 
 /** Creates a client. Exported for tests and for the local-mode `/rpc` proxy. */
-export function createApiClient(opts: ApiClientOptions = {}) {
-	const client = createClient<paths>({
+export function createApiClient<P extends {} = paths>(opts: ApiClientOptions = {}) {
+	const client = createClient<P>({
 		baseUrl: opts.baseUrl ?? RPC_URL,
 		fetch: opts.fetch ?? ((req: Request) => globalThis.fetch(req))
 	});
@@ -113,8 +114,16 @@ export function createApiClient(opts: ApiClientOptions = {}) {
 			if (!request.headers.has('Accept')) request.headers.set('Accept', 'application/json');
 			return request;
 		},
-		onResponse({ request, response }) {
-			if (response.status === 401 && request.headers.has('Authorization')) opts.onUnauthorized?.();
+		async onResponse({ request, response }) {
+			// A 401 drops the session only when the session itself was refused: the Hub also answers 401
+			// `bad_signature` for a wrong manifest signature, which must not sign the user out.
+			if (response.status === 401 && request.headers.has('Authorization')) {
+				const body = (await response
+					.clone()
+					.json()
+					.catch(() => null)) as { error?: unknown } | null;
+				if (body?.error !== 'bad_signature') opts.onUnauthorized?.();
+			}
 			return response;
 		}
 	};
@@ -144,7 +153,13 @@ export const api = createApiClient({
 	onUnauthorized: () => setSession(null)
 });
 
-export type ApiClient = ReturnType<typeof createApiClient>;
+/** Same client for the errata routes that openapi.yaml does not describe yet (./errata.ts). */
+export const apiErrata = createApiClient<ErrataPaths>({
+	fetch: devFetch,
+	onUnauthorized: () => setSession(null)
+});
+
+export type ApiClient = ReturnType<typeof createApiClient<paths>>;
 
 type FetchResult<T> = { data?: T; error?: unknown; response: Response };
 

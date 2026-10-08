@@ -118,10 +118,11 @@
 		if (source === 'device' && deviceId) return { node_id: deviceId };
 		if (source === 'miner' && minerHw) {
 			return {
-				class: (minerHw.class as DeviceClass | undefined) ?? undefined,
+				// The Hub requires `class` without a node_id and an integer benchmark score.
+				class: (minerHw.class as DeviceClass | undefined) ?? deviceClass,
 				engine: (minerHw.engine as Engine | undefined) ?? undefined,
 				hardware: minerHw.hardware,
-				benchmark_score: minerHw.benchmark?.score
+				benchmark_score: minerHw.benchmark?.score != null ? Math.round(minerHw.benchmark.score) : undefined
 			};
 		}
 		return { class: deviceClass, engine, hardware: manualProfile() };

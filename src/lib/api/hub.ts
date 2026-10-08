@@ -2,7 +2,8 @@
  * Thin typed wrappers over the Hub endpoints the store uses (one function per operation, PLATFORM.md §j.2).
  * Every function returns the response body or throws `ApiError`.
  */
-import { api, unwrap, unwrapOrNull } from './http';
+import { api, apiErrata, unwrap, unwrapOrNull } from './http';
+import type { SetPayoutPayload } from './errata';
 import type { paths } from './schema';
 import type {
 	Amount,
@@ -17,6 +18,7 @@ import type {
 	ProofStatus,
 	SignedGasless,
 	SignedManifest,
+	TxStatus,
 	SlashStatus,
 	SubscriptionStatus,
 	ApiScope,
@@ -139,6 +141,17 @@ export const hub = {
 		unwrap(api.POST('/v1/subscriptions/{subscription_id}/unbond', { params: { path: { subscription_id } }, ...(body ? { body } : {}) })),
 	withdrawCollateral: (subscription_id: string, body?: SignedGasless) =>
 		unwrap(api.POST('/v1/subscriptions/{subscription_id}/withdraw', { params: { path: { subscription_id } }, ...(body ? { body } : {}) })),
+	/** Errata E10, step 1: the EIP-712 `SetPayout` payload for a new payout address. */
+	payoutPayload: (subscription_id: string, payout: string) =>
+		unwrap(apiErrata.POST('/v1/subscriptions/{subscription_id}/payout', { params: { path: { subscription_id } }, body: { payout } })) as Promise<SetPayoutPayload>,
+	/** Errata E10, step 2: relays the signed `SetPayout` (202 TxStatus). */
+	setPayout: (subscription_id: string, body: Pick<SignedGasless, 'typed_data' | 'signature'>) =>
+		unwrap(
+			apiErrata.POST('/v1/subscriptions/{subscription_id}/payout', {
+				params: { path: { subscription_id } },
+				body: { typed_data: body.typed_data, signature: body.signature }
+			})
+		) as Promise<TxStatus>,
 
 	// ── earnings / proofs ──
 	leases: (query: { state?: 'offered' | 'leased' | 'voted' | 'finalized' | 'missed' | 'cancelled'; node_id?: string; project_id?: string; limit?: number; cursor?: string } = {}) =>
@@ -186,6 +199,14 @@ export const hub = {
 	myProjects: () => unwrap(api.GET('/v1/developers/me/projects')),
 	prepareManifest: (manifest: Manifest) => unwrap(api.POST('/v1/developers/projects/prepare', { body: { manifest } as never })),
 	publishProject: (env: SignedManifest) => unwrap(api.POST('/v1/developers/projects', { body: env as never })),
+	/** Errata E11: relays the signed `register_by_sig` (ProjectRegistry.registerBySig) — no ETH needed (202). */
+	registerProject: (project_id: string, body: Pick<SignedGasless, 'typed_data' | 'signature'>) =>
+		unwrap(
+			apiErrata.POST('/v1/developers/projects/{project_id}/register', {
+				params: { path: { project_id } },
+				body: { typed_data: body.typed_data, signature: body.signature }
+			})
+		),
 	publishVersion: (project_id: string, env: SignedManifest) =>
 		unwrap(api.POST('/v1/developers/projects/{project_id}/versions', { params: { path: { project_id } }, body: env as never })),
 	analytics: (project_id: string, period: Period = '7d') =>
