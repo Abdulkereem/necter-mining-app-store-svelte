@@ -8,3 +8,5 @@ articles, videos, and community materials" with brand guidelines, but states no 
 names the coin in text only.
 
 "Verus" and "VRSC" identify the coin this app mines; this use does not imply that the Verus project endorses Necter.
+
+verus-icon.png (the project icon on the Hub) is the same plain "VRSC" tile, generated for Necter (no Verus artwork).
