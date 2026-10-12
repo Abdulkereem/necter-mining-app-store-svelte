@@ -5,3 +5,14 @@ monero-symbol.png — the Monero symbol, unmodified, from the Monero Project pre
 © The Monero Project, licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/),
 per https://www.getmonero.org/legal/. Used to identify the coin this app mines; this use does not imply that
 the Monero Project endorses Necter.
+
+Other coins on the RandomX app page (treasury targets Zephyr, Salvium, Scash, QRL and the merge-mined Tari) are
+shown as plain text chips (ticker + name), not logos. Checked 2026-10-12; no logo licence clearly allows this use:
+- Tari (XTM): no published logo licence or brand-asset terms found (the tari-project code is BSD-3-Clause, which
+  covers code, not the logo).
+- Zephyr (ZEPH): no logo licence found; the ZephyrProtocol/zephyr repository has no standard licence for assets.
+- Salvium (SAL): github.com/salvium/brand-assets publishes logos with usage guidelines but no licence.
+- Scash (SCASH): no official brand assets or logo licence found.
+- QRL: github.com/theQRL/assets LICENCE.md keeps all rights with QRL and makes use conditional on an indemnity;
+  it grants no licence.
+Coin names identify the coins Necter's treasury can mine; they do not imply endorsement by those projects.

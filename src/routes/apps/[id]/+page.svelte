@@ -5,6 +5,7 @@
 	import { ChevronLeft, ExternalLink, Activity, Star, BadgeCheck } from 'lucide-svelte';
 	import { hub } from '$lib/api/hub';
 	import { useQuery } from '$lib/api/query.svelte';
+	import { pow } from '$lib/api/pow';
 	import { errorMessage } from '$lib/api/http';
 	import type { Announcement, ProjectSummary, ProjectVersion, Subscription } from '$lib/api/types';
 	import { wallet, signedIn, showConnectModal, signIn } from '$lib/stores/wallet';
@@ -79,10 +80,15 @@
 	});
 
 	const project = $derived(projectQ.data ?? null);
-	// Proof-of-work projects (Monero) have their own page: no subscriptions, committees or tasks.
+	// Proof-of-work projects (Monero, Verus) have their own page: no subscriptions, committees or tasks.
 	$effect(() => {
 		if (project && (project as { kind?: string }).kind === 'proof-of-work') {
-			void goto('/pow/monero', { replaceState: true });
+			const projectId = project.project_id;
+			void pow
+				.apps()
+				.then((apps) => apps.find((a) => a.project_id === projectId)?.app_id ?? 'monero')
+				.catch(() => 'monero')
+				.then((appId) => goto(`/pow/${encodeURIComponent(appId)}`, { replaceState: true }));
 		}
 	});
 	const stats = $derived(statsQ.data ?? project?.stats ?? null);

@@ -14,7 +14,8 @@
 	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 	import MinerOnboardingModal from '$lib/components/MinerOnboardingModal.svelte';
 	import HeroCarousel from '$lib/components/discover/HeroCarousel.svelte';
-	import { pow, POW_ICONS, deviceClassLabel, type PowApp } from '$lib/api/pow';
+	import { pow, deviceClassLabel, powHeadline, isComputeProject, type PowApp } from '$lib/api/pow';
+	import PowIcon from '$lib/components/pow/PowIcon.svelte';
 
 	/* ═══════════════════════════════════════════
 	   HERO CAROUSEL constants
@@ -52,7 +53,7 @@
 	const powApps = $derived((powQ.data ?? []) as PowApp[]);
 
 	// Proof-of-work projects are listed under "Necter Default Apps" (their own page), not as compute projects.
-	const isCompute = (p: ProjectSummary) => (p as { kind?: string }).kind !== 'proof-of-work';
+	const isCompute = (p: ProjectSummary) => isComputeProject(p as { kind?: string });
 	const projects = $derived(((pool.data?.items ?? []) as ProjectSummary[]).filter(isCompute));
 	const byId = $derived.by(() => {
 		const m = new Map<string, ProjectSummary>();
@@ -189,14 +190,13 @@
 							href="/pow/{app.app_id}"
 							class="flex items-center gap-3 p-3 min-w-[260px] md:min-w-0 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
 						>
-							{#if POW_ICONS[app.app_id]}
-								<img src={POW_ICONS[app.app_id].src} alt="" width="40" height="40" class="rounded-[10px] bg-white p-1 shrink-0" />
-							{/if}
+							<PowIcon appId={app.app_id} coin={app.coin} accent={app.accent_color} size={40} />
 							<div class="flex-1 min-w-0">
 								<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">{app.name}</p>
+								<p class="text-[11px] text-[var(--text-secondary)] m-0 line-clamp-2" title={powHeadline(app)}>{powHeadline(app)}</p>
 								<p class="text-[11px] text-[var(--text-tertiary)] m-0 truncate">{deviceClassLabel(app.device_classes)}</p>
 								{#if app.pool_mode === 'test'}
-									<p class="text-[11px] text-[var(--text-accent)] m-0 truncate">Testnet: mining test mode, no real XMR</p>
+									<p class="text-[11px] text-[var(--text-accent)] m-0 truncate">Testnet: mining test mode, no real coins</p>
 								{/if}
 							</div>
 						</a>
