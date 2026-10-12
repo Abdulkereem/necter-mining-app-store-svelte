@@ -13,6 +13,7 @@
 	import ErrorState from '$lib/components/common/ErrorState.svelte';
 	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 	import MinerOnboardingModal from '$lib/components/MinerOnboardingModal.svelte';
+	import HeroCarousel from '$lib/components/discover/HeroCarousel.svelte';
 
 	/* ═══════════════════════════════════════════
 	   HERO CAROUSEL constants
@@ -65,17 +66,14 @@
 	});
 	const heroIds = $derived(new Set(heroApps.map((a) => a.project_id)));
 
-	// Banners live on the full project (listing.banner); fetched only for the hero slides.
+	// Hero media (listing.banner / listing.video) lives on the full project; fetched only for the hero slides.
 	const heroDetails = useQuery(() => {
 		const ids = heroApps.map((p) => p.project_id);
 		return Promise.all(ids.map((id) => hub.project(id).catch(() => null)));
 	});
-	const bannerById = $derived.by(() => {
-		const m = new Map<string, string>();
-		for (const p of (heroDetails.data ?? []) as (Project | null)[]) {
-			const b = p?.listing?.banner;
-			if (p && b && (b.startsWith('https://') || b.startsWith('/'))) m.set(p.project_id, b);
-		}
+	const listingById = $derived.by(() => {
+		const m = new Map<string, { banner?: string | null; video?: string | null }>();
+		for (const p of (heroDetails.data ?? []) as (Project | null)[]) if (p?.listing) m.set(p.project_id, p.listing);
 		return m;
 	});
 
@@ -131,8 +129,6 @@
 	}
 
 	/* ─── State ─── */
-	let heroActive = $state(0);
-	let heroTimer: ReturnType<typeof setInterval> | null = null;
 	let showOnboarding = $state(false);
 	let hasAutoShown = false;
 
@@ -145,34 +141,12 @@
 		ref.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' });
 	}
 
-	/* ─── Hero carousel timer ─── */
-	function resetHeroTimer() {
-		if (heroTimer) clearInterval(heroTimer);
-		heroTimer = setInterval(() => {
-			if (heroApps.length > 0) heroActive = (heroActive + 1) % heroApps.length;
-		}, 6000);
-	}
-
-	function heroGo(dir: 'prev' | 'next') {
-		const count = heroApps.length;
-		if (count === 0) return;
-		heroActive = dir === 'next' ? (heroActive + 1) % count : (heroActive - 1 + count) % count;
-		resetHeroTimer();
-	}
-
-	$effect(() => {
-		if (heroActive >= heroApps.length) heroActive = 0;
-	});
-
 	onMount(() => {
-		resetHeroTimer();
-
 		// Listen for logo click event from sidebar
 		const handler = () => (showOnboarding = true);
 		window.addEventListener('necter:open-onboarding', handler);
 
 		return () => {
-			if (heroTimer) clearInterval(heroTimer);
 			window.removeEventListener('necter:open-onboarding', handler);
 		};
 	});
@@ -322,99 +296,7 @@
 	{:else}
 		<!-- ═══ HERO CAROUSEL (full-width, auto-rotating) ═══ -->
 		{#if heroApps.length > 0}
-			{@const app = heroApps[Math.min(heroActive, heroApps.length - 1)]}
-			<div class="relative w-full overflow-hidden">
-				<!-- Background layers -->
-				{#each heroApps as a, i (a.project_id)}
-					{@const img = bannerById.get(a.project_id)}
-					{@const g = heroGradients[i % heroGradients.length]}
-					<div class="absolute inset-0 transition-opacity duration-700 {i === heroActive ? 'opacity-100' : 'opacity-0'}">
-						{#if img}
-							<div class="absolute inset-0 bg-cover bg-center" style="background-image: url({img})"></div>
-							<div class="absolute inset-0 bg-black/40"></div>
-						{:else}
-							<div class="absolute inset-0" style="background: linear-gradient(135deg, {g.from}, {g.to})"></div>
-							<div class="absolute right-[8%] top-1/2 -translate-y-[65%] hidden md:block">
-								<ProjectIcon project={a} size={160} rounded="36px" class="opacity-90 shadow-2xl" />
-							</div>
-						{/if}
-					</div>
-				{/each}
-
-				<!-- Honeycomb overlay -->
-				<div class="absolute inset-0 bg-honeycomb opacity-60 z-[1] pointer-events-none"></div>
-				<!-- Bottom gradient for text readability -->
-				<div
-					class="absolute inset-x-0 bottom-0 h-[60%] z-[2] pointer-events-none"
-					style="background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)"
-				></div>
-
-				<!-- Content — text at bottom-left -->
-				<a
-					href="/apps/{app.project_id}"
-					class="relative z-10 flex flex-col justify-end px-4 md:px-8 pb-8 md:pb-10 pt-[280px] md:pt-[420px] no-underline cursor-pointer"
-				>
-					{#each heroApps as a, i (a.project_id)}
-						<div
-							class="absolute bottom-8 md:bottom-8 left-4 md:left-8 right-4 md:right-8 transition-all duration-500 {i === heroActive
-								? 'opacity-100 translate-y-0'
-								: 'opacity-0 translate-y-2 pointer-events-none'}"
-						>
-							<p
-								class="text-[10px] font-bold uppercase tracking-[0.1em] mb-2 transition-colors duration-500"
-								style="color: {accentOf(a, i)}"
-							>
-								{heroLabel(a)}
-							</p>
-							<h2 class="text-[18px] md:text-[22px] font-semibold text-white leading-tight mb-2 max-w-[500px]">
-								{a.name}
-							</h2>
-							{#if a.tagline}
-								<p class="text-[12px] md:text-[14px] text-white/60 max-w-[500px] line-clamp-2">
-									{a.tagline}
-								</p>
-							{/if}
-						</div>
-					{/each}
-				</a>
-
-				{#if heroApps.length > 1}
-					<!-- Navigation arrows -->
-					<button
-						type="button"
-						aria-label="Previous"
-						onclick={() => heroGo('prev')}
-						class="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm items-center justify-center hover:bg-black/50 transition-colors"
-					>
-						<ChevronLeft class="h-5 w-5 text-white/80" strokeWidth={1.5} />
-					</button>
-					<button
-						type="button"
-						aria-label="Next"
-						onclick={() => heroGo('next')}
-						class="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm items-center justify-center hover:bg-black/50 transition-colors"
-					>
-						<ChevronRight class="h-5 w-5 text-white/80" strokeWidth={1.5} />
-					</button>
-
-					<!-- Dots indicator -->
-					<div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
-						{#each heroApps as a, i (a.project_id)}
-							<button
-								type="button"
-								aria-label="Show {a.name}"
-								onclick={() => {
-									heroActive = i;
-									resetHeroTimer();
-								}}
-								class="h-[6px] rounded-full transition-all duration-300 {i === heroActive
-									? 'w-[18px] bg-white/90'
-									: 'w-[6px] bg-white/30 hover:bg-white/50'}"
-							></button>
-						{/each}
-					</div>
-				{/if}
-			</div>
+			<HeroCarousel apps={heroApps} listings={listingById} labelOf={heroLabel} {accentOf} />
 		{/if}
 
 		<!-- ═══ EDITORIAL CONTENT ═══ -->

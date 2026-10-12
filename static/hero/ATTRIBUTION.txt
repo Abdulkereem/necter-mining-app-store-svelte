@@ -1,0 +1,11 @@
+Discover hero background clips, from Pexels (https://www.pexels.com/license/ — free to use, attribution appreciated).
+Re-encoded to ~10 s, 720p-class H.264 loops with WebP posters.
+
+hash.mp4 / hash.webp       "Digital data flow in a futuristic tunnel" by Chandresh Uike
+                           https://www.pexels.com/video/digital-data-flow-in-a-futuristic-tunnel-34127877/
+servers.mp4 / servers.webp "Close-up of a CPU" by MrColo
+                           https://www.pexels.com/video/close-up-of-a-cpu-7140928/
+neural.mp4 / neural.webp   "Vibrant abstract network of glowing nodes" by Nicola Narracci
+                           https://www.pexels.com/video/vibrant-abstract-network-of-glowing-nodes-36245490/
+hive.mp4 / hive.webp       "Golden hexagons on a background of gold" by Rostislav Uzunov
+                           https://www.pexels.com/video/golden-hexagons-on-a-background-of-gold-9629254/
