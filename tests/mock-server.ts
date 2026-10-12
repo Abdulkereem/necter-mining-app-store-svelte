@@ -5,13 +5,23 @@
  *   MOCK_HUB_PORT=4517 STORE_ORIGIN_HOSTS=127.0.0.1:4518 npx tsx tests/mock-server.ts
  *
  * Extra test endpoint: POST /__mock/reset {"empty": true|false} re-seeds the state.
+ *
+ * Proof-of-work apps (`/v1/pow/apps…`): both Monero (RandomX, target Monero, Tari merge-mined) and Verus by default.
+ *   MOCK_POW_APPS=monero        only list these apps (comma-separated: monero,verus)
+ *   MOCK_POW_TARGET=zephyr      RandomX treasury target (monero, zephyr, salvium, scash, qrl)
+ *   MOCK_POW_MERGE=0            Tari merge mining off
  */
 import { createServer } from 'node:http';
 import { createMockHub } from '../src/lib/api/mock/hub';
 
 const port = Number(process.env.MOCK_HUB_PORT ?? 4517);
 const allowDomains = (process.env.STORE_ORIGIN_HOSTS ?? '127.0.0.1:4518,localhost:4518').split(',');
-const hub = createMockHub({ allowDomains, empty: process.env.MOCK_EMPTY === '1' });
+const powApps = process.env.MOCK_POW_APPS?.split(',').filter((a): a is 'monero' | 'verus' => a === 'monero' || a === 'verus');
+const hub = createMockHub({
+	allowDomains,
+	empty: process.env.MOCK_EMPTY === '1',
+	pow: { apps: powApps, target: process.env.MOCK_POW_TARGET, mergeMining: process.env.MOCK_POW_MERGE !== '0' }
+});
 
 const cors = {
 	'access-control-allow-origin': '*',

@@ -17,6 +17,7 @@ import { buildSiweMessage } from '../../protocol/siwe';
 import { projectId as deriveProjectId, subscriptionId as deriveSubscriptionId, vaultAddress } from '../../protocol/ids';
 import { canonicalJson } from '../../protocol/canonical';
 import { digestManifest, validateManifest } from '../../protocol/manifest';
+import { createMockPow, type MockPowOptions } from './pow';
 
 type S = components['schemas'];
 type Json = Record<string, unknown>;
@@ -53,6 +54,8 @@ export interface MockHubOptions {
 	now?: () => number;
 	/** Start with no listed projects (empty-state screenshots). */
 	empty?: boolean;
+	/** Proof-of-work apps (`/v1/pow/apps…`): which apps are enabled, RandomX target, Tari merge mining. */
+	pow?: MockPowOptions;
 }
 
 interface Account {
@@ -419,6 +422,7 @@ const STORAGE_KEY = 'necter_mock_hub_v1';
 export function createMockHub(opts: MockHubOptions = {}): MockHub {
 	const now = opts.now ?? (() => Math.floor(Date.now() / 1000));
 	let st: State = load() ?? seed(now(), !!opts.empty);
+	const powRoutes = createMockPow(now, opts.pow);
 
 	function load(): State | null {
 		if (!opts.persist || typeof localStorage === 'undefined') return null;
@@ -1721,6 +1725,11 @@ export function createMockHub(opts: MockHubOptions = {}): MockHub {
 		let path = url.pathname.replace(/^\/rpc(?=\/|$)/, '') || '/';
 		if (path.length > 1) path = path.replace(/\/+$/, '');
 		if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE' } });
+		const powRes = powRoutes.handle(req.method, path);
+		if (powRes) {
+			const b = powRes.body as Json;
+			return powRes.status >= 400 ? err(powRes.status, String(b.error), String(b.message)) : json(powRes.status, powRes.body);
+		}
 		for (const [method, re, names, h] of routes) {
 			if (method !== req.method) continue;
 			const m = re.exec(path);
