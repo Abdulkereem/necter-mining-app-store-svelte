@@ -52,9 +52,8 @@
 	const powApps = $derived((powQ.data ?? []) as PowApp[]);
 
 	// Proof-of-work projects are listed under "Necter Default Apps" (their own page), not as compute projects.
-	const projects = $derived(
-		((pool.data?.items ?? []) as ProjectSummary[]).filter((p) => (p as { kind?: string }).kind !== 'proof-of-work')
-	);
+	const isCompute = (p: ProjectSummary) => (p as { kind?: string }).kind !== 'proof-of-work';
+	const projects = $derived(((pool.data?.items ?? []) as ProjectSummary[]).filter(isCompute));
 	const byId = $derived.by(() => {
 		const m = new Map<string, ProjectSummary>();
 		for (const list of [projects, newestQ.data?.items, minersQ.data?.items, ratingQ.data?.items, earningsQ.data?.items]) {
@@ -85,14 +84,14 @@
 	});
 
 	const storyApps = $derived(projects.filter((a) => !heroIds.has(a.project_id)).slice(0, 5));
-	const bestNew = $derived((newestQ.data?.items ?? []) as ProjectSummary[]);
+	const bestNew = $derived(((newestQ.data?.items ?? []) as ProjectSummary[]).filter(isCompute));
 	const trending = $derived(projects.filter((p) => p.trending).slice(0, 9));
-	const mostMined = $derived(((minersQ.data?.items ?? []) as ProjectSummary[]).filter((p) => (p.miners ?? 0) > 0));
+	const mostMined = $derived(((minersQ.data?.items ?? []) as ProjectSummary[]).filter((p) => isCompute(p) && (p.miners ?? 0) > 0));
 	const topRated = $derived(
-		((ratingQ.data?.items ?? []) as ProjectSummary[]).filter((p) => (p.review_count ?? 0) > 0 && p.average_rating_x100 != null)
+		((ratingQ.data?.items ?? []) as ProjectSummary[]).filter((p) => isCompute(p) && (p.review_count ?? 0) > 0 && p.average_rating_x100 != null)
 	);
 	const topEarning = $derived(
-		((earningsQ.data?.items ?? []) as ProjectSummary[]).filter((p) => !!p.avg_daily_reward_per_miner && p.avg_daily_reward_per_miner !== '0')
+		((earningsQ.data?.items ?? []) as ProjectSummary[]).filter((p) => isCompute(p) && !!p.avg_daily_reward_per_miner && p.avg_daily_reward_per_miner !== '0')
 	);
 
 	const collections = $derived(((collectionsQ.data?.items ?? []) as Collection[]).slice(0, 5));
