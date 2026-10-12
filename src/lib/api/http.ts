@@ -147,6 +147,9 @@ async function devFetch(req: Request): Promise<Response> {
 	return globalThis.fetch(req);
 }
 
+/** Plain fetch against the Hub, routed through the dev mock Hub when it is on (used for routes not in the schema). */
+export const hubFetch = devFetch;
+
 /** The app-wide Hub client. */
 export const api = createApiClient({
 	fetch: devFetch,
