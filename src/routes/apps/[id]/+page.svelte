@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import toast from 'svelte-french-toast';
 	import { ChevronLeft, ExternalLink, Activity, Star, BadgeCheck } from 'lucide-svelte';
 	import { hub } from '$lib/api/hub';
@@ -78,6 +79,12 @@
 	});
 
 	const project = $derived(projectQ.data ?? null);
+	// Proof-of-work projects (Monero) have their own page: no subscriptions, committees or tasks.
+	$effect(() => {
+		if (project && (project as { kind?: string }).kind === 'proof-of-work') {
+			void goto('/pow/monero', { replaceState: true });
+		}
+	});
 	const stats = $derived(statsQ.data ?? project?.stats ?? null);
 	const economics = $derived(economicsQ.data ?? project?.economics ?? null);
 	const explorer = $derived(explorerBase($descriptor));

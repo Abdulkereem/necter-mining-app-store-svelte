@@ -14,6 +14,7 @@
 	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 	import MinerOnboardingModal from '$lib/components/MinerOnboardingModal.svelte';
 	import HeroCarousel from '$lib/components/discover/HeroCarousel.svelte';
+	import { pow, POW_ICONS, deviceClassLabel, type PowApp } from '$lib/api/pow';
 
 	/* ═══════════════════════════════════════════
 	   HERO CAROUSEL constants
@@ -46,8 +47,14 @@
 	const earningsQ = useQuery(() => hub.projects({ sort: 'earnings', limit: 7 }));
 	const collectionsQ = useQuery(() => hub.collections());
 	const statsQ = useQuery(() => hub.explorerStats());
+	// First-party proof-of-work apps (POW-APPS.md); empty when the Hub has none enabled.
+	const powQ = useQuery(() => pow.apps().catch(() => [] as PowApp[]));
+	const powApps = $derived((powQ.data ?? []) as PowApp[]);
 
-	const projects = $derived((pool.data?.items ?? []) as ProjectSummary[]);
+	// Proof-of-work projects are listed under "Necter Default Apps" (their own page), not as compute projects.
+	const projects = $derived(
+		((pool.data?.items ?? []) as ProjectSummary[]).filter((p) => (p as { kind?: string }).kind !== 'proof-of-work')
+	);
 	const byId = $derived.by(() => {
 		const m = new Map<string, ProjectSummary>();
 		for (const list of [projects, newestQ.data?.items, minersQ.data?.items, ratingQ.data?.items, earningsQ.data?.items]) {
@@ -172,6 +179,35 @@
 	<title>Discover — Necter Mining App Store</title>
 </svelte:head>
 
+{#snippet powSection()}
+	{#if powApps.length > 0}
+		<section>
+			<div class="border-t border-[var(--border-default)] pt-5 mb-3">
+				{@render sectionHeader('Necter Default Apps', null, 'Opt-in CPU mining for Necter, paid in NECTA')}
+				<div class="flex md:grid md:grid-cols-3 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:overflow-visible">
+					{#each powApps as app (app.app_id)}
+						<a
+							href="/pow/{app.app_id}"
+							class="flex items-center gap-3 p-3 min-w-[260px] md:min-w-0 rounded-[8px] bg-[var(--surface-1)] border border-[var(--border-default)] no-underline transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--surface-2)]"
+						>
+							{#if POW_ICONS[app.app_id]}
+								<img src={POW_ICONS[app.app_id].src} alt="" width="40" height="40" class="rounded-[10px] bg-white p-1 shrink-0" />
+							{/if}
+							<div class="flex-1 min-w-0">
+								<p class="text-[13px] font-medium text-[var(--text-primary)] m-0 truncate">{app.name}</p>
+								<p class="text-[11px] text-[var(--text-tertiary)] m-0 truncate">{deviceClassLabel(app.device_classes)}</p>
+								{#if app.pool_mode === 'test'}
+									<p class="text-[11px] text-[var(--text-accent)] m-0 truncate">Testnet: mining test mode, no real XMR</p>
+								{/if}
+							</div>
+						</a>
+					{/each}
+				</div>
+			</div>
+		</section>
+	{/if}
+{/snippet}
+
 {#snippet projectCard(app: ProjectSummary)}
 	<div class="relative min-w-[260px] md:min-w-0 shrink-0 md:shrink">
 		<a
@@ -293,6 +329,7 @@
 				</div>
 			</div>
 		</div>
+		<div class="px-4 md:px-6">{@render powSection()}</div>
 	{:else}
 		<!-- ═══ HERO CAROUSEL (full-width, auto-rotating) ═══ -->
 		{#if heroApps.length > 0}
@@ -357,6 +394,8 @@
 		{/if}
 
 		<div class="px-4 md:px-6 space-y-0 {storyApps.length === 0 ? 'pt-3' : ''}">
+			{@render powSection()}
+
 			<!-- ─── Best New Projects ─── -->
 			{#if bestNew.length > 0}
 				<section>
