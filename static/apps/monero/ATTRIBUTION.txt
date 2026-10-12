@@ -1,0 +1,7 @@
+monero-symbol.png — the Monero symbol, unmodified, from the Monero Project press kit
+(https://www.getmonero.org/press-kit/symbols/monero-symbol-480.png, sha256
+7eacf70c9348f787e59327f96df15b1fde0e0556d73bcb95d21a1fd533c3ecf2).
+
+© The Monero Project, licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/),
+per https://www.getmonero.org/legal/. Used to identify the coin this app mines; this use does not imply that
+the Monero Project endorses Necter.

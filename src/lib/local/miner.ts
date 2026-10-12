@@ -213,8 +213,43 @@ export const minerApi = {
 	signRequests: () => request<{ items?: MinerSignRequest[] } | MinerSignRequest[]>('GET', '/sign-requests'),
 	answerSignRequest: (id: string, body: { signature: string } | { reject: true }) =>
 		request<void>('POST', `/sign-requests/${encodeURIComponent(id)}`, body),
-	request: (id: string) => request<MinerAsyncRequest>('GET', `/requests/${encodeURIComponent(id)}`)
+	request: (id: string) => request<MinerAsyncRequest>('GET', `/requests/${encodeURIComponent(id)}`),
+	/** Proof-of-work apps (POW-APPS.md): settings, policy decision and hashing statistics. */
+	powStatus: () => request<MinerPowStatus>('GET', '/pow'),
+	/** Partial update of the `[pow]` settings; enabling needs `accepted_disclosure`. */
+	powSet: (patch: Partial<MinerPowSettings>) => request<MinerPowStatus>('PUT', '/pow', patch)
 };
+
+export interface MinerPowSettings {
+	enabled: boolean;
+	accepted_disclosure: string;
+	app: string;
+	max_cpu_pct: number;
+	max_threads: number;
+	memory_mode: 'auto' | 'light' | 'fast';
+	max_thermal: 'nominal' | 'fair' | 'serious' | 'critical';
+	pause_when_user_active: boolean | null;
+	require_ac: boolean | null;
+	mobile_min_battery_pct: number;
+	mobile_max_battery_temp_c: number;
+}
+
+export interface MinerPowStatus {
+	compiled: boolean;
+	app: string;
+	settings: MinerPowSettings;
+	decision: { state: 'running' | 'paused' | 'off'; reason?: string; threads?: number; mode?: 'light' | 'fast' };
+	hub: { fetched: boolean; device_classes: string[] | null; mobile_enabled: boolean | null; error: string | null };
+	stats: {
+		hashes: number;
+		hashrate_hs: number;
+		shares: { found: number; submitted: number; accepted: number; rejected: number; duplicate: number };
+		job: { job_id: string; difficulty: number } | null;
+		last_error: string | null;
+	} | null;
+	memory_mb: { total: number; available: number };
+	disclosure: { version: string; text: string };
+}
 
 /** Polls an async miner request until done/failed (or timeout). */
 export async function waitMinerRequest(id: string, timeoutMs = 120_000, intervalMs = 1500): Promise<MinerAsyncRequest> {
