@@ -50,7 +50,10 @@
 	const powQ = useQuery(() => pow.apps().catch(() => [] as PowApp[]));
 	const powApps = $derived((powQ.data ?? []) as PowApp[]);
 
-	const projects = $derived((pool.data?.items ?? []) as ProjectSummary[]);
+	// Proof-of-work projects are listed under "Necter Default Apps" (their own page), not as compute projects.
+	const projects = $derived(
+		((pool.data?.items ?? []) as ProjectSummary[]).filter((p) => (p as { kind?: string }).kind !== 'proof-of-work')
+	);
 	const byId = $derived.by(() => {
 		const m = new Map<string, ProjectSummary>();
 		for (const list of [projects, newestQ.data?.items, minersQ.data?.items, ratingQ.data?.items, earningsQ.data?.items]) {
