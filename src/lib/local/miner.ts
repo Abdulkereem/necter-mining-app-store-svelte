@@ -220,10 +220,13 @@ export const minerApi = {
 	powSet: (patch: Partial<MinerPowSettings>) => request<MinerPowStatus>('PUT', '/pow', patch)
 };
 
+export type MinerPowApp = 'monero' | 'verus';
+
 export interface MinerPowSettings {
 	enabled: boolean;
 	accepted_disclosure: string;
-	app: string;
+	/** The one PoW app this device mines ("monero" = the RandomX app, "verus"). */
+	app: MinerPowApp | string;
 	max_cpu_pct: number;
 	max_threads: number;
 	memory_mode: 'auto' | 'light' | 'fast';
@@ -234,9 +237,16 @@ export interface MinerPowSettings {
 	mobile_max_battery_temp_c: number;
 }
 
+export interface MinerPowDisclosure {
+	version: string;
+	text: string;
+}
+
 export interface MinerPowStatus {
 	compiled: boolean;
 	app: string;
+	/** "pow.randomx" or "pow.verushash" (the current app's workload). */
+	workload?: string;
 	settings: MinerPowSettings;
 	decision: { state: 'running' | 'paused' | 'off'; reason?: string; threads?: number; mode?: 'light' | 'fast' };
 	hub: { fetched: boolean; device_classes: string[] | null; mobile_enabled: boolean | null; error: string | null };
@@ -244,11 +254,44 @@ export interface MinerPowStatus {
 		hashes: number;
 		hashrate_hs: number;
 		shares: { found: number; submitted: number; accepted: number; rejected: number; duplicate: number };
-		job: { job_id: string; difficulty: number } | null;
+		job: { job_id: string; difficulty: number; algo?: string; coin?: string } | null;
 		last_error: string | null;
 	} | null;
 	memory_mb: { total: number; available: number };
-	disclosure: { version: string; text: string };
+	/** The CURRENT app's disclosure. */
+	disclosure: MinerPowDisclosure;
+	/** Every app's disclosure (miner 1.0.4+); older miners only send `disclosure`. */
+	disclosures?: Record<string, MinerPowDisclosure>;
+}
+
+/**
+ * The disclosure the user must accept to mine `app`: `disclosures[app]`, else `disclosure` when it is the
+ * current app (older miners), else null (the miner cannot mine that app: update needed).
+ */
+export function powDisclosureFor(status: Pick<MinerPowStatus, 'app' | 'disclosure' | 'disclosures' | 'settings'>, app: string): MinerPowDisclosure | null {
+	const d = status.disclosures?.[app];
+	if (d) return d;
+	const current = status.settings?.app || status.app;
+	return current === app ? status.disclosure : null;
+}
+
+/** Is this device set to mine `app` right now (enabled and that app selected)? */
+export function powMiningApp(status: Pick<MinerPowStatus, 'app' | 'settings'>, app: string): boolean {
+	return status.settings.enabled && (status.settings.app || status.app) === app;
+}
+
+/**
+ * PUT body that turns on (or switches to) `app`. One device mines one PoW app at a time; switching from Monero to
+ * Verus is this same call with the Verus disclosure version. Null when the miner sent no disclosure for `app`.
+ */
+export function powEnableBody(
+	status: Pick<MinerPowStatus, 'app' | 'disclosure' | 'disclosures' | 'settings'>,
+	app: string,
+	maxCpuPct: number
+): Partial<MinerPowSettings> | null {
+	const d = powDisclosureFor(status, app);
+	if (!d) return null;
+	return { app, enabled: true, accepted_disclosure: d.version, max_cpu_pct: maxCpuPct };
 }
 
 /** Polls an async miner request until done/failed (or timeout). */
