@@ -195,7 +195,7 @@
 	<title>{project ? `${project.name} — Necter Mining App Store` : 'Project — Necter Mining App Store'}</title>
 </svelte:head>
 
-{#if projectQ.loading && !projectQ.data}
+{#if (projectQ.loading && !projectQ.data) || (project as { kind?: string } | null)?.kind === 'proof-of-work'}
 	<div class="max-w-[960px] mx-auto px-4 md:px-6 pt-8 space-y-4">
 		<LoadingBlock rows={1} height="72px" />
 		<LoadingBlock rows={5} grid height="76px" />

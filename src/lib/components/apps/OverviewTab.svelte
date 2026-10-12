@@ -57,7 +57,7 @@
 		{ label: 'Consensus', value: 'Committee (redundant execution)' },
 		{ label: 'Verification', value: work.verification === 'redundant-execution' ? 'Redundant execution' : work.verification },
 		{ label: 'Reward Model', value: rewardModelLabel(project.consensus.economics.reward_model) },
-		{ label: 'Committee', value: `${work.committee.size} miners (+${work.committee.backups} backup)` },
+		{ label: 'Committee', value: work.committee ? `${work.committee.size} miners (+${work.committee.backups} backup)` : '—' },
 		{ label: 'Round length', value: formatDuration(work.round_secs) },
 		{ label: 'Epoch length', value: formatDuration(work.epoch_secs) },
 		{ label: 'Tasks', value: work.task_source.kind === 'schedule' ? `Scheduled every ${formatDuration(work.task_source.interval_secs)}` : 'Submitted via API' }
