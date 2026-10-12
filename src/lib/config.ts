@@ -77,12 +77,14 @@ export function siweUri(): string {
 	return 'https://testnet.necter.network';
 }
 
-/** Miner download links (placeholders until releases are published). */
+const RELEASES = 'https://github.com/Necter-Network/necter-releases/releases/latest/download';
+
+/** Miner download links (published releases; env vars override). null = no build for that platform yet. */
 export const MINER_DOWNLOADS = {
-	macos: str('PUBLIC_MINER_DL_MACOS') ?? null,
+	macos: str('PUBLIC_MINER_DL_MACOS') ?? `${RELEASES}/Necter-Miner-macOS-universal.dmg`,
 	windows: str('PUBLIC_MINER_DL_WINDOWS') ?? null,
-	linux: str('PUBLIC_MINER_DL_LINUX') ?? null,
-	android: str('PUBLIC_MINER_DL_ANDROID') ?? null,
+	linux: str('PUBLIC_MINER_DL_LINUX') ?? 'https://necter.network/docs/mine/server/',
+	android: str('PUBLIC_MINER_DL_ANDROID') ?? `${RELEASES}/Necter-Miner-android.apk`,
 	ios: str('PUBLIC_MINER_DL_IOS') ?? null,
-	docker: 'necter/miner'
+	install: 'curl -fsSL https://necter.network/install.sh | sh -s -- miner'
 } as const;

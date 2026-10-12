@@ -54,10 +54,10 @@
 
 	const downloads = [
 		{ id: 'macos', label: 'macOS', sub: 'Desktop app (.dmg) · Apple silicon & Intel', href: MINER_DOWNLOADS.macos, icon: Download },
-		{ id: 'windows', label: 'Windows', sub: 'Desktop app (.msi)', href: MINER_DOWNLOADS.windows, icon: Download },
-		{ id: 'linux', label: 'Linux', sub: 'AppImage / .deb / .rpm, or the server daemon', href: MINER_DOWNLOADS.linux, icon: Terminal },
+		{ id: 'windows', label: 'Windows', sub: 'Use WSL with the Linux command-line miner', href: MINER_DOWNLOADS.windows, icon: Download },
+		{ id: 'linux', label: 'Linux', sub: 'Command-line miner (x86_64 & arm64), runs as a service', href: MINER_DOWNLOADS.linux, icon: Terminal },
 		{ id: 'android', label: 'Android', sub: 'Mobile app (mines while charging)', href: MINER_DOWNLOADS.android, icon: Smartphone },
-		{ id: 'ios', label: 'iOS', sub: 'Mobile app (foreground & charging windows)', href: MINER_DOWNLOADS.ios, icon: Smartphone }
+		{ id: 'ios', label: 'iOS', sub: 'No iOS app yet', href: MINER_DOWNLOADS.ios, icon: Smartphone }
 	] as const;
 
 	function manualProfile(): HardwareProfile {
@@ -214,17 +214,17 @@
 									<span class="hw-dl__sub">{d.sub}</span>
 								</a>
 							{:else}
-								<div class="hw-dl hw-dl--soon {os === d.id ? 'hw-dl--current' : ''}" title="Release not published yet">
+								<div class="hw-dl hw-dl--soon {os === d.id ? 'hw-dl--current' : ''}" title="No native build for this platform yet">
 									<Icon class="h-4 w-4" strokeWidth={1.7} />
-									<span class="font-medium">{d.label} <span class="hw-soon">Soon</span></span>
+									<span class="font-medium">{d.label} <span class="hw-soon">Not yet</span></span>
 									<span class="hw-dl__sub">{d.sub}</span>
 								</div>
 							{/if}
 						{/each}
 					</div>
 					<p class="text-[11px] text-[var(--text-tertiary)] mt-3 font-mono">
-						Servers: <span class="text-[var(--text-secondary)]">docker run -d -v necter:/data {MINER_DOWNLOADS.docker}</span> · then
-						<span class="text-[var(--text-secondary)]">necter-miner bind --owner &lt;your wallet&gt;</span>
+						Linux, macOS &amp; servers: <span class="text-[var(--text-secondary)]">{MINER_DOWNLOADS.install}</span> · then
+						<span class="text-[var(--text-secondary)]">necter-miner join --project &lt;id&gt;</span>
 					</p>
 				</div>
 			</div>
