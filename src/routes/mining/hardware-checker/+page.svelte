@@ -54,7 +54,7 @@
 
 	const downloads = [
 		{ id: 'macos', label: 'macOS', sub: 'Desktop app (.dmg) · Apple silicon & Intel', href: MINER_DOWNLOADS.macos, icon: Download },
-		{ id: 'windows', label: 'Windows', sub: 'Use WSL with the Linux command-line miner', href: MINER_DOWNLOADS.windows, icon: Download },
+		{ id: 'windows', label: 'Windows', sub: 'Desktop app (.msi) · Windows 10/11 x64', href: MINER_DOWNLOADS.windows, icon: Download },
 		{ id: 'linux', label: 'Linux', sub: 'Command-line miner (x86_64 & arm64), runs as a service', href: MINER_DOWNLOADS.linux, icon: Terminal },
 		{ id: 'android', label: 'Android', sub: 'Mobile app (mines while charging)', href: MINER_DOWNLOADS.android, icon: Smartphone },
 		{ id: 'ios', label: 'iOS', sub: 'No iOS app yet', href: MINER_DOWNLOADS.ios, icon: Smartphone }

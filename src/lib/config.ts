@@ -82,7 +82,7 @@ const RELEASES = 'https://github.com/Necter-Network/necter-releases/releases/lat
 /** Miner download links (published releases; env vars override). null = no build for that platform yet. */
 export const MINER_DOWNLOADS = {
 	macos: str('PUBLIC_MINER_DL_MACOS') ?? `${RELEASES}/Necter-Miner-macOS-universal.dmg`,
-	windows: str('PUBLIC_MINER_DL_WINDOWS') ?? null,
+	windows: str('PUBLIC_MINER_DL_WINDOWS') ?? `${RELEASES}/Necter-Miner-windows-x64.msi`,
 	linux: str('PUBLIC_MINER_DL_LINUX') ?? 'https://necter.network/docs/mine/server/',
 	android: str('PUBLIC_MINER_DL_ANDROID') ?? `${RELEASES}/Necter-Miner-android.apk`,
 	ios: str('PUBLIC_MINER_DL_IOS') ?? null,
