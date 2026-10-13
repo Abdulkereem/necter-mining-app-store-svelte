@@ -1,0 +1,12 @@
+No Verus logo is used. The Verus app shows a plain "VRSC" ticker tile in the app's accent colour (#3165D4, from the
+Hub listing) instead.
+
+Checked 2026-10-12: the VerusCoin source code is MIT-licensed (github.com/VerusCoin/VerusCoin, COPYING), but that
+licence covers the software, not the Verus logo. verus.io/media/brand-assets offers the logos "for use in projects,
+articles, videos, and community materials" with brand guidelines, but states no licence, and the site footer reads
+"All rights reserved" (licensing questions: press@veruscoin.io). Until Verus grants clear permission, the store
+names the coin in text only.
+
+"Verus" and "VRSC" identify the coin this app mines; this use does not imply that the Verus project endorses Necter.
+
+verus-icon.png (the project icon on the Hub) is the same plain "VRSC" tile, generated for Necter (no Verus artwork).

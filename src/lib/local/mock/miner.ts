@@ -1,5 +1,5 @@
 /**
- * In-memory mock of necter-miner's local wallet API (`/api/v1/session`, `/api/v1/wallet`, a few reads) for vitest
+ * In-memory mock of necter-miner's local wallet API (`/api/v1/session`, `/api/v1/wallet`, `/api/v1/pow`, a few reads) for vitest
  * and the Playwright local-mode server. Test-only; never imported by the app.
  *
  * Mirrors the miner's behaviour (necter-miner README "Embedded wallet"): BIP-39 English phrases with checksum,
@@ -27,6 +27,24 @@ export interface MockMinerResponse {
 }
 
 const LENGTHS = [12, 15, 18, 21, 24];
+
+/** Per-app PoW disclosures (miner 1.0.4+): enabling an app needs that app's version. */
+export const MOCK_POW_DISCLOSURES: Record<string, { version: string; text: string; workload: string; algo: string; coin: string }> = {
+	monero: {
+		version: 'pow-randomx-v2',
+		workload: 'pow.randomx',
+		algo: 'rx/0',
+		coin: 'XMR',
+		text: 'When turned on, this device runs RandomX proof-of-work for Necter within the CPU limit you set. Necter chooses the RandomX coin its treasury mines (Monero by default; Tari is merge-mined with Monero) and keeps what is mined. You are paid in NECTA for every verified share. Mining uses electricity and warms the device; you can turn it off at any time.'
+	},
+	verus: {
+		version: 'pow-verus-v1',
+		workload: 'pow.verushash',
+		algo: 'verushash-2.2',
+		coin: 'VRSC',
+		text: 'When turned on, this device runs VerusHash 2.2 proof-of-work for Necter within the CPU limit you set. Necter keeps the mined Verus (VRSC). You are paid in NECTA for every verified share. Mining uses electricity and warms the device; you can turn it off at any time.'
+	}
+};
 
 function err(status: number, error: string, message: string): MockMinerResponse {
 	return { status, body: { error, message } };
@@ -62,10 +80,45 @@ export function createMockMiner(opts: MockMinerOptions = {}) {
 	let wallet: Stored | null = null;
 	/** Every POST /wallet body (tests assert what the UI sent). */
 	const calls: Record<string, unknown>[] = [];
+	let pow = { enabled: false, accepted_disclosure: '', app: 'monero', max_cpu_pct: 50 };
+
+	function powJson() {
+		const d = MOCK_POW_DISCLOSURES[pow.app];
+		return {
+			compiled: true,
+			app: pow.app,
+			workload: d.workload,
+			settings: { ...pow, max_threads: 0, memory_mode: 'auto', max_thermal: 'serious', pause_when_user_active: null, require_ac: null, mobile_min_battery_pct: 50, mobile_max_battery_temp_c: 40 },
+			decision: pow.enabled ? { state: 'running', threads: 4, mode: 'fast' } : { state: 'off', reason: 'not_opted_in' },
+			hub: { fetched: true, device_classes: ['desktop', 'laptop', 'server'], mobile_enabled: false, error: null },
+			stats: pow.enabled
+				? { hashes: 120000, hashrate_hs: 2400, shares: { found: 12, submitted: 12, accepted: 11, rejected: 1, duplicate: 0 }, job: { job_id: 'job_mock', difficulty: 1000, algo: d.algo, coin: d.coin }, last_error: null }
+				: null,
+			memory_mb: { total: 16384, available: 8192 },
+			disclosure: { version: d.version, text: d.text },
+			disclosures: Object.fromEntries(Object.entries(MOCK_POW_DISCLOSURES).map(([k, v]) => [k, { version: v.version, text: v.text }]))
+		};
+	}
+
+	function putPow(b: Record<string, unknown>): MockMinerResponse {
+		const app = typeof b.app === 'string' ? b.app : pow.app;
+		if (!MOCK_POW_DISCLOSURES[app]) return err(400, 'invalid', `unknown proof-of-work app ${app}`);
+		if (b.enabled === true && b.accepted_disclosure !== MOCK_POW_DISCLOSURES[app].version)
+			return err(400, 'disclosure_required', `accept the ${app} disclosure (${MOCK_POW_DISCLOSURES[app].version}) first`);
+		const next = { ...pow, app };
+		if (typeof b.enabled === 'boolean') next.enabled = b.enabled;
+		if (typeof b.accepted_disclosure === 'string') next.accepted_disclosure = b.accepted_disclosure;
+		if (typeof b.max_cpu_pct === 'number') next.max_cpu_pct = Math.min(100, Math.max(10, b.max_cpu_pct));
+		// Switching app keeps mining only if that app's disclosure was accepted.
+		if (next.enabled && next.accepted_disclosure !== MOCK_POW_DISCLOSURES[app].version) next.enabled = false;
+		pow = next;
+		return { status: 200, body: powJson() };
+	}
 
 	function reset(o: MockMinerOptions = {}) {
 		remote = !!o.remote;
 		calls.length = 0;
+		pow = { enabled: false, accepted_disclosure: '', app: 'monero', max_cpu_pct: 50 };
 		wallet = o.wallet
 			? { address: privateKeyToAccount(o.wallet.privateKey).address.toLowerCase(), privateKey: o.wallet.privateKey, locked: !!o.wallet.locked }
 			: null;
@@ -154,10 +207,12 @@ export function createMockMiner(opts: MockMinerOptions = {}) {
 			return { status: 200, body: { state: 'unbound', node_id: 'ndsr-mock', owner: null, relay: { connected: false } } };
 		if (path === '/identity' && method === 'GET') return { status: 200, body: { node_id: 'ndsr-mock', public_key: '0x00', owner: null } };
 		if (path === '/sign-requests' && method === 'GET') return { status: 200, body: { items: [] } };
+		if (path === '/pow' && method === 'GET') return { status: 200, body: powJson() };
+		if (path === '/pow' && method === 'PUT') return putPow(b);
 		return null;
 	}
 
-	return { handle, reset, calls, get wallet() { return wallet ? { ...wallet } : null; } };
+	return { handle, reset, calls, get pow() { return { ...pow }; }, get wallet() { return wallet ? { ...wallet } : null; } };
 }
 
 export type MockMiner = ReturnType<typeof createMockMiner>;
