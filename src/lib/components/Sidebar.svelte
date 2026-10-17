@@ -9,7 +9,8 @@
 	import type { ProjectSummary } from '$lib/api/types';
 	import { minerAvatarDataUri } from '$lib/miner-avatar';
 	import { CATEGORIES, categoryShort, formatAmount, shortAddress } from '$lib/format';
-	import { APP_MODE } from '$lib/config';
+	import { APP_MODE, SOCIAL } from '$lib/config';
+	import SocialIcon from './common/SocialIcon.svelte';
 	import ProjectIcon from './common/ProjectIcon.svelte';
 	import SettingsModal from './SettingsModal.svelte';
 
@@ -261,6 +262,26 @@
 			<span>Help</span>
 		</a>
 	</nav>
+
+	<!-- Community -->
+	<div class="px-3 pt-2 pb-2 border-t border-[var(--border-default)]">
+		<p class="px-2 text-[10px] uppercase tracking-[0.06em] text-[var(--text-tertiary)] m-0 mb-1">Join the community</p>
+		<ul class="flex items-center gap-0.5 list-none m-0 p-0" aria-label="Necter community links">
+			{#each SOCIAL as s (s.key)}
+				<li>
+					<a
+						href={s.href}
+						target="_blank"
+						rel="noopener"
+						aria-label="Necter on {s.name}"
+						title="{s.name}: {s.handle}"
+						class="h-7 w-7 flex items-center justify-center rounded-[5px] text-[var(--text-tertiary)] hover:text-[var(--text-accent)] hover:bg-[var(--surface-2)] transition-colors"
+						><SocialIcon name={s.key} size={14} /></a
+					>
+				</li>
+			{/each}
+		</ul>
+	</div>
 
 	<!-- Wallet at bottom -->
 	<div class="border-t border-[var(--border-default)] px-3 py-3">

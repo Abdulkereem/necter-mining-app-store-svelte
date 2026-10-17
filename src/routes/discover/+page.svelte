@@ -10,6 +10,7 @@
 	import { me, preferences, toggleWatchlist } from '$lib/stores/account';
 	import { categoryName, categoryShort, compactNumber, formatAmount, formatNumber, formatRating } from '$lib/format';
 	import ProjectIcon from '$lib/components/common/ProjectIcon.svelte';
+	import JoinCommunityCard from '$lib/components/common/JoinCommunityCard.svelte';
 	import ErrorState from '$lib/components/common/ErrorState.svelte';
 	import LoadingBlock from '$lib/components/common/LoadingBlock.svelte';
 	import MinerOnboardingModal from '$lib/components/MinerOnboardingModal.svelte';
@@ -537,6 +538,10 @@
 			{/if}
 		</div>
 	{/if}
+
+	<div class="px-4 md:px-6 pt-8">
+		<JoinCommunityCard line="Get testnet updates, help from the team and other miners, and early access to new projects." />
+	</div>
 </div>
 
 <!-- Miner onboarding modal -->

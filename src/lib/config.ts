@@ -88,3 +88,24 @@ export const MINER_DOWNLOADS = {
 	ios: str('PUBLIC_MINER_DL_IOS') ?? null,
 	install: 'curl -fsSL https://necter.network/install.sh | sh -s -- miner'
 } as const;
+
+/** Official Necter community channels (single source for every social link in the store). */
+export const COMMUNITY = {
+	telegram: 'https://t.me/NecterCommunity',
+	discord: 'https://discord.gg/nDzWyRVfsJ',
+	x: 'https://x.com/NecterNetwork',
+	instagram: 'https://www.instagram.com/necter.network/',
+	github: 'https://github.com/Necter-Network',
+	linktree: 'https://linktr.ee/necternetwork'
+} as const;
+
+export type SocialKey = keyof typeof COMMUNITY;
+
+export const SOCIAL: { key: SocialKey; name: string; handle: string; href: string }[] = [
+	{ key: 'telegram', name: 'Telegram', handle: 't.me/NecterCommunity', href: COMMUNITY.telegram },
+	{ key: 'discord', name: 'Discord', handle: 'Necter Network server', href: COMMUNITY.discord },
+	{ key: 'x', name: 'X', handle: '@NecterNetwork', href: COMMUNITY.x },
+	{ key: 'instagram', name: 'Instagram', handle: '@necter.network', href: COMMUNITY.instagram },
+	{ key: 'github', name: 'GitHub', handle: 'Necter-Network', href: COMMUNITY.github },
+	{ key: 'linktree', name: 'Linktree', handle: 'All official links', href: COMMUNITY.linktree }
+];

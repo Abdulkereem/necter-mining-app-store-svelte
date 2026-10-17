@@ -4,6 +4,7 @@
 	import { educationalContent, type EducationalTerm } from '$lib/educational-content';
 	import { learnArticles } from '$lib/learn-content';
 	import { Search, ChevronRight, ArrowRight } from 'lucide-svelte';
+	import JoinCommunityCard from '$lib/components/common/JoinCommunityCard.svelte';
 
 	const tools = [
 		{
@@ -309,5 +310,9 @@
 				{/if}
 			</div>
 		{/if}
+
+		<div class="mt-8">
+			<JoinCommunityCard title="Still stuck? Ask the community" line="Join the Necter community: get testnet updates, help, and early access." />
+		</div>
 	</div>
 </div>
